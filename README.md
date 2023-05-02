@@ -19,7 +19,8 @@ TODO: describe conda environment creation ...
 
 ## Contact 
 
-TODO: add github handles for contacts 
+Sara Carioscia: @scarioscia
+Arjun Biddanda: @aabiddanda
 
 ## External Repositories
 
