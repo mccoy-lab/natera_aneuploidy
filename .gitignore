@@ -1,0 +1,5 @@
+analysis/*/results/
+*.pdf
+*.png
+*.DS_Store
+*.txt
