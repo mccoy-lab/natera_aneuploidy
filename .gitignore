@@ -5,3 +5,4 @@ analysis/*/log/
 *.png
 *.DS_Store
 *.txt
+*nohup.*

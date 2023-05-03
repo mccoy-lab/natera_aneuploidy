@@ -49,7 +49,7 @@ if __name__ == "__main__":
         print("Finished meta HMM parameter estimation!", file=sys.stderr)
         print("Starting meta HMM forward-backward algorithm.", file=sys.stderr)
         if snakemake.params["lrr"]:
-            lrrs_mu, lrrs_sd, _ = hmm.est_lrr_sd(lrrs=baf_data["lrr_embryo"])
+            pi0_lrr, lrrs_mu, lrrs_sd, _ = hmm.est_lrr_sd(lrrs=baf_data["lrr_embryo"])
             gammas, states, karyotypes = hmm.forward_backward(
                 bafs=baf_data["baf_embryo"],
                 lrrs=baf_data["lrr_embryo"],
@@ -59,6 +59,7 @@ if __name__ == "__main__":
                 pat_haps=pat_haps,
                 pi0=pi0_est,
                 std_dev=sigma_est,
+                pi0_lrr=pi0_lrr,
                 eps=eps,
                 unphased=snakemake.params["unphased"],
                 logr=True,

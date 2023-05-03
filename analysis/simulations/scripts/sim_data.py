@@ -386,7 +386,7 @@ def mixed_ploidy_sim(
         assert lrr.size == m
         for j in np.where(mix_ploidies == p):
             bafs[j, :] = baf
-            lrr[j, :] = lrr
+            lrrs[j, :] = lrr
         aploids.append(aploid)
     baf_embryo = np.mean(bafs, axis=0)
     lrr_embryo = np.mean(lrr, axis=0)
