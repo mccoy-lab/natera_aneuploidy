@@ -2,7 +2,6 @@
 
 import numpy as np
 from scipy.stats import beta, binom, norm, rv_histogram, truncnorm, uniform
-from tqdm import tqdm
 
 # These are the different classes of aneuploidy that we can putatively simulate from
 sim_ploidy_values = ["0", "1m", "1p", "2", "3m", "3p"]
@@ -116,7 +115,7 @@ def sim_haplotype_paths(
             # We have a paternal monosomy ...
             zs_maternal = None
             zs_paternal[0] = binom.rvs(1, 0.5)
-            for i in tqdm(range(1, m)):
+            for i in range(1, m):
                 zs_paternal[i] = (
                     1 - zs_paternal[i - 1]
                     if uniform.rvs() <= rec_prob
@@ -129,7 +128,7 @@ def sim_haplotype_paths(
             # We have a maternal monosomy ...
             zs_paternal = None
             zs_maternal[0] = binom.rvs(1, 0.5)
-            for i in tqdm(range(1, m)):
+            for i in range(1, m):
                 zs_maternal[i] = (
                     1 - zs_maternal[i - 1]
                     if uniform.rvs() <= rec_prob
@@ -147,7 +146,7 @@ def sim_haplotype_paths(
             zs0_paternal[0] = binom.rvs(0, 0.5)
             zs1_paternal[0] = binom.rvs(0, 0.5)
 
-            for i in tqdm(range(1, m)):
+            for i in range(1, m):
                 zs_maternal[i] = (
                     1 - zs_maternal[i - 1]
                     if uniform.rvs() <= rec_prob
@@ -178,7 +177,7 @@ def sim_haplotype_paths(
             zs_paternal[0] = binom.rvs(0, 0.5)
             zs0_maternal[0] = binom.rvs(0, 0.5)
             zs1_maternal[0] = binom.rvs(0, 0.5)
-            for i in tqdm(range(1, m)):
+            for i in range(1, m):
                 zs_paternal[i] = (
                     1 - zs_paternal[i - 1]
                     if uniform.rvs() <= rec_prob
@@ -213,7 +212,7 @@ def sim_haplotype_paths(
         # A typical euploid sample ...
         zs_maternal[0] = binom.rvs(1, 0.5)
         zs_paternal[0] = binom.rvs(1, 0.5)
-        for i in tqdm(range(1, m)):
+        for i in range(1, m):
             # We switch with a specific probability
             zs_maternal[i] = (
                 1 - zs_maternal[i - 1]
@@ -240,7 +239,7 @@ def sim_b_allele_freq(mat_hap, pat_hap, ploidy=2, std_dev=0.2, mix_prop=0.3, see
     assert mat_hap.size == pat_hap.size
     true_geno = mat_hap + pat_hap
     baf = np.zeros(true_geno.size)
-    for i in tqdm(range(baf.size)):
+    for i in range(baf.size):
         if ploidy == 0:
             baf[i] = np.random.uniform()
         else:
@@ -338,71 +337,6 @@ def full_ploidy_sim(
     }
     return res_table
 
-
-def sibling_euploid_sim(
-    afs=None,
-    ploidy=2,
-    m=10000,
-    nsibs=5,
-    rec_prob=1e-4,
-    mat_skew=0.5,
-    std_dev=0.2,
-    mix_prop=0.3,
-    alpha=1.0,
-    switch_err_rate=1e-2,
-    seed=42,
-):
-    """Simulate euploid embryos that are siblings."""
-    assert ploidy == 2
-    assert m > 0
-    assert seed > 0
-    assert nsibs > 0
-    np.random.seed(seed)
-
-    res_table = {}
-    mat_haps, pat_haps = draw_parental_genotypes(afs=None, m=m, seed=seed)
-    mat_haps_prime, pat_haps_prime, mat_switch, pat_switch = create_switch_errors(
-        mat_haps, pat_haps, err_rate=switch_err_rate, seed=seed
-    )
-    res_table["mat_haps_true"] = mat_haps
-    res_table["pat_haps_true"] = pat_haps
-    res_table["mat_haps_real"] = mat_haps_prime
-    res_table["pat_haps_real"] = pat_haps_prime
-    res_table["mat_switch"] = mat_switch
-    res_table["pat_switch"] = pat_switch
-    res_table["nsibs"] = nsibs
-    res_table["aploid"] = "2"
-    for i in range(nsibs):
-        zs_maternal, zs_paternal, mat_hap1, pat_hap1, aploid = sim_haplotype_paths(
-            mat_haps,
-            pat_haps,
-            ploidy=ploidy,
-            mat_skew=mat_skew,
-            rec_prob=rec_prob,
-            seed=seed + i,
-        )
-        # print(ploidy, aploid, mat_hap1, pat_hap1)
-        geno, baf = sim_b_allele_freq(
-            mat_hap1,
-            pat_hap1,
-            ploidy=ploidy,
-            std_dev=std_dev,
-            mix_prop=mix_prop,
-            seed=seed + i,
-        )
-        lrr = sim_logR_ratio(
-            mat_hap1, pat_hap1, ploidy=ploidy, alpha=alpha, seed=seed + i
-        )
-
-        assert geno.size == m
-        assert baf.size == m
-        res_table[f"baf_embryo{i}"] = baf
-        res_table[f"lrr_embryo{i}"] = lrr
-        res_table[f"zs_maternal{i}"] = zs_maternal
-        res_table[f"zs_paternal{i}"] = zs_paternal
-    return res_table
-
-
 def mixed_ploidy_sim(
     afs=None,
     ploidies=np.array([0, 1, 2, 3]),
@@ -480,26 +414,11 @@ def mixed_ploidy_sim(
 
 if __name__ == "__main__":
     if snakemake.params["sfs"] != "None":
-        # Estimate the simulated allele frequency parameters
-        # NOTE: could potentially just do with numpy as well...
         afs = np.loadtxt(snakemake.params["sfs"])
     else:
         afs = None
     # Run the full simulation using the defined helper function
-    if snakemake.params["sibling_sim"]:
-        # NOTE: run the simulation
-        table_data = sibling_euploid_sim(
-            afs=afs,
-            m=snakemake.params["m"],
-            nsibs=snakemake.params["nsib"],
-            rec_prob=1e-4,
-            std_dev=snakemake.params["sigma"],
-            mix_prop=snakemake.params["pi0"],
-            alpha=1.0,
-            seed=snakemake.params["seed"],
-        )
-    elif snakemake.params["mixed_ploidy"]:
-        # NOTE - we kind of ignore nullisomies here ...
+    if snakemake.params["mixed_ploidy"]:
         p = snakemake.params["p"]
         table_data = mixed_ploidy_sim(
             afs=afs,

@@ -11,21 +11,22 @@ hmm_sims:
       - 2
       - 3
     m:
-      - 4000
+      - 5000
     std_dev:
       - 20
       - 30
       - 40
+      - 50
     pi0:
       - 30
       - 40
+      - 50
     skew:
       - 50
   mixed_sims:
     reps: 20
     p_aneuploid:
-      #- 5
-      #- 10
+      - 10
       - 20
       - 30
       - 40
@@ -33,23 +34,18 @@ hmm_sims:
     m:
       - 1000
     std_dev:
-      #- 10
       - 20
-      #- 30
-      #- 40
+      - 30
     pi0:
-      #- 20
-      - 40
-      #- 60
+      - 30
+      - 60
     skew:
-      #- 10
-      - 50
-      #- 90
+      - 0
     ncells:
       - 5
       - 10
   fpr_sims:
-    reps: 5
+    reps: 500
     ploidy:
       - 0
       - 1

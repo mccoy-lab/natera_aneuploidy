@@ -81,7 +81,6 @@ rule sim_baf_lrr_ploidy:
         father_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
         child_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
         mixed_ploidy=False,
-        sibling_sim=False,
         alpha=lambda wildcards: int(wildcards.a) / 100,
     script:
         "scripts/sim_data.py"
