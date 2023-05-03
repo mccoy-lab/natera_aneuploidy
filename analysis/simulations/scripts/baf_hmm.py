@@ -34,6 +34,8 @@ if __name__ == "__main__":
         else:
             mat_haps = baf_data["mat_haps"]
             pat_haps = baf_data["pat_haps"]
+        print("here1")
+        print(baf_data["baf_embryo"].shape, baf_data["lrr_embryo"].shape)
         opt_res = hmm.est_sigma_pi0(
             bafs=baf_data["baf_embryo"],
             lrrs=baf_data["lrr_embryo"],

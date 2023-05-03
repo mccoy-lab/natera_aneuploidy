@@ -389,7 +389,7 @@ def mixed_ploidy_sim(
             lrrs[j, :] = lrr
         aploids.append(aploid)
     baf_embryo = np.mean(bafs, axis=0)
-    lrr_embryo = np.mean(lrr, axis=0)
+    lrr_embryo = np.mean(lrrs, axis=0)
     assert baf_embryo.size == m
     res_table = {
         "mat_haps": mat_haps,
@@ -423,7 +423,7 @@ if __name__ == "__main__":
         table_data = mixed_ploidy_sim(
             afs=afs,
             ploidies=np.array([0, 1, 2, 3]),
-            props=np.array([0.0, p / 2, 1.0 - p, p / 2]),
+            props=np.array([0.0, p / 2.0, 1.0 - p, p / 2.0]),
             ncells=snakemake.params["n"],
             m=snakemake.params["m"],
             mat_skew=snakemake.params["mat_skew"],

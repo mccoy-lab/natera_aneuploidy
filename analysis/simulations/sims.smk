@@ -34,11 +34,11 @@ configfile: "config.yaml"
 # Creating the associated targets for simulation & evaluation...
 TARGETS = []
 if config["hmm_sims"]["model_comp"]:
-    TARGETS.append("results/total_hmm_ploidy.tsv")
+    TARGETS.append("results/total_hmm_ploidy.tsv.gz")
 if config["hmm_sims"]["mixed_ploidy"]:
-    TARGETS.append("results/mixed_ploidy_sims.tsv")
+    TARGETS.append("results/mixed_ploidy_sims.tsv.gz")
 if config["hmm_sims"]["fpr_sims"]:
-    TARGETS.append("results/fpr_sims_hmm_ploidy.tsv")
+    TARGETS.append("results/fpr_sims_hmm_ploidy.tsv.gz")
 
 
 localrules:
@@ -90,9 +90,7 @@ rule hmm_baf_lrr_ploidy:
     input:
         baf=rules.sim_baf_lrr_ploidy.output.baf,
     output:
-        hmm_out=temp(
-            "results/hmm_ploidy_comp/ploidy{k}/sim{rep}_m{m}_pi{pi0}_sigma{sigma}_skew{skew}.a{a}.phase_error{p}.lrr{lrr}.model_comp.npz"
-        ),
+        hmm_out="results/hmm_ploidy_comp/ploidy{k}/sim{rep}_m{m}_pi{pi0}_sigma{sigma}_skew{skew}.a{a}.phase_error{p}.lrr{lrr}.model_comp.npz",
     wildcard_constraints:
         lrr="0|1",
         p="0|1",
@@ -159,7 +157,7 @@ rule collect_hmm_model_baf_lrr:
             lrr=[0, 1],
         ),
     output:
-        tot_hmm_tsv="results/total_hmm_ploidy.tsv",
+        tot_hmm_tsv="results/total_hmm_ploidy.tsv.gz",
     run:
         dfs = []
         for p in input.hmm_tsvs:
@@ -185,7 +183,7 @@ rule collect_fpr_baf_model_data:
             lrr=0,
         ),
     output:
-        tot_hmm_tsv="results/fpr_sims_hmm_ploidy.tsv",
+        tot_hmm_tsv="results/fpr_sims_hmm_ploidy.tsv.gz",
     run:
         dfs = []
         for p in input.hmm_tsvs:
@@ -226,9 +224,7 @@ rule hmm_model_comparison_mixed:
     input:
         baf=rules.sim_mixed_ploidy.output.baf,
     output:
-        hmm_out=temp(
-            "results/hmm_ploidy_comp/mix_ploidy_{p}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.model_comp.npz"
-        ),
+        hmm_out="results/hmm_ploidy_comp/mix_ploidy_{p}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.model_comp.npz",
     resources:
         time="0:30:00",
         mem_mb="2G",
@@ -284,7 +280,7 @@ rule collect_mixed_ploidy:
             n=config["hmm_sims"]["mixed_sims"]["ncells"],
         ),
     output:
-        tot_mixed_tsv="results/mixed_ploidy_sims.tsv",
+        tot_mixed_tsv="results/mixed_ploidy_sims.tsv.gz",
     run:
         dfs = []
         for p in input.mixed_ploidy_tsvs:
