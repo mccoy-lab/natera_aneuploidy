@@ -32,8 +32,8 @@ TODO: describe conda environment creation ...
 
 ## Contact 
 
-Sara Carioscia: @scarioscia
-Arjun Biddanda: @aabiddanda
+* Sara Carioscia: @scarioscia
+* Arjun Biddanda: @aabiddanda
 
 ## External Repositories
 
