@@ -8,10 +8,13 @@ import
 
 # -------- Setting variables and paths for pre-GWAS processing steps ------- #
 king_exec <- "~/code/king"
+king_outputs_fp <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/"
 vcf_input <- "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.vcf.gz"
 alleleorder_fp <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/opticall_concat_total.norm.b38.alleleorder"
 discovery_validate_R <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/discovery_validate_split.R"
 metadata = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/data/spectrum_metadata_merged.csv"
+fam_file <- "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam"
+discovery_validate_out_fp <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/"
 discovery_validate_maternal <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_f.txt"
 discovery_validate_paternal <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_m.txt"
 plot_discovery_validate <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_validation_split_covariates.pdf"
@@ -36,10 +39,11 @@ rule run_king:
     alleleorder_fp = alleleorder_fp,
   output: 
     alleleorder_bed = alleleorder_fp + ".bed",
+    king_outputs = king_outputs_fp,
   shell: 
     """
     plink --vcf {input.vcf_input} --double-id --allow-extra-chr --make-bed --out {input.alleleorder_fp}
-    {king_exec} -b {output.alleleorder_bed} --unrelated --degree 2
+    {king_exec} -b {output.alleleorder_bed} --unrelated --degree 2 {output.king_outputs}
     """
 
 rule discovery_test_split: 
@@ -47,13 +51,14 @@ rule discovery_test_split:
   input:
     discovery_validate_R = discovery_validate_R,
     metadata = metadata,
-    
+    fam_file = fam_file,
+    king_to_remove = king_outputs_fp + "kingunrelated_toberemoved.txt",
   output: 
-    discovery_validate_maternal = discovery_validate_maternal,
-    discovery_validate_paternal = discovery_validate_paternal,
-    plot_discovery_validate = plot_discovery_validate,
+    discovery_validate_maternal = discovery_validate_out_fp + "discover_validate_split_mat.txt",
+    discovery_validate_paternal = discovery_validate_out_fp + "discover_validate_split_pat.txt",
+    plot_discovery_validate = discovery_validate_out_fp + "discover_validate_plots.pdf",
   shell: 
-    "Rscript {input.discovery_validate_R} {input.metadata}" 
+    "Rscript {input.discovery_validate_R} {input.metadata} {input.fam_file} {input.king_to_remove} {output.discovery_validate_maternal} {output.discovery_validate_paternal} {output.plot_discovery_validate}" 
 
 rule compute_PCs: 
   """Run plink to get principal components for parental genotypes""" 
