@@ -10,14 +10,15 @@ import
 king_exec <- "~/code/king"
 vcf_input <- "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.vcf.gz"
 alleleorder_fp <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/opticall_concat_total.norm.b38.alleleorder"
-pcs_output <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/parental_genotypes_pcs"
-plot_discovery_validate <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_validation_split_covariates.pdf"
+discovery_validate_R <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/discovery_validate_split.R"
+metadata = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/data/spectrum_metadata_merged.csv"
 discovery_validate_maternal <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_f.txt"
 discovery_validate_paternal <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_m.txt"
+plot_discovery_validate <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_validation_split_covariates.pdf"
+pcs_out <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/parental_genotypes_pcs"
 
 
 # -------- Setting key variables/paths for running GWAS across phenotypes in the Natera dataset ------- #
-metadata = "spectrum_metadata_merged.csv"
 linker_file = "" # two-column file with mom's arrayID with associate dad arrayID for use in paternal DNA gwas 
 parent_pca = ".eigenvec"
 gwas_Rscript_maternal = "/maternal_gwas.R"
@@ -41,22 +42,29 @@ rule run_king:
     {king_exec} -b {output.alleleorder_bed} --unrelated --degree 2
     """
 
+rule discovery_test_split: 
+  """Split families into discovery/validation sets for use in GWAS"""
+  input:
+    discovery_validate_R = discovery_validate_R,
+    metadata = metadata,
+    
+  output: 
+    discovery_validate_maternal = discovery_validate_maternal,
+    discovery_validate_paternal = discovery_validate_paternal,
+    plot_discovery_validate = plot_discovery_validate,
+  shell: 
+    "Rscript {input.discovery_validate_R} {input.metadata}" 
+
 rule compute_PCs: 
   """Run plink to get principal components for parental genotypes""" 
   input: 
     vcf_input = vcf_input,
   output: 
-    pcs = pcs_output
+    pcs_out = pcs_output,
   shell:
-    "plink --vcf {input.vcf_input} --double-id --allow-extra-chr --pca --out {output.pcs}"
-
-
-rule discovery_test_split: 
-  """ """
-  shell: 
-    "Rscript " 
-
-rule run_maternal: 
+    "plink --vcf {input.vcf_input} --double-id --allow-extra-chr --pca --out {output.pcs}" 
+    
+rule run_maternal_m_meiotic: 
   """ """ 
   input:
     gwas_Rscript_maternal,
@@ -68,7 +76,7 @@ rule run_maternal:
   shell: 
     "Rscript {input.gwas_Rscript_maternal} {output.gwas_maternal_all_sites} {output.gwas_maternal_MAF}
     
-rule run_paternal: 
+rule run_paternal_m_meiotic: 
   """ """ 
   input:
     ## 
