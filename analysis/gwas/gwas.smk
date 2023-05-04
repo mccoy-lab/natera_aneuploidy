@@ -15,6 +15,11 @@ gwas_Rscript_maternal = "/paternal_gwas.R"
 phenotype_input_path = "/natera_spectrum/gwas/phenotyping/phenotype_files/" #update this for Rockfish and match to output from other file
 gwas_output_path = "/natera_spectrum/gwas/output_files"
 
+# output filepaths 
+plot_fp <- "/scratch16/rmccoy22/scarios1/natera_spectrum/gwas/background/discovery_validation_split_covariates.pdf"
+output_maternal <- "/scratch16/rmccoy22/scarios1/natera_spectrum/gwas/background/discover_validate_split_f.txt"
+output_paternal <- "/scratch16/rmccoy22/scarios1/natera_spectrum/gwas/background/discover_validate_split_m.txt"
+
 
 # -------- Functions to determine run GWAS on maternal and paternal for each phenotype, and plot -------- #
 rule run_king: 
