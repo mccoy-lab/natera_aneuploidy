@@ -1,7 +1,6 @@
 import sys
 import numpy as np
-from hmm import  MetaHMM
-
+from karyohmm import  MetaHMM
 
 if __name__ == "__main__":
     # Read in the input data and params ...
@@ -25,6 +24,7 @@ if __name__ == "__main__":
                 "3p": np.nan,
                 "sigma_est": np.nan,
                 "pi0_est": np.nan,
+                "pi0_lrr": np.nan,
             }
         else:
             logr=False

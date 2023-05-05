@@ -8,7 +8,7 @@ import gzip as gz
 import sys
 
 
-def obtain_parental_genotypes(vcf_file, mother_id, father_id, af=0.01):
+def obtain_parental_genotypes(vcf_file, mother_id, father_id, af=0.01, threads=4):
     """Obtain the parental genotypes and check that these are in the dataset.
 
     Returns:
@@ -25,7 +25,7 @@ def obtain_parental_genotypes(vcf_file, mother_id, father_id, af=0.01):
     alt = []
     mat_haps = []
     pat_haps = []
-    for variant in tqdm(VCF(vcf_file, gts012=True, samples=[mother_id, father_id])):
+    for variant in tqdm(VCF(vcf_file, gts012=True, samples=[mother_id, father_id], threads=threads)):
         if (variant.aaf > af) | (1 - variant.aaf > af):
             rsids.append(variant.ID)
             pos.append(variant.POS)
@@ -228,12 +228,16 @@ def filter_parent_child_data(child_df, mat_haps, pat_haps, rsids, pos, ref, alt)
     bafs = np.zeros(len(rsids))
     lrrs_raw = np.empty(len(rsids))
     lrrs_norm = np.empty(len(rsids))
+    rsid_dict = {}
+    for r, lrr_raw, lrr_norm,baf, B in tqdm(zip(child_df.rsid.values, child_df.LRR_raw.values, child_df.LRR_norm.values, child_df.b.values, child_df.B.values)):
+        rsid_dict[r] = (lrr_raw, lrr_norm, baf, B)
     for i, (r, rx, ax) in tqdm(enumerate(zip(rsids, ref, alt))):
-        cur_df = child_df[child_df.rsid == r]
-        lrrs_raw[i] = cur_df.LRR_raw.values[0]
-        lrrs_norm[i] = cur_df.LRR_norm.values[0]
-        cur_baf = cur_df.b.values[0]
-        b_allele = cur_df.B.values[0]
+        (lrr_raw, lrr_norm, cur_baf, b_allele) = rsid_dict[r]
+        # cur_df = child_df[child_df.rsid == r]
+        lrrs_raw[i] = lrr_raw 
+        lrrs_norm[i] = lrr_norm 
+        # cur_baf = cur_df.b.values[0]
+        # b_allele = cur_df.B.values[0]
         if (
             valid_allele(b_allele)
             and (np.sum(mat_haps[:, i]) in [0, 1, 2])

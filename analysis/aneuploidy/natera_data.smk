@@ -64,7 +64,7 @@ def create_trios(
                 cur_df = meta_df[np.isin(meta_df.casefile_id, cur_cases)]
                 for c in cur_df[cur_df.family_position == "child"].array.values:
                     valid_trios.append((m, fat, c))
-        else:
+        elif fathers.size == 1:
             for c in cur_df[cur_df.family_position == "child"].array.values:
                 valid_trios.append((m, fathers[0], c))
     parents = [line.rstrip() for line in open(sample_file, "r")]
@@ -88,7 +88,7 @@ if Path("results/natera_inference/valid_trios.txt").is_file():
             [m, f, c] = line.rstrip().split()
             for l in lrrs:
                 total_data.append(f"results/natera_inference/{m}+{f}/{c}.{l}.total.posterior.tsv.gz")
-            if i >= 1000:
+            if i >= 1:
                 break
 
 # ------- Rules Section ------- #
@@ -268,7 +268,7 @@ rule generate_posterior_table:
         lrr="(none|raw|norm)"
     run:
         tot_dfs = []
-        for c, fp, baf in zip(chroms, input.hmm_models, input.baf_data):
+        for c, fp, baf in tqdm(zip(chroms, input.hmm_models, input.baf_data)):
             data = np.load(fp)
             baf_data = np.load(baf)
             gammas = data["gammas"]
