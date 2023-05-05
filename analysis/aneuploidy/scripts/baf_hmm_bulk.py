@@ -37,7 +37,7 @@ if __name__ == "__main__":
                 logr = True
             hmm = MetaHMM(logr=logr)
             # NOTE: this naively just takes every other snp to reduce runtimes ...
-            opt_res = hmm.est_sigma_pi0(
+            pi0_est, sigma_est = hmm.est_sigma_pi0(
                 bafs=baf_data["baf_embryo"][::2],
                 lrrs=lrrs[::2],
                 mat_haps=baf_data["mat_haps"][:, ::2],
@@ -46,8 +46,6 @@ if __name__ == "__main__":
                 unphased=snakemake.params["unphased"],
                 logr=False
             )
-            pi0_est = opt_res.x[0]
-            sigma_est = opt_res.x[1]
             pi0_lrr = np.nan
             lrr_mu = None
             lrr_sd = None

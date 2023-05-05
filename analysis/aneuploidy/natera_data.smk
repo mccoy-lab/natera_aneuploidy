@@ -88,15 +88,12 @@ if Path("results/natera_inference/valid_trios.txt").is_file():
             [m, f, c] = line.rstrip().split()
             for l in lrrs:
                 total_data.append(f"results/natera_inference/{m}+{f}/{c}.{l}.total.posterior.tsv.gz")
-            if i >= 1:
-                break
 
 # ------- Rules Section ------- #
 
 localrules:
     all,
     hmm_model_chromosomes,
-    generate_posterior_table,
 
 rule all:
     input:
@@ -262,7 +259,7 @@ rule generate_posterior_table:
     output:
         posterior="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.total.posterior.tsv.gz",
     resources:
-        time="1:00:00",
+        time="0:30:00",
         mem_mb="1G",
     wildcard_constraints:
         lrr="(none|raw|norm)"
