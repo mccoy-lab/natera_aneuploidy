@@ -5,6 +5,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import pathlib
 
 # Read in the data for creating the thresholds for posteriors
 sim_df = pd.read_csv('../../data/simulations/fpr_sims_hmm_ploidy.tsv.gz', sep="\t")
@@ -27,4 +28,6 @@ plt.tight_layout()
 thresholds['1p'] = thresholds['1m']
 thresholds['3p'] = thresholds['3m']
 print(thresholds)
+# Create the folders if they are already not created
+pathlib.Path("pdfs/").mkdir(parents=True, exist_ok=True)
 plt.savefig('pdfs/figS37.pdf', bbox_inches='tight')

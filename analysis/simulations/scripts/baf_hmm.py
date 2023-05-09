@@ -36,7 +36,7 @@ if __name__ == "__main__":
             pat_haps = baf_data["pat_haps"]
         print("here1")
         print(baf_data["baf_embryo"].shape, baf_data["lrr_embryo"].shape)
-        opt_res = hmm.est_sigma_pi0(
+        pi0_est, sigma_est = hmm.est_sigma_pi0(
             bafs=baf_data["baf_embryo"],
             lrrs=baf_data["lrr_embryo"],
             mat_haps=mat_haps,
@@ -45,9 +45,6 @@ if __name__ == "__main__":
             unphased=snakemake.params["unphased"],
             logr=False,
         )
-        # This seems like we should at least keep track of this
-        pi0_est = opt_res.x[0]
-        sigma_est = opt_res.x[1]
         print("Finished meta HMM parameter estimation!", file=sys.stderr)
         print("Starting meta HMM forward-backward algorithm.", file=sys.stderr)
         if snakemake.params["lrr"]:
