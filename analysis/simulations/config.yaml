@@ -53,7 +53,7 @@ hmm_sims:
     m:
       - 5000
     pi0:
-      - 30
+      - 42
     std_dev:
       - 30
     skew:
