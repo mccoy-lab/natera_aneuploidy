@@ -22,9 +22,12 @@ if __name__ == "__main__":
                 "2": np.nan,
                 "3m": np.nan,
                 "3p": np.nan,
-                "sigma_est": np.nan,
-                "pi0_est": np.nan,
+                "sigma_baf": np.nan,
+                "pi0_baf": np.nan,
                 "pi0_lrr": np.nan,
+                "lrr_mu": np.nan,
+                "lrr_sd": np.nan,
+                "aploid": baf_data["aploid"]
             }
         else:
             logr=False
