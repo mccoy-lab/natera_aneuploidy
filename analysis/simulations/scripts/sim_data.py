@@ -253,8 +253,8 @@ def sim_b_allele_freq(mat_hap, pat_hap, ploidy=2, std_dev=0.2, mix_prop=0.3, see
     np.random.seed(seed)
     assert (ploidy <= 3) & (ploidy >= 0)
     assert mat_hap.size == pat_hap.size
-    assert mat_hap in [0,1,2]
-    assert pat_hap in [0,1,2]
+    assert np.isin(mat_hap, [0,1,2]).all()
+    assert np.isin(pat_hap, [0,1,2]).all()
     true_geno = mat_hap + pat_hap
     baf = np.zeros(true_geno.size)
     for i in range(baf.size):

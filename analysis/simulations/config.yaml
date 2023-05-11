@@ -1,60 +1,60 @@
 afs: "utils/HumanCytoSNP-12v2-1_NS550_A1.hg38.annotated.autosomes.total.1kg_af.txt.gz"
-hmm_sims:
-  model_comp: True
-  mixed_ploidy: True
-  fpr: True 
-  eps: -6
-  simple_sims:
-    reps: 5
-    ploidy:
-      - 0
-      - 1
-      - 2
-      - 3
-    m:
-      - 5000
-    std_dev:
-      - 20
-      - 30
-      - 40
-    pi0:
-      - 30
-      - 40
-      - 50
-    skew:
-      - 0
-  mixed_sims:
-    reps: 20
-    p_aneuploid:
-      - 10
-      - 30
-      - 50
-      - 70
-    m:
-      - 5000
-    std_dev:
-      - 20
-      - 30
-    pi0:
-      - 30
-      - 60
-    skew:
-      - 0
-    ncells:
-      - 5
-      - 10
-  fpr_sims:
-    reps: 500
-    ploidy:
-      - 0
-      - 1
-      - 2
-      - 3
-    m:
-      - 5000
-    pi0:
-      - 42
-    std_dev:
-      - 30
-    skew:
-      - 0
+model_comp: True 
+mixed_ploidy: False 
+fpr: True 
+eps: -6
+simple_sims:
+  reps: 5
+  ploidy:
+    - 0
+    - 1
+    - 2
+    - 3
+  m:
+    - 5000
+  std_dev:
+    - 10
+    - 20
+    - 30
+    - 40
+  pi0:
+    - 10
+    - 20
+    - 30
+    - 40
+  skew:
+    - 50
+fpr_sims:
+  reps: 500
+  ploidy:
+    - 0
+    - 1
+    - 2
+    - 3
+  m:
+    - 5000
+  min_pi0: 0.1
+  max_pi0: 0.4
+  min_sigma: 0.1
+  max_sigma: 0.4
+  skew: 1.0
+mixed_sims:
+  reps: 20
+  p_aneuploid:
+    - 10
+    - 30
+    - 50
+    - 70
+  m:
+    - 5000
+  std_dev:
+    - 20
+    - 30
+  pi0:
+    - 30
+    - 60
+  skew:
+    - 0
+  ncells:
+    - 5
+    - 10
