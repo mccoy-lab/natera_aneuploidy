@@ -242,7 +242,7 @@ rule hmm_model_chromosomes:
 rule generate_posterior_table:
     """Generates a full TSV with posterior probabilities for each embryo across ploidy states.
     
-    The columns of the TSV contain the specific karyotypes like 0, 1m, 1p, 2m, 2p, 2, 3m, 3p.
+    The columns of the TSV contain the specific karyotype states like 0, 1m, 1p, 2m, 2p, 2, 3m, 3p.
     
     Each row corresponds to a specific SNP position.
     """
@@ -268,14 +268,20 @@ rule generate_posterior_table:
         for c, fp, baf in tqdm(zip(chroms, input.hmm_models, input.baf_data)):
             data = np.load(fp)
             baf_data = np.load(baf)
-            gammas = data["gammas"]
-            cur_df = pd.DataFrame(gammas.T)
-            cur_df.columns = data["states"]
-            cur_df["chrom"] = c
-            cur_df["pos"] = baf_data["pos"]
-            cur_df["rsid"] = baf_data["rsids"]
-            tot_dfs.append(cur_df)
-        df = pd.concat(tot_dfs)
-        cols_to_move = ["chrom", "pos", "rsid"]
-        df = df[cols_to_move + [col for col in df.columns if col not in cols_to_move]]
+            try:
+                gammas = data["gammas"]
+                cur_df = pd.DataFrame(gammas.T)
+                cur_df.columns = data["states"]
+                cur_df["chrom"] = c
+                cur_df["pos"] = baf_data["pos"]
+                cur_df["rsid"] = baf_data["rsids"]
+                tot_dfs.append(cur_df)
+            except:
+                pass
+        if tot_dfs == []:
+            df = pd.DataFrame(columns=['chrom','pos','rsid','0','1m','1p','2', '3m', '3p'])
+        else:
+            df = pd.concat(tot_dfs)
+            cols_to_move = ["chrom", "pos", "rsid"]
+            df = df[cols_to_move + [col for col in df.columns if col not in cols_to_move]]
         df.to_csv(output.posterior, sep="\t", index=None)
