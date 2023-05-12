@@ -425,6 +425,7 @@ def mixed_ploidy_sim(
         "std_dev": std_dev,
         "mix_prop": mix_prop,
         "seed": seed,
+        "alpha": alpha
     }
     return res_table
 
