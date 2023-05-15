@@ -1,10 +1,10 @@
 afs: "utils/HumanCytoSNP-12v2-1_NS550_A1.hg38.annotated.autosomes.total.1kg_af.txt.gz"
 model_comp: True 
-mixed_ploidy: False 
 fpr: True 
+mixed_ploidy: False 
 eps: -6
 simple_sims:
-  reps: 5
+  reps: 20
   ploidy:
     - 0
     - 1
@@ -16,16 +16,14 @@ simple_sims:
     - 10
     - 20
     - 30
-    - 40
   pi0:
     - 10
     - 20
     - 30
-    - 40
   skew:
-    - 50
+    - 100
 fpr_sims:
-  reps: 400
+  reps: 300
   ploidy:
     - 0
     - 1
@@ -33,10 +31,7 @@ fpr_sims:
     - 3
   m:
     - 5000
-  min_pi0: 0.1
-  max_pi0: 0.45
-  min_sigma: 0.1
-  max_sigma: 0.4
+  est_params: 'utils/est_params_first_tranche.tsv.gz'
   skew: 1.0
 mixed_sims:
   reps: 20

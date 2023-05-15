@@ -11,6 +11,7 @@ import yaml
 import warnings
 import datetime
 import numpy as np
+from scipy.stats import rv_histogram
 
 # Mark the datestamp for any date-specific files
 DATESTAMP = datetime.datetime.now().strftime("%Y%m%d")
@@ -33,13 +34,19 @@ configfile: "config.yaml"
 
 # Creating the associated targets for simulation & evaluation...
 TARGETS = []
+dist_sigma = None
+dist_pi0 = None
 if config["model_comp"]:
     TARGETS.append("results/total_hmm_ploidy.tsv.gz")
 if config["fpr_sims"]:
+    df = pd.read_csv(config['fpr_sims']['est_params'], sep="\t")
+    df.columns = ['chrom', 'sigma_est', 'pi0_est']
+    df.dropna(inplace=True)
+    dist_sigma = rv_histogram(np.histogram(df.sigma_est.values, bins=100))
+    dist_pi0 = rv_histogram(np.histogram(df.pi0_est.values, bins=100))
     TARGETS.append("results/fpr_sims_hmm_ploidy.tsv.gz")
-if config["mixed_ploidy"]:
-    TARGETS.append("results/mixed_ploidy_sims.tsv.gz")
-
+if config['mixed_ploidy']:
+    TARGETS.append("results/results/mixed_ploidy_sims.tsv.gz")
 
 localrules:
     all,
@@ -152,9 +159,9 @@ rule collect_hmm_model_baf_lrr:
             pi0=config["simple_sims"]["pi0"],
             sigma=config["simple_sims"]["std_dev"],
             skew=config["simple_sims"]["skew"],
-            a=[50, 100, 200],
+            a=[100],
             p=[1],
-            lrr=[0, 1],
+            lrr=[0],
         ),
     output:
         tot_hmm_tsv="results/total_hmm_ploidy.tsv.gz",
@@ -168,10 +175,10 @@ rule collect_hmm_model_baf_lrr:
 
 
 # ----- Simulation 2: Estimate FPR based on a grid-sampling of points ------- #
-def random_uniform(seed=42, low=0.05, high=0.5):
+def random_rv(rv, seed=42):
     """random uniform sampling with seed setting."""
     np.random.seed(seed)
-    return np.random.uniform(low=low, high=high)
+    return rv.rvs()
 
 rule sim_baf_lrr_ploidy_fpr:
     """Simulate parental haplotypes and BAF for an individual."""
@@ -191,8 +198,8 @@ rule sim_baf_lrr_ploidy_fpr:
         sfs=config["afs"],
         k=lambda wildcards: int(wildcards.k),
         m=lambda wildcards: int(wildcards.m),
-        sigma=lambda wildcards: random_uniform(seed=int(wildcards.rep), low=config["fpr_sims"]["min_sigma"], high=config["fpr_sims"]["max_sigma"]),
-        pi0=lambda wildcards: random_uniform(seed=int(wildcards.rep)+10, low=config["fpr_sims"]["min_pi0"], high=config["fpr_sims"]["max_pi0"]),
+        sigma=lambda wildcards: random_rv(rv=dist_sigma, seed=int(wildcards.rep)),
+        pi0=lambda wildcards: random_rv(rv=dist_pi0, seed=int(wildcards.rep)+10),
         seed=lambda wildcards: int(wildcards.rep),
         mat_skew=config["fpr_sims"]["skew"],
         mother_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
