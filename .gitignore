@@ -1,5 +1,10 @@
 analysis/*/results/
+analysis/*/logs/
+analysis/*/log/
 *.pdf
 *.png
 *.DS_Store
 *.txt
+*nohup.*
+*sandbox/*
+*/sandbox/*
