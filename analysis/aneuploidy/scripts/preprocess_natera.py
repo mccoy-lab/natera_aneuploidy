@@ -32,7 +32,7 @@ def obtain_parental_genotypes(vcf_file, mother_id, father_id, af=0.01, threads=4
             ref.append(variant.REF)
             alt.append(variant.ALT[0])
             mat_haps.append(variant.genotypes[0][:2])
-    for variant in tqdm(VCF(vcf_file, gts012=True, samples=[father_id], threads=threads))
+    for variant in tqdm(VCF(vcf_file, gts012=True, samples=[father_id], threads=threads)):
         if (variant.aaf > af) | (1 - variant.aaf > af):
             pat_haps.append(variant.genotypes[0][:2])
 
