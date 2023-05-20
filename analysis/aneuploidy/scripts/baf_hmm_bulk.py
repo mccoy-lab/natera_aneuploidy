@@ -1,5 +1,7 @@
 import sys
 import numpy as np
+import pickle
+import gzip as gz
 from karyohmm import  MetaHMM
 
 if __name__ == "__main__":

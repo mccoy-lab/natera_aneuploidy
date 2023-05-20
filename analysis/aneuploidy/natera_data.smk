@@ -167,39 +167,24 @@ rule preprocess_baf_data:
         vcf_file=[vcf_dict[c] for c in chroms],
         child_data=lambda wildcards: find_child_data(wildcards.child_id)[0],
     output:
-        baf_npz=expand(
-            "results/natera_inference/{{mother_id}}+{{father_id}}/{{child_id}}.{chrom}.bafs.npz",
-            chrom=chroms,
-        ),
+        baf_pkl="results/natera_inference/{{mother_id}}+{{father_id}}/{{child_id}}.bafs.pkl.gz",
     resources:
-        time="2:00:00",
+        time="1:00:00",
         mem_mb="5G",
     wildcard_constraints:
         chrom="|".join(chroms),
-    run:
-        shell(
-            "mkdir -p results/natera_inference/{wildcards.mother_id}+{wildcards.father_id}/"
-        )
-        for v, o in zip(input.vcf_file, output.baf_npz):
-            shell(
-                "python3 scripts/preprocess_natera.py --child_csv {input.child_data} --cytosnp_map {input.cytosnp_map} --alleles_file {input.alleles_file} --cytosnp_cluster {input.egt_cluster}  --mother_id {wildcards.mother_id} --father_id {wildcards.father_id} --vcf_file {v} --meanr {input.meanr_file} --outfile {o}"
-            )
+    params:
+        chroms=chroms,
+    script:
+        "scripts/preprocess_natera.py"
 
 
 rule hmm_model_comparison:
     """Apply the ploidy HMM to the pre-processed BAF data for this embryo."""
     input:
-        baf=expand(
-            "results/natera_inference/{{mother_id}}+{{father_id}}/{{child_id}}.{chrom}.bafs.npz",
-            chrom=chroms,
-        ),
+        baf_pkl="results/natera_inference/{{mother_id}}+{{father_id}}/{{child_id}}.bafs.pkl.gz",
     output:
-        hmm_out=temp(
-            expand(
-                "results/natera_inference/{{mother_id}}+{{father_id}}/{{child_id}}.{chrom}.{{lrr}}.hmm_model.npz",
-                chrom=chroms,
-            )
-        ),
+        hmm_pkl="results/natera_inference/{{mother_id}}+{{father_id}}/{{child_id}}.{chrom}.{{lrr}}.hmm_model.pkl.gz",
     wildcard_constraints:
         lrr="(none|raw|norm)",
     resources:

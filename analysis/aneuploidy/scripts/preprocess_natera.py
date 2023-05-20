@@ -5,6 +5,7 @@ from scipy.interpolate import interp1d
 from cyvcf2 import VCF
 from tqdm import tqdm
 import gzip as gz
+import pickle
 import sys
 
 
@@ -320,20 +321,11 @@ def main(child_csv, cytosnp_map, alleles_file, cytosnp_cluster, norm_xy, raw_xy,
         "alts": alts,
         "aploid": "real_data",
     }
-    if '.npz' in outfile:
-        np.savez_compressed(outfile, **res_dict)
-    else:
-        res_dict['mat_hap0'] = mat_haps[0,:]
-        res_dict['mat_hap1'] = mat_haps[1,:]
-        res_dict['pat_hap0'] = pat_haps[0,:]
-        res_dict['pat_hap1'] = pat_haps[1,:]
-        del res_dict['mat_haps']
-        del res_dict['pat_haps']
-        res_df = pd.DataFrame(res_dict)
-        sep=","
-        if '.tsv' in outfile:
-            sep="\t"
-        res_df.to_csv(outfile, sep=sep, index=None)
+    return res_dict 
 
 if __name__ == "__main__":
-    main()
+    meta_dict = {}
+    for v,c in zip(snakemake.input['vcf_file'], snakemake.params['chroms']):
+        chrom_dict = main(child_csv=snakemake.input['child_data'], cytosnp_map=snakemake.input['cytosnp_map'], alleles_file=snakemake.input['alleles_file'], cytosnp_cluster=snakemake.input['egt_cluster'], norm_xy=None, raw_xy=None, meanr=snakemake.input['meanr_file'], vcf_file=v, mother_id=snakemake.wildcards['mother_id'], father_id=snakemake.wildcards['father_id'], outfile="")
+        meta_dict[c] = chrom_dict 
+   pickle.dump(meta_dict, gzip.open(snakemake.output['baf_pkl'], 'wb')) 
