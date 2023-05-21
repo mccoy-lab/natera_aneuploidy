@@ -204,6 +204,22 @@ rule hmm_model_comparison:
         "scripts/baf_hmm_bulk.py"
 
 
+def bayes_factor(posteriors, priors=None):
+    """Compute Bayes Factors for evidence of specific aneuploidy states."""
+    if priors is None:
+        priors = np.ones(posteriors.size) / posteriors.size
+
+    assert posteriors.size == priors.size
+    assert np.isclose(np.sum(priors), 1.0)
+    bfs = np.zeros(posteriors.size)
+    for i in range(posteriors.size):
+        denom = np.sum(
+            [posteriors[j] * priors[i] for j in range(posteriors.size) if j != i]
+        )
+        bfs[i] = posteriors[i] * (1 - priors[i]) / denom
+    return bfs
+
+
 rule hmm_model_chromosomes:
     """Local rule that collapses all ploidy assignments into a single table."""
     input:
@@ -211,7 +227,7 @@ rule hmm_model_chromosomes:
     output:
         ploidy="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.total.ploidy.tsv",
     resources:
-        time="0:10:00",
+        time="0:30:00",
         mem_mb="1G",
     params:
         lrr=lambda wildcards: wildcards.lrr != "none",
@@ -220,21 +236,31 @@ rule hmm_model_chromosomes:
             full_hmm_output = pickle.load(gzip.open(input.hmm_models, "r"))
             if not params["lrr"]:
                 out.write(
-                    "mother\tfather\tchild\tchrom\tsigma_baf\tpi0_baf\tpi0_lrr\tlrr_mu\tlrr_sd\t0\t1m\t1p\t2\t3m\t3p\n"
+                    "mother\tfather\tchild\tchrom\tsigma_baf\tpi0_baf\tpi0_lrr\tlrr_mu\tlrr_sd\t0\t1m\t1p\t2\t3m\t3p\tbf_max\tbf_max_cat\n"
                 )
+                cats = np.array(["0", "1m", "1p", "2", "3m", "3p"])
                 for c in chroms:
                     data = full_hmm_output[c]
+                    post_vals = np.array([data[x] for x in cats])
+                    bayes_factor_chrom = bayes_factor(post_vals[i])
+                    max_bf = np.max(bayes_factor_chrom)
+                    max_cat = cats[np.argmax(bayes_factor_chrom)]
                     out.write(
-                        f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{c}\t{data['sigma_baf']}\t{data['pi0_baf']}\t{data['pi0_lrr']}\t{data['lrr_mu']}\t{data['lrr_sd']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\n"
+                        f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{c}\t{data['sigma_baf']}\t{data['pi0_baf']}\t{data['pi0_lrr']}\t{data['lrr_mu']}\t{data['lrr_sd']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\t{max_bf}\t{max_cat}\n"
                     )
             else:
                 out.write(
-                    "mother\tfather\tchild\tchrom\tsigma_baf\tpi0_baf\tpi0_lrr\tlrr_mu\tlrr_sd\t0\t1m\t1p\t2m\t2p\t2\t3m\t3p\n"
+                    "mother\tfather\tchild\tchrom\tsigma_baf\tpi0_baf\tpi0_lrr\tlrr_mu\tlrr_sd\t0\t1m\t1p\t2m\t2p\t2\t3m\t3p\tbf_max\tbf_max_cat\n"
                 )
+                cats = np.array(["0", "1m", "1p", "2m", "2p", "2", "3m", "3p"])
                 for c in chroms:
                     data = full_hmm_output[c]
+                    post_vals = np.array([data[x] for x in cats])
+                    bayes_factor_chrom = bayes_factor(post_vals[i])
+                    max_bf = np.max(bayes_factor_chrom)
+                    max_cat = cats[np.argmax(bayes_factor_chrom)]
                     out.write(
-                        f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{c}\t{data['sigma_baf']}\t{data['pi0_baf']}\t{data['pi0_lrr']}\t{data['lrr_mu']}\t{data['lrr_sd']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2m']}\t{data['2p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\n"
+                        f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{c}\t{data['sigma_baf']}\t{data['pi0_baf']}\t{data['pi0_lrr']}\t{data['lrr_mu']}\t{data['lrr_sd']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2m']}\t{data['2p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\t{max_bf}\t{max_cat}\n"
                     )
 
 
