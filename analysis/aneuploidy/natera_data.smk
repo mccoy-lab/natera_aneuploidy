@@ -242,7 +242,7 @@ rule hmm_model_chromosomes:
                 for c in chroms:
                     data = full_hmm_output[c]
                     post_vals = np.array([data[x] for x in cats])
-                    bayes_factor_chrom = bayes_factor(post_vals[i])
+                    bayes_factor_chrom = bayes_factor(post_vals)
                     max_bf = np.max(bayes_factor_chrom)
                     max_cat = cats[np.argmax(bayes_factor_chrom)]
                     out.write(
@@ -256,7 +256,7 @@ rule hmm_model_chromosomes:
                 for c in chroms:
                     data = full_hmm_output[c]
                     post_vals = np.array([data[x] for x in cats])
-                    bayes_factor_chrom = bayes_factor(post_vals[i])
+                    bayes_factor_chrom = bayes_factor(post_vals)
                     max_bf = np.max(bayes_factor_chrom)
                     max_cat = cats[np.argmax(bayes_factor_chrom)]
                     out.write(
