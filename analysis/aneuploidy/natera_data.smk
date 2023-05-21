@@ -2,6 +2,8 @@
 
 import numpy as np
 import pandas as pd
+
+import pickle, gzip
 from tqdm import tqdm
 from pathlib import Path
 from io import StringIO
@@ -88,7 +90,7 @@ if Path("results/natera_inference/valid_trios.txt").is_file():
             [m, f, c] = line.rstrip().split()
             for l in lrrs:
                 total_data.append(
-                    f"results/natera_inference/{m}+{f}/{c}.{l}.total.posterior.tsv.gz"
+                    f"results/natera_inference/{m}+{f}/{c}.{l}.total.ploidy.tsv"
                 )
 
 # ------- Rules Section ------- #
@@ -167,7 +169,7 @@ rule preprocess_baf_data:
         vcf_file=[vcf_dict[c] for c in chroms],
         child_data=lambda wildcards: find_child_data(wildcards.child_id)[0],
     output:
-        baf_pkl="results/natera_inference/{{mother_id}}+{{father_id}}/{{child_id}}.bafs.pkl.gz",
+        baf_pkl="results/natera_inference/{mother_id}+{father_id}/{child_id}.bafs.pkl.gz",
     resources:
         time="1:00:00",
         mem_mb="5G",
@@ -182,9 +184,9 @@ rule preprocess_baf_data:
 rule hmm_model_comparison:
     """Apply the ploidy HMM to the pre-processed BAF data for this embryo."""
     input:
-        baf_pkl="results/natera_inference/{{mother_id}}+{{father_id}}/{{child_id}}.bafs.pkl.gz",
+        baf_pkl="results/natera_inference/{mother_id}+{father_id}/{child_id}.bafs.pkl.gz",
     output:
-        hmm_pkl="results/natera_inference/{{mother_id}}+{{father_id}}/{{child_id}}.{chrom}.{{lrr}}.hmm_model.pkl.gz",
+        hmm_pkl="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.hmm_model.pkl.gz",
     wildcard_constraints:
         lrr="(none|raw|norm)",
     resources:
@@ -197,6 +199,7 @@ rule hmm_model_comparison:
         mother_id=lambda wildcards: f"{wildcards.mother_id}",
         father_id=lambda wildcards: f"{wildcards.father_id}",
         child_id=lambda wildcards: f"{wildcards.child_id}",
+        chroms=chroms,
     script:
         "scripts/baf_hmm_bulk.py"
 
@@ -204,10 +207,7 @@ rule hmm_model_comparison:
 rule hmm_model_chromosomes:
     """Local rule that collapses all ploidy assignments into a single table."""
     input:
-        hmm_models=expand(
-            "results/natera_inference/{{mother_id}}+{{father_id}}/{{child_id}}.{chrom}.{{lrr}}.hmm_model.npz",
-            chrom=chroms,
-        ),
+        hmm_models="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.hmm_model.pkl.gz",
     output:
         ploidy="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.total.ploidy.tsv",
     resources:
@@ -217,12 +217,13 @@ rule hmm_model_chromosomes:
         lrr=lambda wildcards: wildcards.lrr != "none",
     run:
         with open(output.ploidy, "w") as out:
+            full_hmm_output = pickle.load(gzip.open(input.hmm_models, "r"))
             if not params["lrr"]:
                 out.write(
                     "mother\tfather\tchild\tchrom\tsigma_baf\tpi0_baf\tpi0_lrr\tlrr_mu\tlrr_sd\t0\t1m\t1p\t2\t3m\t3p\n"
                 )
-                for c, x in zip(chroms, input.hmm_models):
-                    data = np.load(x)
+                for c in chroms:
+                    data = full_hmm_output[c]
                     out.write(
                         f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{c}\t{data['sigma_baf']}\t{data['pi0_baf']}\t{data['pi0_lrr']}\t{data['lrr_mu']}\t{data['lrr_sd']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\n"
                     )
@@ -230,8 +231,8 @@ rule hmm_model_chromosomes:
                 out.write(
                     "mother\tfather\tchild\tchrom\tsigma_baf\tpi0_baf\tpi0_lrr\tlrr_mu\tlrr_sd\t0\t1m\t1p\t2m\t2p\t2\t3m\t3p\n"
                 )
-                for c, x in zip(chroms, input.hmm_models):
-                    data = np.load(x)
+                for c in chroms:
+                    data = full_hmm_output[c]
                     out.write(
                         f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{c}\t{data['sigma_baf']}\t{data['pi0_baf']}\t{data['pi0_lrr']}\t{data['lrr_mu']}\t{data['lrr_sd']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2m']}\t{data['2p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\n"
                     )
@@ -245,14 +246,8 @@ rule generate_posterior_table:
     Each row corresponds to a specific SNP position.
     """
     input:
-        baf_data=expand(
-            "results/natera_inference/{{mother_id}}+{{father_id}}/{{child_id}}.{chrom}.bafs.npz",
-            chrom=chroms,
-        ),
-        hmm_models=expand(
-            "results/natera_inference/{{mother_id}}+{{father_id}}/{{child_id}}.{chrom}.{{lrr}}.hmm_model.npz",
-            chrom=chroms,
-        ),
+        baf_data="results/natera_inference/{mother_id}+{father_id}/{child_id}.bafs.pkl.gz",
+        hmm_models="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.hmm_model.pkl.gz",
         ploidy="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.total.ploidy.tsv",
     output:
         posterior="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.total.posterior.tsv.gz",
@@ -262,10 +257,11 @@ rule generate_posterior_table:
     wildcard_constraints:
         lrr="(none|raw|norm)",
     run:
-        tot_dfs = []
-        for c, fp, baf in tqdm(zip(chroms, input.hmm_models, input.baf_data)):
-            data = np.load(fp)
-            baf_data = np.load(baf)
+        full_hmm_output = pickle.load(gzip.open(input.hmm_models, "r"))
+        full_baf = pickle.load(gzip.open(input.baf_data, "r"))
+        for c in tqdm(chroms):
+            data = full_hmm_output[c]
+            baf_data = full_baf[c]
             try:
                 gammas = data["gammas"]
                 cur_df = pd.DataFrame(gammas.T)

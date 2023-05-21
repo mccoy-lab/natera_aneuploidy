@@ -8,8 +8,10 @@ if __name__ == "__main__":
     # Read in the input data and params ...
     eps = 10 ** snakemake.params["eps"]
     lrr = snakemake.params["lrr"]
-    for i, b in enumerate(snakemake.input["baf"]):
-        baf_data = np.load(b)
+    data = pickle.load(gz.open(snakemake.input['baf_pkl'], 'r' ) )
+    full_chrom_hmm_dict = {}
+    for c in snakemake.params["chroms"]:
+        baf_data = data[c]
         print("Running meta HMM parameter estimation ...", file=sys.stderr)
         n01 = np.nansum((baf_data["baf_embryo"] == 1) | (baf_data["baf_embryo"] == 0))
         m = baf_data["baf_embryo"].size
@@ -94,4 +96,5 @@ if __name__ == "__main__":
             res_dict["child_id"] = snakemake.params["child_id"]
         except KeyError:
             pass
-        np.savez_compressed(snakemake.output["hmm_out"][i], **res_dict)
+        full_chrom_hmm_dict[c] = res_dict
+    pickle.dump(full_chrom_hmm_dict, gz.open(snakemake.output["hmm_pkl"], 'wb'))

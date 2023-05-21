@@ -263,19 +263,19 @@ def filter_parent_child_data(child_df, mat_haps, pat_haps, rsids, pos, ref, alt)
     rsids = rsids[idx]
     return bafs, lrrs_raw, lrrs_norm, mat_haps, pat_haps, rsids, pos, ref, alt
 
-@click.command()
-@click.option('--child_csv', required=True, type=str, help='Embryo CSV file.')
-@click.option('--cytosnp_map', required=True, type=str, help='CytoSNP v12 Mapping file.')
-@click.option('--alleles_file', required=True, type=str, help='Alleles for specific cytosnp probes.')
-@click.option('--cytosnp_cluster', required=True, type=str, help='Cytosnp clusters from the EGT file.')
-@click.option('--norm_xy', required=False, default=None, type=str, help='Normalized XY-intensities.')
-@click.option('--raw_xy', required=False, default=None, type=str, help='Raw XY-intensities.')
-@click.option('--meanr', required=False, default=None, type=str, help='mean-R tables based on raw intensity.')
-@click.option('--vcf_file', required=True, type=str, help='VCF File containing parental genotypes.')
-@click.option('--mother_id', required=True, type=str, help='Mother ID.')
-@click.option('--father_id', required=True, type=str, help='Father ID.')
-@click.option('--outfile', required=True, type=str, help='Output File containing SNP values.')
-def main(child_csv, cytosnp_map, alleles_file, cytosnp_cluster, norm_xy, raw_xy, meanr, vcf_file, mother_id, father_id, outfile):
+#@click.command()
+#@click.option('--child_csv', required=True, type=str, help='Embryo CSV file.')
+#@click.option('--cytosnp_map', required=True, type=str, help='CytoSNP v12 Mapping file.')
+#@click.option('--alleles_file', required=True, type=str, help='Alleles for specific cytosnp probes.')
+#@click.option('--cytosnp_cluster', required=True, type=str, help='Cytosnp clusters from the EGT file.')
+#@click.option('--norm_xy', required=False, default=None, type=str, help='Normalized XY-intensities.')
+#@click.option('--raw_xy', required=False, default=None, type=str, help='Raw XY-intensities.')
+#@click.option('--meanr', required=False, default=None, type=str, help='mean-R tables based on raw intensity.')
+#@click.option('--vcf_file', required=True, type=str, help='VCF File containing parental genotypes.')
+#@click.option('--mother_id', required=True, type=str, help='Mother ID.')
+#@click.option('--father_id', required=True, type=str, help='Father ID.')
+#@click.option('--outfile', required=True, type=str, help='Output File containing SNP values.')
+def main(child_csv, cytosnp_map, alleles_file, cytosnp_cluster, norm_xy, raw_xy, meanr, vcf_file, mother_id, father_id):
     # Read in the child embryo data
     child_df = obtain_child_data(
         child_csv_file=child_csv,
@@ -326,6 +326,7 @@ def main(child_csv, cytosnp_map, alleles_file, cytosnp_cluster, norm_xy, raw_xy,
 if __name__ == "__main__":
     meta_dict = {}
     for v,c in zip(snakemake.input['vcf_file'], snakemake.params['chroms']):
-        chrom_dict = main(child_csv=snakemake.input['child_data'], cytosnp_map=snakemake.input['cytosnp_map'], alleles_file=snakemake.input['alleles_file'], cytosnp_cluster=snakemake.input['egt_cluster'], norm_xy=None, raw_xy=None, meanr=snakemake.input['meanr_file'], vcf_file=v, mother_id=snakemake.wildcards['mother_id'], father_id=snakemake.wildcards['father_id'], outfile="")
-        meta_dict[c] = chrom_dict 
-   pickle.dump(meta_dict, gzip.open(snakemake.output['baf_pkl'], 'wb')) 
+        print(f"Processing {c}...", file=sys.stderr)
+        chrom_dict = main(child_csv=snakemake.input['child_data'], cytosnp_map=snakemake.input['cytosnp_map'], alleles_file=snakemake.input['alleles_file'], cytosnp_cluster=snakemake.input['egt_cluster'], norm_xy=None, raw_xy=None, meanr=snakemake.input['meanr_file'], vcf_file=v, mother_id=snakemake.wildcards['mother_id'], father_id=snakemake.wildcards['father_id'])
+        meta_dict[c] = chrom_dict
+    pickle.dump(meta_dict, gz.open(snakemake.output['baf_pkl'], 'wb')) 
