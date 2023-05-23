@@ -15,7 +15,7 @@ alpha = 10 #the lower percentile cutoff
 assert alpha > 0
 assert alpha < 100
 
-fig, ax = plt.subplots(1, ploids.size,figsize=(ploids.size*2, 2.5), sharey=False, sharex=True)
+fig, ax = plt.subplots(1, ploids.size,figsize=(ploids.size*2, 2.5), sharey=True)
 thresholds = {}
 for i,p in enumerate(ploids):
     data = sim_df[sim_df.aploid == p][p].values

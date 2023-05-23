@@ -39,14 +39,15 @@ dist_pi0 = None
 if config["model_comp"]:
     TARGETS.append("results/total_hmm_ploidy.tsv.gz")
 if config["fpr_sims"]:
-    df = pd.read_csv(config['fpr_sims']['est_params'], sep="\t")
-    df.columns = ['chrom', 'sigma_est', 'pi0_est']
+    df = pd.read_csv(config["fpr_sims"]["est_params"], sep="\t")
+    df.columns = ["chrom", "sigma_est", "pi0_est"]
     df.dropna(inplace=True)
     dist_sigma = rv_histogram(np.histogram(df.sigma_est.values, bins=100))
     dist_pi0 = rv_histogram(np.histogram(df.pi0_est.values, bins=100))
     TARGETS.append("results/fpr_sims_hmm_ploidy.tsv.gz")
-if config['mixed_ploidy']:
+if config["mixed_ploidy"]:
     TARGETS.append("results/results/mixed_ploidy_sims.tsv.gz")
+
 
 localrules:
     all,
@@ -180,6 +181,7 @@ def random_rv(rv, seed=42):
     np.random.seed(seed)
     return rv.rvs()
 
+
 rule sim_baf_lrr_ploidy_fpr:
     """Simulate parental haplotypes and BAF for an individual."""
     output:
@@ -199,7 +201,7 @@ rule sim_baf_lrr_ploidy_fpr:
         k=lambda wildcards: int(wildcards.k),
         m=lambda wildcards: int(wildcards.m),
         sigma=lambda wildcards: random_rv(rv=dist_sigma, seed=int(wildcards.rep)),
-        pi0=lambda wildcards: random_rv(rv=dist_pi0, seed=int(wildcards.rep)+10),
+        pi0=lambda wildcards: random_rv(rv=dist_pi0, seed=int(wildcards.rep) + 10),
         seed=lambda wildcards: int(wildcards.rep),
         mat_skew=config["fpr_sims"]["skew"],
         mother_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
@@ -238,7 +240,7 @@ rule hmm_baf_lrr_ploidy_fpr:
 rule hmm_combine_baf_lrr_fpr:
     """Local rule that collapses information for fpr estimation from a grid."""
     input:
-        baf = "results/hmm_simulations/ploidy{k}/sim{rep}_m{m}.fpr.npz",
+        baf="results/hmm_simulations/ploidy{k}/sim{rep}_m{m}.fpr.npz",
         hmm_model="results/hmm_ploidy_comp/ploidy{k}/sim{rep}_m{m}.phase_error{p}.lrr{lrr}.fpr.model_comp.npz",
     output:
         ploidy=temp(
@@ -246,9 +248,9 @@ rule hmm_combine_baf_lrr_fpr:
         ),
     run:
         baf = np.load(input.baf)
-        sigma = baf['std_dev'] 
-        pi0 = baf['mix_prop'] 
-        a = baf['alpha'] 
+        sigma = baf["std_dev"]
+        pi0 = baf["mix_prop"]
+        a = baf["alpha"]
         phase_err = int(wildcards.p) == 1
         lrr = int(wildcards.lrr) == 1
         with open(output.ploidy, "w") as out:
