@@ -3,6 +3,7 @@
 import numpy as np
 from scipy.stats import beta, binom, norm, rv_histogram, truncnorm, uniform
 
+<<<<<<< HEAD
 # These are the different classes of aneuploidy that we can simulate from
 sim_ploidy_values = ["0", "1m", "1p", "2", "3m", "3p"]
 
@@ -72,7 +73,6 @@ def create_switch_errors(mat_haps, pat_haps, err_rate=1e-3, seed=42):
     us2 = np.random.uniform(size=m)
     m_switch = np.where(us1 < err_rate)[0]
     p_switch = np.where(us2 < err_rate)[0]
-    # Create the specific shuffled haplotypes.
     for i in range(m):
         if us1[i] < err_rate:
             mi0 = 1 - mi0
@@ -122,7 +122,6 @@ def sim_haplotype_paths(
     zs0_paternal = np.zeros(m, dtype=np.uint16)
     zs1_paternal = np.zeros(m, dtype=np.uint16)
     if ploidy == 0:
-        # Drawing a nullisomy
         mat_real_hap = np.zeros(m, dtype=np.uint16)
         pat_real_hap = np.zeros(m, dtype=np.uint16)
         aploid = "0"
@@ -142,7 +141,7 @@ def sim_haplotype_paths(
             mat_real_hap = np.zeros(pat_real_hap.size)
             aploid = "1p"
         else:
-            # We have a maternal monosomy.
+            # We have a maternal monosomy ...
             zs_paternal = None
             zs_maternal[0] = binom.rvs(1, 0.5)
             for i in range(1, m):
@@ -210,7 +209,6 @@ def sim_haplotype_paths(
                     if uniform.rvs() <= rec_prob
                     else zs1_maternal[i - 1]
                 )
-            # Simulate a duplicate configuration of the maternal alleles ...
             zs_maternal = np.vstack([zs0_maternal, zs1_maternal])
             mat_real_hap = np.array(
                 [
