@@ -37,8 +37,8 @@ if config["hmm_sims"]["model_comp"]:
     TARGETS.append("results/total_hmm_ploidy.tsv.gz")
 if config["hmm_sims"]["mixed_ploidy"]:
     TARGETS.append("results/mixed_ploidy_sims.tsv.gz")
-if config["hmm_sims"]["fpr_sims"]:
-    TARGETS.append("results/fpr_sims_hmm_ploidy.tsv.gz")
+# if config["hmm_sims"]["fpr_sims"]:
+#    TARGETS.append("results/fpr_sims_hmm_ploidy.tsv.gz")
 
 
 localrules:
