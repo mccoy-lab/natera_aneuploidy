@@ -35,8 +35,8 @@ configfile: "config.yaml"
 TARGETS = []
 if config["hmm_sims"]["model_comp"]:
     TARGETS.append("results/total_hmm_ploidy.tsv.gz")
-if config["hmm_sims"]["mixed_ploidy"]:
-    TARGETS.append("results/mixed_ploidy_sims.tsv.gz")
+#if config["hmm_sims"]["mixed_ploidy"]:
+#    TARGETS.append("results/mixed_ploidy_sims.tsv.gz")
 # if config["hmm_sims"]["fpr_sims"]:
 #    TARGETS.append("results/fpr_sims_hmm_ploidy.tsv.gz")
 
@@ -75,7 +75,7 @@ rule sim_baf_lrr_ploidy:
         m=lambda wildcards: int(wildcards.m),
         sigma=lambda wildcards: float(wildcards.sigma) / 100,
         pi0=lambda wildcards: float(wildcards.pi0) / 100,
-        seed=lambda wildcards: int(wildcards.rep),
+        seed=lambda wildcards: int(wildcards.rep) + int(wildcards.pi0) + int(wildcards.sigma),
         mat_skew=lambda wildcards: float(wildcards.skew) / 100,
         mother_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
         father_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
@@ -99,7 +99,7 @@ rule hmm_baf_lrr_ploidy:
         mem_mb="2G",
     params:
         model_comp=True,
-        eps=-4,
+        eps=-6,
         unphased=False,
         lrr=lambda wildcards: wildcards.lrr == "1",
         phase_error=lambda wildcards: wildcards.p == "1",
@@ -152,7 +152,7 @@ rule collect_hmm_model_baf_lrr:
             pi0=config["hmm_sims"]["simple_sims"]["pi0"],
             sigma=config["hmm_sims"]["simple_sims"]["std_dev"],
             skew=config["hmm_sims"]["simple_sims"]["skew"],
-            a=[10, 30, 50],
+            a=[30],
             p=[1],
             lrr=[0, 1],
         ),

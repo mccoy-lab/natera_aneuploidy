@@ -5,7 +5,7 @@ hmm_sims:
   fpr: False 
   eps: -6
   simple_sims:
-    reps: 50
+    reps: 30
     ploidy:
       - 0
       - 1
