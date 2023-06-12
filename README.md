@@ -13,6 +13,17 @@ The code here is associated with the following [paper](). You can find each spec
 
 ### Aneuploidy
 
+The directory `analysis/aneuploidy` contains code for calling whole-chromosome aneuploidies. You can start this section of the analysis using:
+
+```
+cd analysis/aneuploidy/
+mamba env create -f env.yaml
+conda activate natera_aneuploidy_calls
+snakemake -s natera_data.smk -j 1 -p
+```
+
+which for the first time, will generate all the valid "trios" in the dataset in a file (`valid_trios.txt`). A subsequent run of `snakemake -s natera_data.smk -j 100 -p -n` will create the resulting tables for calling whole-chromosome aneuploidies.
+
 ### Simulations
 
 The directory `analysis/simulations` contains code for establishing key benchmarks for the `karyohmm` method for calling aneuploidy. To reproduce the full results run the following: 
@@ -37,4 +48,4 @@ TODO: describe conda environment creation ...
 
 ## External Repositories
 
-* Add in `karyohmm` when online 
+* Add in `karyohmm` when publicly available.
