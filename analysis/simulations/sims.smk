@@ -11,7 +11,6 @@ import yaml
 import warnings
 import datetime
 import numpy as np
-from scipy.stats import rv_histogram
 
 # Mark the datestamp for any date-specific files
 DATESTAMP = datetime.datetime.now().strftime("%Y%m%d")
@@ -34,19 +33,12 @@ configfile: "config.yaml"
 
 # Creating the associated targets for simulation & evaluation...
 TARGETS = []
-dist_sigma = None
-dist_pi0 = None
-if config["model_comp"]:
+if config["hmm_sims"]["model_comp"]:
     TARGETS.append("results/total_hmm_ploidy.tsv.gz")
-if config["fpr_sims"]:
-    df = pd.read_csv(config["fpr_sims"]["est_params"], sep="\t")
-    df.columns = ["chrom", "sigma_est", "pi0_est"]
-    df.dropna(inplace=True)
-    dist_sigma = rv_histogram(np.histogram(df.sigma_est.values, bins=100))
-    dist_pi0 = rv_histogram(np.histogram(df.pi0_est.values, bins=100))
-    TARGETS.append("results/fpr_sims_hmm_ploidy.tsv.gz")
-if config["mixed_ploidy"]:
-    TARGETS.append("results/results/mixed_ploidy_sims.tsv.gz")
+#if config["hmm_sims"]["mixed_ploidy"]:
+#    TARGETS.append("results/mixed_ploidy_sims.tsv.gz")
+# if config["hmm_sims"]["fpr_sims"]:
+#    TARGETS.append("results/fpr_sims_hmm_ploidy.tsv.gz")
 
 
 localrules:
@@ -83,7 +75,7 @@ rule sim_baf_lrr_ploidy:
         m=lambda wildcards: int(wildcards.m),
         sigma=lambda wildcards: float(wildcards.sigma) / 100,
         pi0=lambda wildcards: float(wildcards.pi0) / 100,
-        seed=lambda wildcards: int(wildcards.rep),
+        seed=lambda wildcards: int(wildcards.rep) + int(wildcards.pi0) + int(wildcards.sigma),
         mat_skew=lambda wildcards: float(wildcards.skew) / 100,
         mother_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
         father_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
@@ -107,7 +99,7 @@ rule hmm_baf_lrr_ploidy:
         mem_mb="2G",
     params:
         model_comp=True,
-        eps=-4,
+        eps=-6,
         unphased=False,
         lrr=lambda wildcards: wildcards.lrr == "1",
         phase_error=lambda wildcards: wildcards.p == "1",
@@ -154,15 +146,15 @@ rule collect_hmm_model_baf_lrr:
     input:
         hmm_tsvs=expand(
             "results/hmm_ploidy_comp/ploidy{k}/sim{rep}_m{m}_pi{pi0}_sigma{sigma}_skew{skew}.a{a}.phase_error{p}.lrr{lrr}.model_comp.tsv",
-            k=config["simple_sims"]["ploidy"],
-            rep=range(1, config["simple_sims"]["reps"] + 1),
-            m=config["simple_sims"]["m"],
-            pi0=config["simple_sims"]["pi0"],
-            sigma=config["simple_sims"]["std_dev"],
-            skew=config["simple_sims"]["skew"],
-            a=[100],
+            k=config["hmm_sims"]["simple_sims"]["ploidy"],
+            rep=range(1, config["hmm_sims"]["simple_sims"]["reps"] + 1),
+            m=config["hmm_sims"]["simple_sims"]["m"],
+            pi0=config["hmm_sims"]["simple_sims"]["pi0"],
+            sigma=config["hmm_sims"]["simple_sims"]["std_dev"],
+            skew=config["hmm_sims"]["simple_sims"]["skew"],
+            a=[30],
             p=[1],
-            lrr=[0],
+            lrr=[0, 1],
         ),
     output:
         tot_hmm_tsv="results/total_hmm_ploidy.tsv.gz",
@@ -175,110 +167,18 @@ rule collect_hmm_model_baf_lrr:
         tot_df.to_csv(output.tot_hmm_tsv, sep="\t", index=None)
 
 
-# ----- Simulation 2: Estimate FPR based on a grid-sampling of points ------- #
-def random_rv(rv, seed=42):
-    """random uniform sampling with seed setting."""
-    np.random.seed(seed)
-    return rv.rvs()
-
-
-rule sim_baf_lrr_ploidy_fpr:
-    """Simulate parental haplotypes and BAF for an individual."""
-    output:
-        baf=temp("results/hmm_simulations/ploidy{k}/sim{rep}_m{m}.fpr.npz"),
-    wildcard_constraints:
-        k="\d+",
-        m="\d+",
-        pi0="\d+",
-        sigma="\d+",
-        skew="\d+",
-        a="\d+",
-    resources:
-        time="0:10:00",
-        mem_mb="1G",
-    params:
-        sfs=config["afs"],
-        k=lambda wildcards: int(wildcards.k),
-        m=lambda wildcards: int(wildcards.m),
-        sigma=lambda wildcards: random_rv(rv=dist_sigma, seed=int(wildcards.rep)),
-        pi0=lambda wildcards: random_rv(rv=dist_pi0, seed=int(wildcards.rep) + 10),
-        seed=lambda wildcards: int(wildcards.rep),
-        mat_skew=config["fpr_sims"]["skew"],
-        mother_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
-        father_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
-        child_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
-        mixed_ploidy=False,
-        alpha=1.0,
-    script:
-        "scripts/sim_data.py"
-
-
-rule hmm_baf_lrr_ploidy_fpr:
-    input:
-        baf=rules.sim_baf_lrr_ploidy_fpr.output.baf,
-    output:
-        hmm_out="results/hmm_ploidy_comp/ploidy{k}/sim{rep}_m{m}.phase_error{p}.lrr{lrr}.fpr.model_comp.npz",
-    wildcard_constraints:
-        lrr="0|1",
-        p="0|1",
-    resources:
-        time="0:30:00",
-        mem_mb="2G",
-    params:
-        model_comp=True,
-        eps=-6,
-        unphased=False,
-        lrr=lambda wildcards: wildcards.lrr == "1",
-        phase_error=lambda wildcards: wildcards.p == "1",
-        mother_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
-        father_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
-        child_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
-    script:
-        "scripts/baf_hmm.py"
-
-
-rule hmm_combine_baf_lrr_fpr:
-    """Local rule that collapses information for fpr estimation from a grid."""
-    input:
-        baf="results/hmm_simulations/ploidy{k}/sim{rep}_m{m}.fpr.npz",
-        hmm_model="results/hmm_ploidy_comp/ploidy{k}/sim{rep}_m{m}.phase_error{p}.lrr{lrr}.fpr.model_comp.npz",
-    output:
-        ploidy=temp(
-            "results/hmm_ploidy_comp/ploidy{k}/sim{rep}_m{m}.phase_error{p}.lrr{lrr}.fpr.model_comp.tsv"
-        ),
-    run:
-        baf = np.load(input.baf)
-        sigma = baf["std_dev"]
-        pi0 = baf["mix_prop"]
-        a = baf["alpha"]
-        phase_err = int(wildcards.p) == 1
-        lrr = int(wildcards.lrr) == 1
-        with open(output.ploidy, "w") as out:
-            data = np.load(input.hmm_model)
-            if lrr:
-                out.write(
-                    "mother\tfather\tchild\taploid\trep\tm\tlrr\ta\tsigma\tpi0\tsigma_est\tpi0_est\t0\t1m\t1p\t2\t2m\t2p\t3m\t3p\n"
-                )
-                out.write(
-                    f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{data['aploid']}\t{wildcards.rep}\t{wildcards.m}\t{lrr}\t{a}\t{sigma}\t{pi0}\t{data['sigma_est']}\t{data['pi0_est']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['2m']}\t{data['2p']}\t{data['3m']}\t{data['3p']}\n"
-                )
-            else:
-                out.write(
-                    "mother\tfather\tchild\taploid\trep\tm\tlrr\ta\tsigma\tpi0\tsigma_est\tpi0_est\t0\t1m\t1p\t2\t3m\t3p\n"
-                )
-                out.write(
-                    f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{data['aploid']}\t{wildcards.rep}\t{wildcards.m}\t{lrr}\t{a}\t{sigma}\t{pi0}\t{data['sigma_est']}\t{data['pi0_est']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\n"
-                )
-
-
 rule collect_fpr_baf_model_data:
     """Collect FPR-data simulations for evaluating posterior cutoffs."""
     input:
         hmm_tsvs=expand(
-            "results/hmm_ploidy_comp/ploidy{k}/sim{rep}_m{m}.phase_error{p}.lrr{lrr}.fpr.model_comp.tsv",
-            k=config["fpr_sims"]["ploidy"],
-            rep=range(1, config["fpr_sims"]["reps"] + 1),
-            m=config["fpr_sims"]["m"],
+            "results/hmm_ploidy_comp/ploidy{k}/sim{rep}_m{m}_pi{pi0}_sigma{sigma}_skew{skew}.a{a}.phase_error{p}.lrr{lrr}.model_comp.tsv",
+            k=config["hmm_sims"]["fpr_sims"]["ploidy"],
+            rep=range(1, config["hmm_sims"]["fpr_sims"]["reps"] + 1),
+            m=config["hmm_sims"]["fpr_sims"]["m"],
+            pi0=config["hmm_sims"]["fpr_sims"]["pi0"],
+            sigma=config["hmm_sims"]["fpr_sims"]["std_dev"],
+            skew=config["hmm_sims"]["fpr_sims"]["skew"],
+            a=100,
             p=1,
             lrr=0,
         ),
@@ -293,7 +193,7 @@ rule collect_fpr_baf_model_data:
         tot_df.to_csv(output.tot_hmm_tsv, sep="\t", index=None)
 
 
-# ----- Simulation 3: Simulate Mosaic Whole-Chromosome Aneuploidy -------- #
+# ----- Simulation 2: Simulate Mosaic Whole-Chromosome Aneuploidy -------- #
 rule sim_mixed_ploidy:
     output:
         baf=temp(
@@ -371,13 +271,13 @@ rule collect_mixed_ploidy:
     input:
         mixed_ploidy_tsvs=expand(
             "results/hmm_ploidy_comp/mix_ploidy_{p}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.ploidy.tsv",
-            p=config["mixed_sims"]["p_aneuploid"],
-            rep=range(1, config["mixed_sims"]["reps"] + 1),
-            m=config["mixed_sims"]["m"],
-            pi0=config["mixed_sims"]["pi0"],
-            sigma=config["mixed_sims"]["std_dev"],
-            skew=config["mixed_sims"]["skew"],
-            n=config["mixed_sims"]["ncells"],
+            p=config["hmm_sims"]["mixed_sims"]["p_aneuploid"],
+            rep=range(1, config["hmm_sims"]["mixed_sims"]["reps"] + 1),
+            m=config["hmm_sims"]["mixed_sims"]["m"],
+            pi0=config["hmm_sims"]["mixed_sims"]["pi0"],
+            sigma=config["hmm_sims"]["mixed_sims"]["std_dev"],
+            skew=config["hmm_sims"]["mixed_sims"]["skew"],
+            n=config["hmm_sims"]["mixed_sims"]["ncells"],
         ),
     output:
         tot_mixed_tsv="results/mixed_ploidy_sims.tsv.gz",
