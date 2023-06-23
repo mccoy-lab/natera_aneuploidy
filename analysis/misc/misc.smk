@@ -65,7 +65,7 @@ rule concat_autosomes:
         concat_vcf_tbi="results/kg_phase3.natera_merged.grch38.autosomes.phased.snvs.vcf.gz.tbi",
     threads: 12
     shell:
-        "bcftools concati --threads {threads} {input.merged_vcfs} | bgzip -@{threads} > {output.concat_vcf}; tabix -f {output.concat_vcf}"
+        "bcftools concat --threads {threads} {input.merged_vcfs} | bgzip -@{threads} > {output.concat_vcf}; tabix -f {output.concat_vcf}"
 
 
 rule run_plink_pca:
