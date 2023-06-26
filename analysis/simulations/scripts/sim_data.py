@@ -3,7 +3,6 @@
 import numpy as np
 from scipy.stats import beta, binom, norm, rv_histogram, truncnorm, uniform
 
-<<<<<<< HEAD
 # These are the different classes of aneuploidy that we can simulate from
 sim_ploidy_values = ["0", "1m", "1p", "2", "3m", "3p"]
 
@@ -247,7 +246,7 @@ def sim_haplotype_paths(
 
 
 def sim_b_allele_freq(mat_hap, pat_hap, ploidy=2, std_dev=0.2, mix_prop=0.3, seed=42):
-    """Simulate of B-allele frequency conditional on """
+    """Simulate B-allele frequency conditional on parental allelic dosage."""
     np.random.seed(seed)
     assert (ploidy <= 3) & (ploidy >= 0)
     assert mat_hap.size == pat_hap.size

@@ -48,4 +48,4 @@ TODO: describe conda environment creation ...
 
 ## External Repositories
 
-* Add in `karyohmm` when online 
+* Add in `karyohmm` when publicly available.
