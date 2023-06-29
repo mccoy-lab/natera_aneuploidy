@@ -34,7 +34,7 @@ meta_df = pd.read_csv(metadata_file)
 
 
 def find_child_data(
-    child_id, meta_dfi=meta_df, raw_data_path="/data/rmccoy22/natera_spectrum/data/"
+    child_id, meta_df=meta_df, raw_data_path="/data/rmccoy22/natera_spectrum/data/"
 ):
     """Find the child csv file based on the provided meta_df."""
     child_year = meta_df[meta_df.array == child_id].year.values
