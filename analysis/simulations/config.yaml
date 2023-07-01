@@ -3,7 +3,6 @@ hmm_sims:
   model_comp: True
   mixed_ploidy: False 
   fpr: False 
-  eps: -6
   simple_sims:
     reps: 30
     ploidy:
@@ -15,13 +14,13 @@ hmm_sims:
       - 5000
     std_dev:
       - 10
+      - 15
       - 20
-      - 30
-      - 40
+      - 25
     pi0:
-      - 20
-      - 30
       - 40
+      - 60
+      - 80
     skew:
       - 0
   mixed_sims:

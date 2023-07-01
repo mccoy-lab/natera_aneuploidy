@@ -18,7 +18,7 @@ def bayes_factor(posteriors, priors=None):
     
 if __name__ == '__main__':
     sim_performance_df = pd.read_csv('../../data/simulations/total_hmm_ploidy.tsv.gz', sep="\t")
-    filt_df = sim_performance_df[(~sim_performance_df.lrr) & (sim_performance_df.a == 0.3)]
+    filt_df = sim_performance_df
     posterior_vals = filt_df[['0', '1m', '1p', '2', '3m', '3p']].values
     bayes_factors_sim = np.array([bayes_factor(posterior_vals[i]) for i in range(posterior_vals.shape[0])])
     
