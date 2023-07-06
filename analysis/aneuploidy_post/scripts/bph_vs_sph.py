@@ -86,5 +86,22 @@ def bph_vs_sph_trisomy(gammas, states, pos, start=None, end=None):
 
 
 if __name__ == '__main__':
-    pass
+    # Read in the hmm data + centromere data
+    hmm_traceback = pickle.load(gz.open(snakemake.input['hmm_traceback'], 'r' ))
+    centromere_df = pd.read_csv(snakemake.input["centromere_bed"], header=None, sep="\s+")
+    centromere_df.columns = ["chrom", "start", "end", "feature"]
+    bp_padding = snakemake.params["bp_padding"]
+    min_centromere_pos = np.min(centromere_df[centromere_df.chrom == snakemake.wildcards["chrom"]].values)
+    max_centromere_pos = np.max(centromere_df[centromere_df.chrom == snakemake.wildcards["chrom"]].values)
+    # Obtain the appropriate values from the hmm results
+    gammas = hmm_traceback[snakemake.wildcards['chrom']]['gammas']
+
+
+
+
+
+
+
+
+
 
