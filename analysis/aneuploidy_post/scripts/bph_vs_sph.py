@@ -3,7 +3,7 @@ import pickle
 import gzip as gz
 import click 
 import pandas as pd
-
+from karyohmm import MetaHMM
 
 def bph(states):
     """Identify states that are BPH - both parental homologs."""
@@ -63,7 +63,7 @@ def bayes_factor(posteriors, priors=None):
 
 
 
-def bph_vs_sph_trisomy(gammas, states, pos, start=None, end=None):
+def bph_vs_sph_trisomy(gammas, states, pos, start=None, end=None, exclude=False):
     """Classify BPH vs SPH for a trisomy within a given start/end region of a chromosome."""
     assert gammas.shape[1] == pos.size
     assert len(states) == gammas.shape[0]
@@ -71,7 +71,10 @@ def bph_vs_sph_trisomy(gammas, states, pos, start=None, end=None):
         assert start <= end
         assert start >= np.min(pos)
         assert end <= np.max(pos)
-        pos_idx = np.where((pos <= end) & (pos >= start))[0]
+        if exclude:
+            pos_idx = np.where((pos >= end) | (pos <= start))[0]
+        else:
+            pos_idx = np.where((pos <= end) & (pos >= start))[0]
     else:
         pos_idx = np.arange(pos.size)
     sph_idx = sph(states)
@@ -86,6 +89,9 @@ def bph_vs_sph_trisomy(gammas, states, pos, start=None, end=None):
 
 
 if __name__ == '__main__':
+    # Read in the BAF data
+    data = pickle.load(gz.open(snakemake.input['baf_pkl'], 'r' ) )
+    pos = data[snakemake.wildcards["chrom"]]["pos"]
     # Read in the hmm data + centromere data
     hmm_traceback = pickle.load(gz.open(snakemake.input['hmm_traceback'], 'r' ))
     centromere_df = pd.read_csv(snakemake.input["centromere_bed"], header=None, sep="\s+")
@@ -94,14 +100,30 @@ if __name__ == '__main__':
     min_centromere_pos = np.min(centromere_df[centromere_df.chrom == snakemake.wildcards["chrom"]].values)
     max_centromere_pos = np.max(centromere_df[centromere_df.chrom == snakemake.wildcards["chrom"]].values)
     # Obtain the appropriate values from the hmm results
+    # NOTE: gammas are assumed to be in log-space here
     gammas = hmm_traceback[snakemake.wildcards['chrom']]['gammas']
-
-
-
-
-
-
-
+    states = MetaHMM().states
+    # Step 1. Get the centromeric regions associated appropriately here
+    bfs_bph_sph_centromere, posterior_bph_centromere, posterior_sph_centromere = bph_vs_sph_trisomy(gammas, states, pos=pos, start=min_centromere_pos-bp_padding, end=min_centromere_pos+bp_padding)
+    # Step 2. Get the centromeric regions associated appropriately here
+    bfs_bph_sph_noncentro, posterior_bph_noncentro, posterior_sph_noncentro = bph_vs_sph_trisomy(gammas, states, pos=pos, start=min_centromere_pos-bp_padding, end=min_centromere_pos+bp_padding, exclude=True)
+    res_dict = {
+        "mother": snakemake.wildcards["mother"], 
+        "father": snakemake.wildcards["father"],  
+        "child": snakemake.wildcards["child"],  
+        "chrom": snakemake.wildcards["chrom"],  
+        "bf_bph_centro" = bfs_bph_sph_centromere[0],
+        "bf_sph_centro" = bfs_bph_sph_centromere[1],
+        "post_bph_centro" = posterior_bph_centromere,
+        "post_sph_centro" = posterior_sph_centromere,
+        "bf_bph_noncentro" = bfs_bph_sph_noncentro[0],
+        "bf_sph_noncentro" = bfs_bph_sph_noncentro[1],
+        "post_bph_noncentro" = posterior_bph_noncentro,
+        "post_sph_noncentro" = posterior_sph_noncentro,
+        }
+    # Convert to a pandas DataFrame
+    res_df = pd.DataFrame(res_dict, index=[0])
+    res_df.to_csv(snakemake.output["bph_tsv"], sep="\t", index=None)
 
 
 
