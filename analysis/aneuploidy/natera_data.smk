@@ -18,7 +18,6 @@ strand_refalt = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp
 cytosnp_map_v12 = (
     "/data/rmccoy22/natera_spectrum/data/illumina_files/snp_map_cyto12b_f004.txt"
 )
-lrrs = ["none"]
 
 # Create the VCF data dictionary for each chromosome ...
 vcf_dict = {}
@@ -88,10 +87,9 @@ if Path("results/natera_inference/valid_trios.txt").is_file():
     with open("results/natera_inference/valid_trios.txt", "r") as fp:
         for i, line in enumerate(fp):
             [m, f, c] = line.rstrip().split()
-            for l in lrrs:
-                total_data.append(
-                    f"results/natera_inference/{m}+{f}/{c}.{l}.total.ploidy.tsv"
-                )
+            total_data.append(
+                f"results/natera_inference/{m}+{f}/{c}.total.ploidy.tsv"
+            )
 
 # ------- Rules Section ------- #
 
@@ -186,16 +184,12 @@ rule hmm_model_comparison:
     input:
         baf_pkl="results/natera_inference/{mother_id}+{father_id}/{child_id}.bafs.pkl.gz",
     output:
-        hmm_pkl="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.hmm_model.pkl.gz",
-    wildcard_constraints:
-        lrr="(none|raw|norm)",
+        hmm_pkl="results/natera_inference/{mother_id}+{father_id}/{child_id}.hmm_model.pkl.gz",
     resources:
         time="1:00:00",
         mem_mb="4G",
     params:
         unphased=False,
-        eps=-6,
-        lrr=lambda wildcards: f"{wildcards.lrr}",
         mother_id=lambda wildcards: f"{wildcards.mother_id}",
         father_id=lambda wildcards: f"{wildcards.father_id}",
         child_id=lambda wildcards: f"{wildcards.child_id}",
@@ -223,47 +217,29 @@ def bayes_factor(posteriors, priors=None):
 rule hmm_model_chromosomes:
     """Local rule that collapses all ploidy assignments into a single table."""
     input:
-        hmm_models="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.hmm_model.pkl.gz",
+        hmm_models="results/natera_inference/{mother_id}+{father_id}/{child_id}.hmm_model.pkl.gz",
     output:
-        ploidy="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.total.ploidy.tsv",
+        ploidy="results/natera_inference/{mother_id}+{father_id}/{child_id}.total.ploidy.tsv",
     resources:
         time="0:30:00",
         mem_mb="1G",
-    params:
-        lrr=lambda wildcards: wildcards.lrr != "none",
     run:
         with open(output.ploidy, "w") as out:
             full_hmm_output = pickle.load(gzip.open(input.hmm_models, "r"))
-            if not params["lrr"]:
+            out.write(
+                "mother\tfather\tchild\tchrom\tsigma_baf\tpi0_baf\t0\t1m\t1p\t2\t3m\t3p\tbf_max\tbf_max_cat\n"
+            )
+            cats = np.array(["0", "1m", "1p", "2", "3m", "3p"])
+            for c in chroms:
+                data = full_hmm_output[c]
+                post_vals = np.array([data[x] for x in cats])
+                bayes_factor_chrom = bayes_factor(post_vals)
+                max_bf = np.max(bayes_factor_chrom)
+                max_cat = cats[np.argmax(bayes_factor_chrom)]
                 out.write(
-                    "mother\tfather\tchild\tchrom\tsigma_baf\tpi0_baf\tpi0_lrr\tlrr_mu\tlrr_sd\t0\t1m\t1p\t2\t3m\t3p\tbf_max\tbf_max_cat\n"
+                    f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{c}\t{data['sigma_baf']}\t{data['pi0_baf']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\t{max_bf}\t{max_cat}\n"
                 )
-                cats = np.array(["0", "1m", "1p", "2", "3m", "3p"])
-                for c in chroms:
-                    data = full_hmm_output[c]
-                    post_vals = np.array([data[x] for x in cats])
-                    bayes_factor_chrom = bayes_factor(post_vals)
-                    max_bf = np.max(bayes_factor_chrom)
-                    max_cat = cats[np.argmax(bayes_factor_chrom)]
-                    out.write(
-                        f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{c}\t{data['sigma_baf']}\t{data['pi0_baf']}\t{data['pi0_lrr']}\t{data['lrr_mu']}\t{data['lrr_sd']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\t{max_bf}\t{max_cat}\n"
-                    )
-            else:
-                out.write(
-                    "mother\tfather\tchild\tchrom\tsigma_baf\tpi0_baf\tpi0_lrr\tlrr_mu\tlrr_sd\t0\t1m\t1p\t2m\t2p\t2\t3m\t3p\tbf_max\tbf_max_cat\n"
-                )
-                cats = np.array(["0", "1m", "1p", "2m", "2p", "2", "3m", "3p"])
-                for c in chroms:
-                    data = full_hmm_output[c]
-                    post_vals = np.array([data[x] for x in cats])
-                    bayes_factor_chrom = bayes_factor(post_vals)
-                    max_bf = np.max(bayes_factor_chrom)
-                    max_cat = cats[np.argmax(bayes_factor_chrom)]
-                    out.write(
-                        f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{c}\t{data['sigma_baf']}\t{data['pi0_baf']}\t{data['pi0_lrr']}\t{data['lrr_mu']}\t{data['lrr_sd']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2m']}\t{data['2p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\t{max_bf}\t{max_cat}\n"
-                    )
-
-
+            
 rule generate_posterior_table:
     """Generates a full TSV with posterior probabilities for each embryo across ploidy states.
     
@@ -273,15 +249,13 @@ rule generate_posterior_table:
     """
     input:
         baf_data="results/natera_inference/{mother_id}+{father_id}/{child_id}.bafs.pkl.gz",
-        hmm_models="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.hmm_model.pkl.gz",
-        ploidy="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.total.ploidy.tsv",
+        hmm_models="results/natera_inference/{mother_id}+{father_id}/{child_id}.hmm_model.pkl.gz",
+        ploidy="results/natera_inference/{mother_id}+{father_id}/{child_id}.total.ploidy.tsv",
     output:
-        posterior="results/natera_inference/{mother_id}+{father_id}/{child_id}.{lrr}.total.posterior.tsv.gz",
+        posterior="results/natera_inference/{mother_id}+{father_id}/{child_id}.total.posterior.tsv.gz",
     resources:
         time="0:30:00",
         mem_mb="1G",
-    wildcard_constraints:
-        lrr="(none|raw|norm)",
     run:
         full_hmm_output = pickle.load(gzip.open(input.hmm_models, "r"))
         full_baf = pickle.load(gzip.open(input.baf_data, "r"))
