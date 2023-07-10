@@ -75,23 +75,10 @@ rule trisomy_bph_sph:
     output:
         bph_tsv="results/bph_sph/{mother}+{father}+{child}.{chrom}.tsv",
     resources:
-        time="0:30:00",
+        time="0:10:00",
         mem_mb="1G",
     params:
         bp_padding=10e6,
     script:
         "scripts/bph_vs_sph.py"
 
-
-rule agg_bph_sph_data:
-    """Aggregate the BPH vs. SPH signatures across multiple individuals."""
-    input:
-        lambda wildcards: expand_bph_sph("results/bph_sph/valid_trisomies.tsv"),
-    output:
-        "results/bph_sph/bph_sph_total.tsv.gz",
-    run:
-        dfs = []
-        for f in input:
-            dfs.append(pd.read_csv(f, sep="\t"))
-        tot_df = pd.concat(dfs)
-        tot_df.to_csv(output.bph_sph_tot_tsv, sep="\t", index=None)
