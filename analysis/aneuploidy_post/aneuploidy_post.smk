@@ -11,9 +11,9 @@ from io import StringIO
 
 # ---- Parameters for post whole-chromosome aneuploidy inference in Natera Data ---- #
 metadata_file = "../../data/spectrum_metadata_merged.csv"
-centromeres_file = "../../gaps/centromeres_grch38.bed"
-aneuploidy_calls = ""
-results_dir = "../aneuploidy/results/natera_inference/"
+centromeres_file = "../../data/gaps/centromeres_grch38.bed"
+aneuploidy_calls = "/home/abiddan1/scratch16/natera_aneuploidy/analysis/aneuploidy/results/natera_inference/natera_embryos_v2.karyohmm_v14.070923.test.tsv.gz"
+results_dir = "../aneuploidy/results/natera_inference"
 
 
 # ------- Rules Section ------- #
@@ -21,9 +21,29 @@ localrules:
     all,
 
 
+def expand_bph_sph(fp="results/bph_sph/valid_trisomies.tsv"):
+    """Expand the BPH vs. SPH results to aggregate."""
+    trisomy_df = pd.read_csv(fp, sep="\t")
+    res_files = []
+    for m, p, c, chrom in zip(
+        trisomy_df.mother.values,
+        trisomy_df.father.values,
+        trisomy_df.child.values,
+        trisomy_df.chrom.values,
+    ):
+        res_files.append(f"results/bph_sph/{m}+{p}+{c}.{chrom}.tsv")
+    return res_files
+
+
+# ---- Target definition ---- #
+TARGETS = ["results/bph_sph/valid_trisomies.tsv"]
+if Path("results/bph_sph/valid_trisomies.tsv").is_file():
+    TARGETS.append(expand_bph_sph())
+
+
 rule all:
     input:
-        "results/bph_sph/bph_sph_total.tsv.gz",
+        TARGETS,
 
 
 # -------- 1. Isolate BPH vs. SPH signature of trisomies ---------- #
@@ -46,10 +66,10 @@ rule isolate_trisomies:
 
 
 rule trisomy_bph_sph:
-    """Obtain evidence for BPH vs. SPH for an observed trisomy."""
+    """Obtain evidence for BPH vs. SPH for an observed trisomy in centromere-proximal vs distal regions."""
     input:
         baf_pkl=lambda wildcards: f"{results_dir}/{wildcards.mother}+{wildcards.father}/{wildcards.child}.bafs.pkl.gz",
-        hmm_traceback=lambda wildcards: f"{results_dir}/{wildcards.mother}+{wildcards.father}/{wildcards.child}.baf_hmm.pkl.gz",
+        hmm_traceback=lambda wildcards: f"{results_dir}/{wildcards.mother}+{wildcards.father}/{wildcards.child}.hmm_model.pkl.gz",
         centromere_bed=centromeres_file,
         trisomy_tsv="results/bph_sph/valid_trisomies.tsv",
     output:
@@ -63,22 +83,8 @@ rule trisomy_bph_sph:
         "scripts/bph_vs_sph.py"
 
 
-def expand_bph_sph(fp="results/bph_sph/valid_trisomies.tsv"):
-    """Expand the BPH vs. SPH results to aggregate."""
-    trisomy_df = pd.read_csv(fp, sep="\t")
-    res_files = []
-    for m, p, c, chrom in zip(
-        trisomy_df.mother.values,
-        trisomy_df.father.values,
-        trisomy_df.child.values,
-        trisomy_df.chrom.values,
-    ):
-        res_files.append(f"results/bph_sph/{m}+{p}+{c}.{chrom}.tsv")
-    return res_files
-
-
 rule agg_bph_sph_data:
-    """Aggregate some of the BPH signature."""
+    """Aggregate the BPH vs. SPH signatures across multiple individuals."""
     input:
         lambda wildcards: expand_bph_sph("results/bph_sph/valid_trisomies.tsv"),
     output:
