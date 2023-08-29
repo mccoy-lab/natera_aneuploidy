@@ -24,46 +24,50 @@ chrX_states = [
     ]
 chrX_state_names = ["0", "1p", "1m", "1m", "2", "2", "2m", "2m", "2m", "3", "3", "3"]
 
-def loglik_chrx(baf, mat_geno, pat_geno, **kwargs):
+chrY_states = [
+    (-1,-1,-1,-1)
+    (-1,-1,0,-1),
+]
+chrY_state_names = ["0", "1"]
+
+def loglik_chrx(bafs, mat_haps, pat_haps, **kwargs):
     """Obtain the loglikelihood of the embryo BAF conditional on the number. """
-    assert baf.ndim == 1
-    assert mat_geno.ndim == 2
-    assert pat_geno.ndim == 2
-    assert baf.size == mat_geno.shape[1]
-    assert baf.size == pat_geno.shape[1]
+    assert bafs.ndim == 1
+    assert mat_haps.ndim == 2
+    assert pat_haps.ndim == 2
+    assert baf.size == mat_haps.shape[1]
+    assert baf.size == pat_haps.shape[1]
     # Check for heterozygotes in the male X
-    if np.any(np.sum(pat_geno, axis=0) == 1):
+    if np.any(np.sum(pat_haps, axis=0) == 1):
         warnings.warn("Heterozygotes observed in male chrX ... these are excluded from the overall likelihood.")
     hmm = MetaHMM()
     hmm.states = chrX_states
     hmm.karyotypes = np.array(chrX_state_names, dtype=str)
     # Step 1: first estimate the HMM parameters
-    pi0_est, sigma_est = hmm.est_sigma_pi0()
-    
-    for i, b in enumerate(baf):
-        # nullisomy for chrX
-        loglik_x0 += emission_baf(b, m=-1, p=-1, k=2, **kwargs)
-        # single chrX copyed from 
-        loglik_x1 += emission_baf(b, m=mat_geno[0,i], p=-1, k=1, **kwargs)
-        # two chrX copied from 
-    pass
+    pi0_est, sigma_est = hmm.est_sigma_pi0(bafs, mat_haps, pat_haps, r=1e-4)
+    # Step 2: run fwd-bwd decoding for the HMM
+    gammas, states, karyotypes = hmm.forward_backward(
+        bafs=bafs,
+        mat_haps=mat_haps,
+        pat_haps=pat_haps,
+        pi0=pi0_est,
+        std_dev=sigma_est,
+    )
+    res_dict = hmm.posterior_karyotypes(gammas, karyotypes)
+    res_dict["pi0_est_chrX"] = pi0_est
+    res_dict["sigma_est_chrX"] = sigma_est
+    return res_dict
 
-
-def loglik_chry(baf, pat_geno, **kwargs):
+def loglik_chry(baf, pat_haps, **kwargs):
     """Compute the log-likelihood of the embryo BAF conditional on the number of Y-chromosome copies."""
-    assert baf.ndim == 1
-    assert pat_geno.ndim == 2
-    if np.any(np.sum(pat_geno, axis=0) == 1):
+    assert bafs.ndim == 1
+    assert pat_haps.ndim == 2
+    assert bafs.size == pat_haps.shape[1]
+    if np.any(np.sum(pat_haps, axis=0) == 1):
         warnings.warn("Heterozygotes observed on chrY...these are excluded from the likelihood.")
-    y0_loglik = 0.0
-    y1_loglik = 0.0
-    for i, b in enumerate(baf):
-        if pat_geno[i,:].sum() != 1:
-            # NOTE: this is just the full marginal likelihood. 
-            y0_loglik += emission_baf(b, m=-1, p=-1, k=1, **kwargs)
-            y1_loglik += emission_baf(b, m=-1, p=pat_geno[0,i], k=1, **kwargs)
-    # NOTE: should we normalize here via logsumexp
-    return {"y0": y0_loglik, "y1": y1_loglik} 
+    mat_haps = np.zeros(shape=(2, bafs.size))
+    pass
+    
 
 
 if __name__ == '__main__':
