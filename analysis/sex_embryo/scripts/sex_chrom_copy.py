@@ -1,16 +1,16 @@
 import numpy as np
 import pandas as pd
 import warnings
-from cyvcf2 import VCF
+import gzip as gz
 from karyohmm import MetaHMM
-from scipy.special import logsumexp
 
 # Defining a custom set of states for chrX for copying probabilities to run through karyohmm
 chrX_states = [
     (-1, -1, -1, -1),
     (-1, -1, 0, -1),
     (0, -1, -1, -1),
-    (1, -1, -1, -1)(0, -1, 0, -1),
+    (1, -1, -1, -1),
+    (0, -1, 0, -1),
     (1, -1, 0, -1),
     (0, 0, -1, -1),
     (1, 1, -1, -1),
@@ -35,7 +35,8 @@ chrX_state_names = [
 ]
 
 chrY_states = [
-    (-1, -1, -1, -1)(-1, -1, 0, -1),
+    (-1, -1, -1, -1),
+    (-1, -1, 0, -1),
 ]
 chrY_state_names = ["y0", "y1"]
 
@@ -61,8 +62,8 @@ def posterior_chrX_karyotype(bafs, mat_haps, pat_haps, **kwargs):
     assert bafs.ndim == 1
     assert mat_haps.ndim == 2
     assert pat_haps.ndim == 2
-    assert baf.size == mat_haps.shape[1]
-    assert baf.size == pat_haps.shape[1]
+    assert bafs.size == mat_haps.shape[1]
+    assert bafs.size == pat_haps.shape[1]
     # Check for heterozygotes in the male X
     if np.any(np.sum(pat_haps, axis=0) == 1):
         warnings.warn(
@@ -88,7 +89,7 @@ def posterior_chrX_karyotype(bafs, mat_haps, pat_haps, **kwargs):
     res_dict["pi0_est_chrX"] = pi0_est
     res_dict["sigma_est_chrX"] = sigma_est
     # 4. Obtain the maxBF and category for maxBF on chrX
-    posteriors = [res_dict[x] for x in karyotypes]
+    posteriors = np.array([res_dict[x] for x in karyotypes])
     bfs = bayes_factor(posteriors)
     res_dict["x_maxBF"] = np.max(bfs)
     res_dict["x_maxBF_cat"] = karyotypes[np.argmax(bfs)]
@@ -125,7 +126,7 @@ def posterior_chrY_karyotype(baf, pat_haps, **kwargs):
     res_dict["pi0_est_chrY"] = pi0_est
     res_dict["sigma_est_chrY"] = sigma_est
     # 4. Obtain the maxBF and category for maxBF for chrY
-    posteriors = [res_dict[x] for x in karyotypes]
+    posteriors = np.array([res_dict[x] for x in karyotypes])
     bfs = bayes_factor(posteriors)
     res_dict["y_maxBF"] = np.max(bfs)
     res_dict["y_maxBF_cat"] = karyotypes[np.argmax(bfs)]
@@ -135,9 +136,9 @@ def posterior_chrY_karyotype(baf, pat_haps, **kwargs):
 if __name__ == "__main__":
     """Run the full sex-assignment method and output a TSV."""
     # 1. Read in the BAF data for analysis
-    data = np.load(snakemake.input["baf_pkl"])
-    assert "chrX" in baf_data.keys()
-    assert "chrY" in baf_data.keys()
+    data = pickle.load(gz.open(snakemake.input["baf_pkl"], "r"))
+    assert "chrX" in data.keys()
+    assert "chrY" in data.keys()
     baf_chrX_data = data["chrX"]
     baf_chrY_data = data["chrY"]
 
