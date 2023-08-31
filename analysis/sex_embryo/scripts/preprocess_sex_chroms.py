@@ -1,4 +1,3 @@
-import click
 import numpy as np
 import pandas as pd
 from cyvcf2 import VCF
@@ -130,18 +129,6 @@ def filter_parent_child_data(child_df, mat_haps, pat_haps, rsids, pos, ref, alt)
     return bafs, mat_haps, pat_haps, rsids, pos, ref, alt
 
 
-# @click.command()
-# @click.option('--child_csv', required=True, type=str, help='Embryo CSV file.')
-# @click.option('--cytosnp_map', required=True, type=str, help='CytoSNP v12 Mapping file.')
-# @click.option('--alleles_file', required=True, type=str, help='Alleles for specific cytosnp probes.')
-# @click.option('--cytosnp_cluster', required=True, type=str, help='Cytosnp clusters from the EGT file.')
-# @click.option('--norm_xy', required=False, default=None, type=str, help='Normalized XY-intensities.')
-# @click.option('--raw_xy', required=False, default=None, type=str, help='Raw XY-intensities.')
-# @click.option('--meanr', required=False, default=None, type=str, help='mean-R tables based on raw intensity.')
-# @click.option('--vcf_file', required=True, type=str, help='VCF File containing parental genotypes.')
-# @click.option('--mother_id', required=True, type=str, help='Mother ID.')
-# @click.option('--father_id', required=True, type=str, help='Father ID.')
-# @click.option('--outfile', required=True, type=str, help='Output File containing SNP values.')
 def main(
     child_csv,
     cytosnp_map,
@@ -151,6 +138,22 @@ def main(
     mother_id,
     father_id,
 ):
+    """
+    Main function for BAF processing.
+
+    Arguments:
+        - child_csv: Embryo CSV file.
+        - cytosnp_map: CytoSNP v12 Mapping file.
+        - alleles_file: Alleles for specific cytosnp probes.
+        - cytosnp_cluster: Cytosnp clusters from the EGT file.
+        - norm_xy: Normalized XY-intensities.
+        - raw_xy: Raw XY-intensities.
+        - meanr: mean-R tables based on raw intensity.
+        - vcf_file: VCF File containing parental genotypes.
+        - mother_id: Mother ID.
+        - father_id: Father ID
+        - outfile: Output File containing parental haplotypes and embryo BAF
+    """
     # Read in the child embryo data
     child_df = obtain_child_data(
         child_csv_file=child_csv,
