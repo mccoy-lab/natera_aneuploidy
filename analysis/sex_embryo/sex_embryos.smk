@@ -96,7 +96,6 @@ if Path("results/natera_inference/valid_trios.txt").is_file():
 # ------- Rules Section ------- #
 localrules:
     all,
-    hmm_model_chromosomes,
 
 
 rule all:
@@ -156,7 +155,7 @@ rule preprocess_baf_data_sex_chrom:
 
     * Filter out positions where either parent has a missing genotype
     
-    The specific steps can be found in `preprocess_natera.py` in greater detail with code examples as well.
+    The specific steps can be found in `preprocess_sex_chroms.py` in greater detail with code examples as well.
     """
     input:
         metadata_csv=metadata_file,
@@ -176,7 +175,7 @@ rule preprocess_baf_data_sex_chrom:
     params:
         chroms=chroms,
     script:
-        "scripts/preprocess_natera_sex_chrom.py"
+        "scripts/preprocess_sex_chroms.py"
 
 
 rule assign_sex_chrom_copy:
