@@ -96,7 +96,7 @@ def posterior_chrX_karyotype(bafs, mat_haps, pat_haps, **kwargs):
     return res_dict
 
 
-def posterior_chrY_karyotype(baf, pat_haps, **kwargs):
+def posterior_chrY_karyotype(bafs, pat_haps, **kwargs):
     """Compute the log-likelihood of the embryo BAF conditional on the number of Y-chromosome copies."""
     assert bafs.ndim == 1
     assert pat_haps.ndim == 2
@@ -110,7 +110,7 @@ def posterior_chrY_karyotype(baf, pat_haps, **kwargs):
     # 1. Setup HMM with altered state-space
     hmm = MetaHMM()
     hmm.states = chrY_states
-    hmm.karyotypes = chrY_state_names
+    hmm.karyotypes = np.array(chrY_state_names, dtype=str)
     pi0_est, sigma_est = hmm.est_sigma_pi0(bafs, mat_haps, pat_haps, r=1e-4)
     # 2. run fwd-bwd decoding for the HMM for state probabilities
     gammas, states, karyotypes = hmm.forward_backward(
@@ -178,7 +178,7 @@ if __name__ == "__main__":
         res_dict_chrY["y_maxBF_cat"] = np.nan
     else:
         res_dict_chrY = posterior_chrY_karyotype(
-            bafs=baf_chrX_data["baf_embryo"], pat_haps=baf_chrX_data["pat_haps"]
+            bafs=baf_chrY_data["baf_embryo"], pat_haps=baf_chrY_data["pat_haps"]
         )
     # 4. Create the line for the primary output
     with open(snakemake.output["karyo_tsv"], "w+") as out:
@@ -186,5 +186,5 @@ if __name__ == "__main__":
             "mother\tfather\tchild\tpi0_x\tsigma_x\tx0\tx1p\tx1m\tx2\tx2m\tx3\tx_maxBF\tx_maxBFcat\tpi0_y\tsigma_y\ty0\ty1\ty_maxBF\ty_maxBFcat\n"
         )
         # NOTE: this is kind of long and gross - and can be probably made more clear in a separate function?
-        line = f"{baf_chrX_data['mother_id']}\t{baf_chrX_data['father_id']}\t{baf_chrX_data['child_id']}\t{res_dict_chrX['pi0_est_chrX']}\t{res_dict_chrX['sigma_est_chrX']}\t{res_dict_chrX['x0']}\t{res_dict_chrX['x1p']}\t{res_dict_chrX['x1m']}\t{res_dict_chrX['x2']}\t{res_dict_chrX['x2m']}\t{res_dict_chrX['x3']}\t{res_dict_chrX['x_maxBF']}\t{res_dict_chrX['x_maxBF_cat']}\t{res_dict_chrY['pi0_est_chrY']}\t{res_dict_chrY['sigma_est_chrY']}\t{res_dict_chrY['y0']}\t{res_dict_chrY['y1']}\t{res_dict_chrY['y_maxBF']}\t{res_dict['y_maxBF_cat']}\n"
+        line = f"{baf_chrX_data['mother_id']}\t{baf_chrX_data['father_id']}\t{baf_chrX_data['child_id']}\t{res_dict_chrX['pi0_est_chrX']}\t{res_dict_chrX['sigma_est_chrX']}\t{res_dict_chrX['x0']}\t{res_dict_chrX['x1p']}\t{res_dict_chrX['x1m']}\t{res_dict_chrX['x2']}\t{res_dict_chrX['x2m']}\t{res_dict_chrX['x3']}\t{res_dict_chrX['x_maxBF']}\t{res_dict_chrX['x_maxBF_cat']}\t{res_dict_chrY['pi0_est_chrY']}\t{res_dict_chrY['sigma_est_chrY']}\t{res_dict_chrY['y0']}\t{res_dict_chrY['y1']}\t{res_dict_chrY['y_maxBF']}\t{res_dict_chrY['y_maxBF_cat']}\n"
         out.write(line)
