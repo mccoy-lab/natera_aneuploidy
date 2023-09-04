@@ -151,7 +151,7 @@ if __name__ == "__main__":
         print("Warning: all BAF values were either [0,1].", file=sys.stderr)
         res_dict_chrX = {}
         for k in chrX_state_names:
-            res_dict_chrX[x] = np.nan
+            res_dict_chrX[k] = np.nan
         res_dict_chrX["pi0_est_chrX"] = np.nan
         res_dict_chrX["sigma_est_chrX"] = np.nan
         res_dict_chrX["x_maxBF"] = np.nan
@@ -171,7 +171,7 @@ if __name__ == "__main__":
         print("Warning: all BAF values were either [0,1].", file=sys.stderr)
         res_dict_chrY = {}
         for k in chrY_state_names:
-            res_dict_chrY[x] = np.nan
+            res_dict_chrY[k] = np.nan
         res_dict_chrY["pi0_est_chrY"] = np.nan
         res_dict_chrY["sigma_est_chrY"] = np.nan
         res_dict_chrY["y_maxBF"] = np.nan
