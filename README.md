@@ -3,11 +3,7 @@ GWAS + QuantGen of Aneuploidy in Natera PGT Data
 
 ## Description 
 
-The code here is associated with the following [paper](). You can find each specific section of analysis within the `analysis` directory. 
-
-### GWAS
-
-### Phenotyping
+The code here is associated with the following [paper](https://docs.google.com/document/d/1pPh8kAPeizuqboe01FmO2sB0Xfw8Z3vTeiAjrT1co2o/edit#heading=h.imz1c45tt2oy). You can find each specific section of analysis within the `analysis` directory. 
 
 ### Metadata
 
@@ -39,6 +35,12 @@ We also have a post-processing workflow (`aneuploidy_post`) of the posterior tra
 * Coarse identification of segmental aneuploidies from a set of embryos.
 
 
+### GWAS
+
+### Phenotyping
+
+### Sex embryo 
+This directory infers the sex chromosome status for each embryo in the Natera data. First it preprocesses the BAF data for each trio (mother-father-embryo). It then applies the sex-chromosome ploidy HMM to this BAF data and outputs a TSV with likelihood of each sex chromosome state (XY, XX, X0, XXY, 0, XXX, XXY, Y). 
 
 ### Simulations
 
