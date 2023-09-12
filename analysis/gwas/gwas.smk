@@ -69,31 +69,34 @@ rule compute_PCs:
   shell:
     "plink --vcf {input.vcf_input} --double-id --allow-extra-chr --pca --out {output.pcs}" 
     
-rule run_maternal_m_meiotic: 
-  """ """ 
+rule gwas_maternal_m_meiotic: 
+  """Run GWAS on association with maternal meiotic error and maternal genotypes""" 
   input:
     gwas_Rscript_maternal,
+    parental_pcs = pcs_output,
   output: 
-    gwas_maternal_all_sites=gwas_output_path + 
-    gwas_maternal_MAF=gwas_output_path + 
+    gwas_maternal_all_sites = gwas_output_path + "maternal_m_meiotic.txt",
+    gwas_maternal_MAF = gwas_output_path + "maternal_m_meiotic_MAF.txt",
   params: 
     ## 
   shell: 
-    "Rscript {input.gwas_Rscript_maternal} {output.gwas_maternal_all_sites} {output.gwas_maternal_MAF}
+    "Rscript {input.gwas_Rscript_maternal} {input.parental_pcs} {output.gwas_maternal_all_sites} {output.gwas_maternal_MAF}"
     
-rule run_paternal_m_meiotic: 
-  """ """ 
+rule gwas_paternal_m_meiotic: 
+  """Run GWAS on association with maternal meiotic error and paternal genotypes""" 
   input:
-    ## 
+    gwas_Rscript_paternal,
+    parental_pcs = pcs_output,
   output: 
-    ## 
+    gwas_paternal_all_sites = gwas_output_path + "paternal_m_meiotic.txt",
+    gwas_paternal_MAF = gwas_output_path + "paternal_m_meiotic_MAF.txt",
   params: 
     ## 
   shell: 
-    ## 
+    "Rscript {input.gwas_Rscript_paternal} {input.parental_pcs} {output.gwas_paternal_all_sites} {output.gwas_paternal_MAF}"
 
 rule plot_manhattan_qq: 
-  """ """ 
+  """Create qq plot for maternal meiotic""" 
   input:
     ## 
   output: 
