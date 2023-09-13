@@ -2,13 +2,19 @@
 library(data.table)
 library(tidyr)
 
-# read in raw data  from karyohmm
-input_data <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/natera_embryos.karyohmm_v11.052723.tsv")
-#input_data <- fread("/Users/saracarioscia/mccoy-lab/natera_spectrum_local/gwas_aneuploidy_count_test/natera_embryos.karyohmm_v11.052723.tsv")
-input_embryos <- input_data
-# keep only rows that have probabilities for all 6 cn states
-embryos <- input_embryos[complete.cases(input_embryos[,c("0", "1m", "1p", "2", "3m", "3p")]),]
+# Usage: ./maternal_meiotic_aneuploidy.R \ 
+# /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz \ 
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/maternal_meiotic_count_mother.csv
 
+# get command line arguments
+args <- commandArgs(trailingOnly = TRUE)
+input_data <- args[1]
+out_fname <- args[2]
+
+# read in data
+input_data <- fread(input_data)
+# keep only rows that have probabilities for all 6 cn states
+embryos <- input_data[complete.cases(input_data[,c("0", "1m", "1p", "2", "3m", "3p")]),]
 
 # find max posterior probability 
 selected_columns <- c("0", "1m", "1p", "2", "3m", "3p")
@@ -49,5 +55,6 @@ embryo_counts_by_mother <- embryos_filtered %>%
   pivot_wider(names_from = is_aneu,  values_from = n, values_fill = 0,names_prefix = "aneu_") %>% 
   replace(is.na(.), 0)
 
+
 # write to file 
-write.csv(embryo_counts_by_mother, "/Users/saracarioscia/mccoy-lab/natera_spectrum/embryo_counts_by_mother.txt", row.names = FALSE)
+write.csv(embryo_counts_by_mother, out_fname, row.names = FALSE)
