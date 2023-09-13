@@ -24,11 +24,16 @@ pcs_out <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results
 # -------- Setting key variables/paths for running GWAS across phenotypes in the Natera dataset ------- #
 linker_file = "" # two-column file with mom's arrayID with associate dad arrayID for use in paternal DNA gwas 
 parent_pca = ".eigenvec"
+genotype_files = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
 gwas_Rscript_maternal = "/maternal_gwas.R"
 gwas_Rscript_maternal = "/paternal_gwas.R"
 phenotype_input_path = "/natera_spectrum/gwas/phenotyping/phenotype_files/" #update this for Rockfish and match to output from other file
 gwas_output_path = "/natera_spectrum/gwas/output_files"
 
+
+# Define the chromosomes that you will be running the pipeline on ...
+# NOTE: running on autosomes, chromosomes 1-22
+chroms = range(1, 23)
 
 
 # -------- Functions to determine run GWAS on maternal and paternal for each phenotype, and plot -------- #
@@ -73,20 +78,25 @@ rule gwas_maternal_m_meiotic:
   """Run GWAS on association with maternal meiotic error and maternal genotypes""" 
   input:
     gwas_Rscript_maternal,
-    parental_pcs = pcs_output,
+    parental_pcs = pcs_out + parent_pca,
+    bed = genotype_files + "opticall_concat_{chrom}.norm.b38.bed",
+    bim = genotype_files + "opticall_concat_{chrom}.norm.b38.bim",
+    pheno = phenotype_input_path + "ploidy_by_fam_discovery.txt",
+    metadata,
+    discovery_validate_maternal,
+    out_fname = gwas_output_path + maternal_meiotic_mat_discovery_{chrom}.txt
   output: 
-    gwas_maternal_all_sites = gwas_output_path + "maternal_m_meiotic.txt",
-    gwas_maternal_MAF = gwas_output_path + "maternal_m_meiotic_MAF.txt",
+    out_fname,
   params: 
     ## 
   shell: 
-    "Rscript {input.gwas_Rscript_maternal} {input.parental_pcs} {output.gwas_maternal_all_sites} {output.gwas_maternal_MAF}"
+    "Rscript {input.gwas_Rscript_maternal} {input.parental_pcs} {input.bed} {input.bim} {input.pheno} {input.metadata} {input.discovery_validate_maternal} {input.out_fname} {output.out_fname}"
     
 rule gwas_paternal_m_meiotic: 
   """Run GWAS on association with maternal meiotic error and paternal genotypes""" 
   input:
     gwas_Rscript_paternal,
-    parental_pcs = pcs_output,
+    parental_pcs = pcs_out,
   output: 
     gwas_paternal_all_sites = gwas_output_path + "paternal_m_meiotic.txt",
     gwas_paternal_MAF = gwas_output_path + "paternal_m_meiotic_MAF.txt",
