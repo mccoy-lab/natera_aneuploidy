@@ -12,7 +12,7 @@ king_outputs_fp <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas
 vcf_input <- "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.vcf.gz"
 alleleorder_fp <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/opticall_concat_total.norm.b38.alleleorder"
 discovery_validate_R <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/discovery_validate_split.R"
-metadata = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/data/spectrum_metadata_merged.csv"
+metadata = "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 fam_file <- "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam"
 discovery_validate_out_fp <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/"
 discovery_validate_maternal <- "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_f.txt"
