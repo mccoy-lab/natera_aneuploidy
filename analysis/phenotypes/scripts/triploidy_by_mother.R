@@ -11,6 +11,8 @@ args <- commandArgs(trailingOnly = TRUE)
 input_data <- args[1]
 out_fname <- args[2]
 
+# read in data
+input_data <- fread(input_data)
 # keep only rows that have probabilities for all 6 cn states
 embryos <- input_data[complete.cases(input_data[,c("0", "1m", "1p", "2", "3m", "3p")]),]
 
@@ -30,7 +32,7 @@ triploid_counts_by_mother <- embryos %>%
   summarise(num_trisomies = sum(putative_cn == "3m" | putative_cn == "3p")) %>% 
   mutate(is_triploid = if_else(num_trisomies >= 20, "true", "false")) %>% 
   count(is_triploid) %>%
-  pivot_wider(names_from = is_triploid,  values_from = n, values_fill = 0) %>% 
+  pivot_wider(names_from = is_triploid, values_from = n, values_fill = 0) %>% 
   replace(is.na(.), 0)
 
 # write to file 
