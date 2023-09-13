@@ -1,4 +1,4 @@
-## Make embryo count phenotype for use in GWAS 
+## Make embryo count phenotype for use in GWAS (weighted maternal age for use as covariate)
 
 # load libraries
 library(data.table)
