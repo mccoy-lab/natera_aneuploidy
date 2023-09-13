@@ -31,11 +31,6 @@ phenotype_input_path = "/natera_spectrum/gwas/phenotyping/phenotype_files/" #upd
 gwas_output_path = "/natera_spectrum/gwas/output_files"
 
 
-# Define the chromosomes that you will be running the pipeline on ...
-# NOTE: running on autosomes, chromosomes 1-22
-chroms = range(1, 23)
-
-
 # -------- Functions to determine run GWAS on maternal and paternal for each phenotype, and plot -------- #
 rule run_king: 
   """Reformat parental genotypes vcf and run king to identify related individuals"""
@@ -79,8 +74,8 @@ rule gwas_maternal_m_meiotic:
   input:
     gwas_Rscript_maternal,
     parental_pcs = pcs_out + parent_pca,
-    bed = genotype_files + "opticall_concat_{chrom}.norm.b38.bed",
-    bim = genotype_files + "opticall_concat_{chrom}.norm.b38.bim",
+    bed = genotype_files + "opticall_concat_total.norm.b38.bed",
+    bim = genotype_files + "opticall_concat_total.norm.b38.bim",
     pheno = phenotype_input_path + "ploidy_by_fam_discovery.txt",
     metadata,
     discovery_validate_maternal,
