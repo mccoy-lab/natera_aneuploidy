@@ -2,7 +2,7 @@
 library(data.table)
 library(tidyr)
 
-# Usage: ./maternal_triploidy.R \ 
+# Usage: ./triploidy_by_mother.R \ 
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz \ 
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/triploid_count_mother.csv
 
