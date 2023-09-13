@@ -3,7 +3,9 @@
 # load libraries
 library(data.table)
 library(BEDMatrix)
+library(dplyr)
 library(pbmcapply)
+library(purrr)
 
 # take in arguments 
 args <- commandArgs(trailingOnly = TRUE)
@@ -42,8 +44,9 @@ bed_subset <- bed_discovery_f
 
 # format pca 
 pca_scores <- as.data.table(eigenvec)
+# keep PCs 1 through 20
 pca_scores <- pca_scores[,2:22]
-names(pca_scores)[names(pca_scores) == "V2"] <- "array"
+colnames(pca_scores) <- c("array", "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11", "PC12", "PC13", "PC14", "PC15", "PC16", "PC17", "PC18", "PC19", "PC20")
 
 # function to run GWAS on each site
 gwas <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices) {
@@ -57,9 +60,9 @@ gwas <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_
   snp_pos <- locs[snp_index]$pos
   
   gt <- merge(gt, metadata, by = "array") %>%
-    merge(pheno, by = "casefile_id") %>%
-    merge(pcs, by = "array") %>%
-    .[alt_count %in% 0:2 & !duplicated(array) & is.na(egg_donor) & is.na(sperm_donor)]
+	merge(pheno, by = "casefile_id") %>%
+	merge(pcs, by = "array") %>%
+	.[!duplicated(array)]
   
   m1 <- glm(cbind(num_aneuploid, num_euploid) ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + patient_age + alt_count, family = "quasibinomial", data = gt) %>% summary()
   
@@ -74,7 +77,7 @@ gwas <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_
 }
 
 # run GWAS
-gwas_results_discovery <- pbmclapply(1:ncol(bed_discovery_f), function(x) gwas(x, bed_discovery_f, pheno, metadata, bim, pca_scores, bed_indicies_discovery), mc.cores = 48L)
+gwas_results_discovery <- pbmclapply(1:ncol(bed_discovery_f), function(x) gwas(x, bed_discovery_f, pheno, metadata, bim, pca_scores, bed_indices_discovery), mc.cores = 48L)
 
 # bind output
 gwas_results_dt <- rbindlist(gwas_results_discovery[unlist(map(gwas_results_discovery, is.data.table))]) %>%
