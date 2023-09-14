@@ -37,11 +37,4 @@ weighted_ages <- metadata_merged_array %>%
 weighted_ages$array <- gsub('_merged', '', weighted_ages$array_id_merged)
   
 # write to file 
-fwrite(weighted_ages, out_fname)
-
-# check age range of multi-visit mothers 
-test_age_range <- metadata_merged_array %>%
-  filter(family_position == "child") %>%
-  group_by(array_id_merged) %>%
-  summarise(range = max(patient_age) - min(patient_age)) %>% 
-  as.data.frame()
+write.csv(weighted_ages, out_fname)
