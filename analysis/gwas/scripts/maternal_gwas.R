@@ -38,8 +38,8 @@ discovery_test <- function(dataset_type, metadata, bed, discovery_test_f) {
   # add column for array_array to match rownames of bed
   metadata_set$array_array <- paste0(metadata_set$array, "_", metadata_set$array)
   # subset bed file to just the mothers in the relevant set 
-  bed_indices <- which(rownames(bed) %in% metadata_set$array)
-  bed_dataset <- bed[bed_discovery_indices,]
+  bed_indices <- which(rownames(bed) %in% metadata_set$array_array)
+  bed_dataset <- bed[bed_indices,]
   # return relevant subset of bed file (discovery vs. test)
   return(bed_dataset)
 }
@@ -67,14 +67,14 @@ gwas <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_
   snp_pos <- locs[snp_index]$pos
   
   gt <- merge(gt, metadata, by = "array") %>%
-	merge(pheno, by = "casefile_id") %>%
-	merge(pcs, by = "array") %>%
-	.[!duplicated(array)]
+    merge(pheno, by = "casefile_id") %>%
+	  merge(pcs, by = "array") %>%
+	  .[!duplicated(array)]
   
   m1 <- glm(cbind(num_aneuploid, num_euploid) ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + patient_age + alt_count, family = "quasibinomial", data = gt) %>% summary()
   
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
-  
+
   return(data.table(snp = snp_name, pos = snp_pos, 
                     beta = unlist(coef[term == "alt_count", 2]),
                     se = unlist(coef[term == "alt_count", 3]),

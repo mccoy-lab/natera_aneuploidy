@@ -15,8 +15,6 @@ discovery_validate_R = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/
 metadata = "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 fam_file = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam"
 discovery_validate_out_fp = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/"
-discovery_validate_maternal = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_f.txt"
-discovery_validate_paternal = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_m.txt"
 plot_discovery_validate = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_validation_split_covariates.pdf"
 pcs_out = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/parental_genotypes_pcs"
 
@@ -68,6 +66,8 @@ rule compute_PCs:
     pcs_out = pcs_output,
   shell:
     "plink --vcf {input.vcf_input} --double-id --allow-extra-chr --pca --out {output.pcs}" 
+
+## rule vcf2bed take each vcf for each chromosome, convert to bed, use it as a temp file, and then run the gwas using the temp bed for each chromosome 
     
 rule gwas_maternal_m_meiotic: 
   """Maternal GWAS with maternal meiotic error""" 
