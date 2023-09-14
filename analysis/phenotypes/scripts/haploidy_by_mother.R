@@ -4,12 +4,14 @@ library(tidyr)
 
 # Usage: ./haploidy_by_mother.R \ 
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz \ 
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/haploid_count_mother.csv
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/haploid_count_mother.csv \
+# 20
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 input_data <- args[1]
 out_fname <- args[2]
+haploidy_threshold <- args[3]
 
 # read in data
 input_data <- fread(input_data)
@@ -30,7 +32,7 @@ embryos$chromosome <- gsub("chr", "", embryos$chrom) %>% as.integer()
 haploid_counts_by_mother <- embryos %>% 
   group_by(mother, child) %>% 
   summarise(num_monosomies = sum(putative_cn == "1m" | putative_cn == "1p")) %>% 
-  mutate(is_haploid = if_else(num_monosomies >= 20, "true", "false")) %>% 
+  mutate(is_haploid = if_else(num_monosomies >= haploidy_threshold, "true", "false")) %>% 
   count(is_haploid) %>%
   pivot_wider(names_from = is_haploid, values_from = n, values_fill = 0) %>% 
   replace(is.na(.), 0)

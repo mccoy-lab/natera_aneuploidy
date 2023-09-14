@@ -4,12 +4,14 @@ library(tidyr)
 
 # Usage: ./triploidy_by_mother.R \ 
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz \ 
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/triploid_count_mother.csv
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/triploid_count_mother.csv \
+# 20
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 input_data <- args[1]
 out_fname <- args[2]
+triploidy_threshold <- args[3]
 
 # read in data
 input_data <- fread(input_data)
@@ -30,7 +32,7 @@ embryos$chromosome <- gsub("chr", "", embryos$chrom) %>% as.integer()
 triploid_counts_by_mother <- embryos %>% 
   group_by(mother, child) %>% 
   summarise(num_trisomies = sum(putative_cn == "3m" | putative_cn == "3p")) %>% 
-  mutate(is_triploid = if_else(num_trisomies >= 20, "true", "false")) %>% 
+  mutate(is_triploid = if_else(num_trisomies >= triploidy_threshold, "true", "false")) %>% 
   count(is_triploid) %>%
   pivot_wider(names_from = is_triploid, values_from = n, values_fill = 0) %>% 
   replace(is.na(.), 0)
