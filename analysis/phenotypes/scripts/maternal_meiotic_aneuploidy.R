@@ -18,6 +18,8 @@ haploidy_threshold <- args[5]
 input_data <- fread(input_data)
 # keep only rows that have probabilities for all 6 cn states
 embryos <- input_data[complete.cases(input_data[,c("0", "1m", "1p", "2", "3m", "3p")]),]
+# filter bayes factors 
+embryos <- embryos[embryos$bf_max > 2,]
 
 # find max posterior probability 
 selected_columns <- c("0", "1m", "1p", "2", "3m", "3p")
