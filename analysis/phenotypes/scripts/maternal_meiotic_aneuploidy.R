@@ -10,6 +10,9 @@ library(tidyr)
 args <- commandArgs(trailingOnly = TRUE)
 input_data <- args[1]
 out_fname <- args[2]
+nullisomy_threshold <- args[3]
+triploidy_threshold <- args[4]
+haploidy_threshold <- args[5]
 
 # read in data
 input_data <- fread(input_data)
@@ -31,17 +34,17 @@ embryos$chromosome <- gsub("chr", "", embryos$chrom) %>% as.integer()
 count_nullisomies <- embryos %>% 
   group_by(mother, child) %>% 
   summarise(num_nullisomies = sum(putative_cn == "0"))
-successful_amp <- count_nullisomies[count_nullisomies$num_nullisomies < 5,]
+successful_amp <- count_nullisomies[count_nullisomies$num_nullisomies < nullisomy_threshold,]
 # grab triploid embryos 
 count_triploidies <- embryos %>% 
   group_by(mother, child) %>% 
   summarise(num_trisomies = sum(putative_cn == "3m" | putative_cn == "3p")) 
-non_trip <- count_triploidies[count_triploidies$num_trisomies < 20,]              
+non_trip <- count_triploidies[count_triploidies$num_trisomies < triploidy_threshold,]              
 # grab haploid embryos (this would also catch isoUPD embryos)
 count_haploidies <- embryos %>% 
   group_by(mother, child) %>% 
   summarise(num_monosomies = sum(putative_cn == "1m" | putative_cn == "1p"))
-non_hap <- count_haploidies[count_haploidies$num_monosomies < 20,]
+non_hap <- count_haploidies[count_haploidies$num_monosomies < haploidy_threshold,]
 # remove failed amp, triploid, haploid embryos 
 embryos_filtered <- embryos[embryos$child %in% successful_amp$child & embryos$child %in% non_trip$child & embryos$child %in% non_hap$child]
 
