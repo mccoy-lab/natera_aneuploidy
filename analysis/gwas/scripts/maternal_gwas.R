@@ -16,6 +16,7 @@ pheno <- args[4]
 metadata <- args[5]
 discovery_test_f <- args[6]
 out_fname <- args[7]
+dataset_type <- args[8] # discovery or test
 
 # read in files from arguments 
 eigenvec <- fread(eigenvec)
@@ -25,22 +26,28 @@ pheno <- fread(pheno, sep = ",")
 metadata <- fread(metadata)
 discovery_test_f <- fread(discovery_test_f)
 
-# separate discovery and validation sets 
-discovery_f <- discovery_test_f[discovery_test_f$is_discovery == TRUE,]
-# get caseIDs belonging to mothers in discovery set
-metadata_f_discovery <- metadata[metadata$array %in% discovery_f$array,]
-# add column for array_array to match rownames of bed 
-metadata_f_discovery$array_array<- paste0(metadata_f_discovery$array, "_", metadata_f_discovery$array)
-# subset bed file to just the mothers in the discovery set 
-bed_discovery_indices <- which(rownames(bed) %in% metadata_f_discovery$array_array)
-bed_discovery_f <- bed[bed_discovery_indices,]
-# get variables to call function 
-bed_indices_discovery <- 1:nrow(bed_discovery_f)
+# separate into discovery or test 
+discovery_test <- function(dataset_type, metadata, bed, discovery_test_f) {
+  if (dataset_type == "discovery") {
+    dataset <- discovery_test_f[discovery_test_f$is_discovery == TRUE,]
+  } else if (data_type == "test") {
+    dataset <- discovery_test_f[discovery_test_f$is_discovery == FALSE,]
+  }
+  # get caseIDs belonging to mothers in preferred set
+  metadata_set <- metadata[metadata$array %in% dataset$array,]
+  # add column for array_array to match rownames of bed
+  metadata_set$array_array <- paste0(metadata_set$array, "_", metadata_set$array)
+  # subset bed file to just the mothers in the relevant set 
+  bed_indices <- which(rownames(bed) %in% metadata_set$array)
+  bed_dataset <- bed[bed_discovery_indices,]
+  # return relevant subset of bed file (discovery vs. test)
+  return(bed_dataset)
+}
 
-# subset bed 
-set.seed(1)
-bed_subset <- bed_discovery_f[, sample(1:nrow(bim), 10000)]
-bed_subset <- bed_discovery_f
+# get relevant parts of bed file 
+bed_dataset <- discovery_test(dataset_type, metadata, bed, discovery_test_f)
+# get variables to call function 
+bed_dataset_indices <- 1:nrow(bed_dataset)
 
 # format pca 
 pca_scores <- as.data.table(eigenvec)
@@ -77,7 +84,7 @@ gwas <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_
 }
 
 # run GWAS
-gwas_results_discovery <- pbmclapply(1:ncol(bed_discovery_f), function(x) gwas(x, bed_discovery_f, pheno, metadata, bim, pca_scores, bed_indices_discovery), mc.cores = 48L)
+gwas_results_discovery <- pbmclapply(1:ncol(bed_dataset), function(x) gwas(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = 48L)
 
 # bind output
 gwas_results_dt <- rbindlist(gwas_results_discovery[unlist(map(gwas_results_discovery, is.data.table))]) %>%
