@@ -79,13 +79,14 @@ rule gwas_maternal_m_meiotic:
     pheno = phenotype_input_path + "ploidy_by_fam_discovery.txt",
     metadata,
     discovery_validate_maternal,
+    dataset_type,
     in_fname = gwas_output_path + maternal_meiotic_mat_discovery_{chrom}.txt
   output: 
     out_fname = gwas_output_path + maternal_meiotic_mat_discovery_{chrom}.txt,
   params: 
     ## 
   shell: 
-    "Rscript --vanilla {input.gwas_Rscript_maternal} {input.parental_pcs} {input.bed} {input.bim} {input.pheno} {input.metadata} {input.discovery_validate_maternal} {input.in_fname} {output.out_fname}"
+    "Rscript --vanilla {input.gwas_Rscript_maternal} {input.parental_pcs} {input.bed} {input.bim} {input.pheno} {input.metadata} {input.discovery_validate_maternal} {input.in_fname} {input.dataset_type} {output.out_fname}"
     
 rule gwas_paternal_m_meiotic: 
   """Paternal GWAS with maternal meiotic error""" 
