@@ -1,4 +1,4 @@
-## GWAS for maternal meiotic errors + maternal genotypes 
+## GWAS for maternal meiotic errors + parental genotypes 
 
 # load libraries
 library(data.table)
@@ -11,7 +11,7 @@ library(purrr)
 args <- commandArgs(trailingOnly = TRUE)
 metadata <- args[1]
 bed <- args[2]
-discovery_test_f <- args[3]
+discovery_test <- args[3] # either maternal or paternal info read in 
 eigenvec <- args[4]
 pheno <- args[5]
 bim <- args[6]
@@ -21,18 +21,18 @@ dataset_type <- args[8] # discovery or test
 # read in files from arguments 
 metadata <- fread(metadata)
 bed <- BEDMatrix(bed)
-discovery_test_f <- fread(discovery_test_f)
+discovery_test <- fread(discovery_test)
 eigenvec <- fread(eigenvec)
 pheno <- fread(pheno, sep = ",")
 bim <- fread(bim) %>% setnames(., c("chr", "snp_id", "drop", "pos", "ref", "alt"))
 
 
 # separate into discovery or test 
-discovery_test <- function(dataset_type, metadata, bed, discovery_test_f) {
+discovery_test <- function(dataset_type, metadata, bed, discovery_test) {
   if (dataset_type == "discovery") {
-    dataset <- discovery_test_f[discovery_test_f$is_discovery == TRUE,]
+    dataset <- discovery_test[discovery_test$is_discovery == TRUE,]
   } else if (data_type == "test") {
-    dataset <- discovery_test_f[discovery_test_f$is_discovery == FALSE,]
+    dataset <- discovery_test[discovery_test$is_discovery == FALSE,]
   }
   # get caseIDs belonging to mothers in preferred set
   metadata_set <- metadata[metadata$array %in% dataset$array,]
@@ -46,7 +46,7 @@ discovery_test <- function(dataset_type, metadata, bed, discovery_test_f) {
 }
 
 # get relevant parts of bed file 
-bed_dataset <- discovery_test(dataset_type, metadata, bed, discovery_test_f)
+bed_dataset <- discovery_test(dataset_type, metadata, bed, discovery_test)
 # get variables to call function 
 bed_dataset_indices <- 1:nrow(bed_dataset)
 
