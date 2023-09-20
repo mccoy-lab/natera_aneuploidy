@@ -4,15 +4,17 @@ library(tidyr)
 
 # Usage: ./maternal_meiotic_aneuploidy.R \ 
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz \ 
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/maternal_meiotic_count_mother.csv
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/maternal_meiotic_count_mother.csv \
+# 5 \ # 5 or more cn=0 is considered failed amplification 
+# 3 # 3 or more aneuploid chromosomes is not considered "maternal aneuploidy" but rather another ploidy 
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 input_data <- args[1]
 out_fname <- args[2]
 nullisomy_threshold <- args[3]
-triploidy_threshold <- args[4]
-haploidy_threshold <- args[5]
+ploidy_threshold <- args[4] 
+# number of chromosomes greater than which the embryo is not just "aneuploid" but rather has an entire ploidy
 
 # read in data
 input_data <- fread(input_data)
@@ -41,12 +43,12 @@ successful_amp <- count_nullisomies[count_nullisomies$num_nullisomies < nullisom
 count_triploidies <- embryos %>% 
   group_by(mother, child) %>% 
   summarise(num_trisomies = sum(putative_cn == "3m" | putative_cn == "3p")) 
-non_trip <- count_triploidies[count_triploidies$num_trisomies < triploidy_threshold,]              
+non_trip <- count_triploidies[count_triploidies$num_trisomies < ploidy_threshold,]              
 # grab haploid embryos (this would also catch isoUPD embryos)
 count_haploidies <- embryos %>% 
   group_by(mother, child) %>% 
   summarise(num_monosomies = sum(putative_cn == "1m" | putative_cn == "1p"))
-non_hap <- count_haploidies[count_haploidies$num_monosomies < haploidy_threshold,]
+non_hap <- count_haploidies[count_haploidies$num_monosomies < ploidy_threshold,]
 # remove failed amp, triploid, haploid embryos 
 embryos_filtered <- embryos[embryos$child %in% successful_amp$child & embryos$child %in% non_trip$child & embryos$child %in% non_hap$child]
 
