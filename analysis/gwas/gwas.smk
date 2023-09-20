@@ -45,9 +45,9 @@ chroms = range(1, 24)
 rule all:
     input:
         expand(
-            gwas_output_path + "maternal_meiotic_mat_{dataset_type}_{chrom}.txt",
+            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
             phenotype="haploidy",
-            parent="mother"
+            parent="mother",
             dataset_type="discovery",
             chrom=22,
         ),
@@ -131,10 +131,10 @@ rule vcf2bed:
 rule generate_phenotypes: 
     """Make file for each phenotype"""
     input: 
-        rscript=phenotype_scripts + "{phenotype}_by_{parent}.R", # Rscript to make each phenotype ,and based on which parent (if necessary)  
+        rscript=phenotype_scripts + "{phenotype}_by_{parent}.R", 
         ploidy_calls=ploidy_calls,
     output: 
-        phenotype_file=phenotype_results + "{phenotype}_by_{parent}.txt", # a .txt file for each phenotype R script that was made 
+        phenotype_file=phenotype_results + "{phenotype}_by_{parent}.txt", 
     wildcard_constraints:
         phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy|embryo_count",
         parent="mother|father",
@@ -143,16 +143,18 @@ rule generate_phenotypes:
         ploidy_max=3,
         ploidy_min=20,
     run: 
-        if wildcards.phenotype = "maternal_meiotic_aneuploidy":
-            shell("Rscript {input.rscript} {input.ploidy_calls} {output.phenotype_file} {params.nullisomy_min} {params.ploidy_max}")
-        else if wildcards.phenotype == "haploidy" or wildcards.phenotype == "triploidy":
-            shell("Rscript {input.rscript} {input.ploidy_calls} {output.phenotype_file} {params.ploidy_min}")
-        else if wildcards.phenotype == "embryo_count":
-            shell("Rscript {input.rscript} {input.ploidy_calls} {output.phenotype_file}")
+        command = "Rscript {input.rscript} {input.ploidy_calls} {output.phenotype_file}"
+        
+        if wildcards.phenotype == "maternal_meiotic_aneuploidy":
+            command += " {params.nullisomy_min} {params.ploidy_max}"
+        elif wildcards.phenotype in ["haploidy", "triploidy"]:
+            command += " {params.ploidy_min}"
+
+        shell(command)
 
 
-rule gwas_maternal_m_meiotic:
-    """Maternal GWAS with maternal meiotic error"""
+rule gwas:
+    """Run each GWAS"""
     input:
         gwas_rscript=gwas_scripts + "gwas_{phenotype}_by_{parent}.R", 
         metadata=metadata,
