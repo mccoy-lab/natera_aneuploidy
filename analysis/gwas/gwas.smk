@@ -2,6 +2,7 @@
 
 # Usage: nohup snakemake -p --cores 48 --snakefile gwas.smk > nohup_date.out 2>&1 &
 # Optional: add -j 12 to submit as 12 jobs, etc.
+# Optional: add -n to do a dry run 
 
 # -------- Setting variables and paths for pre-GWAS processing steps ------- #
 king_exec = "~/code/king"
@@ -29,8 +30,6 @@ genotype_files = (
     "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
 )
 ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz"
-gwas_Rscript_maternal = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/maternal_gwas.R"
-gwas_Rscript_paternal = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/paternal_gwas.R"
 phenotype_scripts = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/"
 phenotype_results = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/"
 gwas_scripts = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/"
@@ -46,7 +45,7 @@ rule all:
     input:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
-            phenotype="haploidy",
+            phenotype="maternal_meiotic_aneuploidy",
             parent="mother",
             dataset_type="discovery",
             chrom=22,
@@ -83,9 +82,9 @@ rule discovery_validate_split:
         king_to_remove=king_outputs_fp + "kingunrelated_toberemoved.txt",
     output:
         discovery_validate_maternal=discovery_validate_out_fp
-        + "discover_validate_split_mat.txt",
+        + "discover_validate_split_mother.txt",
         discovery_validate_paternal=discovery_validate_out_fp
-        + "discover_validate_split_pat.txt",
+        + "discover_validate_split_father.txt",
         plot_discovery_validate=discovery_validate_out_fp
         + "discover_validate_plots.pdf",
     shell:
@@ -117,12 +116,12 @@ rule vcf2bed:
     input:
         vcf_input=vcf_fp + "opticall_concat_{chrom}.norm.b38.vcf.gz",
     output:
-        bedfile=temp(vcf_fp + "opticall_concat_{chrom}.norm.b38.bed"),
-        bimfile=temp(vcf_fp + "opticall_concat_{chrom}.norm.b38.bim"),
-        famfile=temp(vcf_fp + "opticall_concat_{chrom}.norm.b38.fam"),
-        logfile=temp(vcf_fp + "opticall_concat_{chrom}.norm.b38.log"),
+        bedfile=temp(gwas_results + "opticall_concat_{chrom}.norm.b38.bed"),
+        bimfile=temp(gwas_results + "opticall_concat_{chrom}.norm.b38.bim"),
+        famfile=temp(gwas_results + "opticall_concat_{chrom}.norm.b38.fam"),
+        logfile=temp(gwas_results + "opticall_concat_{chrom}.norm.b38.log"),
     params:
-        outfix=lambda wildcards: vcf_fp + f"opticall_concat_{wildcards.chrom}.norm.b38",
+        outfix=lambda wildcards: gwas_results + f"opticall_concat_{wildcards.chrom}.norm.b38",
     threads: 24
     shell:
         "plink2 --vcf {input.vcf_input} --keep-allele-order --double-id --make-bed --threads {threads} --out {params.outfix}"
@@ -153,13 +152,14 @@ rule generate_phenotypes:
         shell(command)
 
 
-rule gwas:
+rule run_gwas:
     """Run each GWAS"""
     input:
-        gwas_rscript=gwas_scripts + "gwas_{phenotype}_by_{parent}.R", 
+        gwas_rscript=gwas_scripts + "gwas_{phenotype}.R", 
         metadata=metadata,
         bed=rules.vcf2bed.output.bedfile, 
-        discovery_test=rules.discovery_validate_split.output.discovery_validate_maternal,
+        discovery_test=discovery_validate_out_fp + "discover_validate_split_{parent}.txt",
+        #discovery_test=rules.discovery_validate_split.output.discovery_validate_maternal,
         parental_pcs=rules.run_plink_pca.output.eigenvec,
         #pheno=phenotype_results + "{phenotype}_by_{parent}.txt", # can i make this go with the output from the above rule? not sure how to do that with wild cards involved
         pheno=rules.generate_phenotypes.output.phenotype_file,
@@ -168,7 +168,7 @@ rule gwas:
         gwas_output=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
     wildcard_constraints:
         dataset_type="discovery|test",
-        phenotype="maternal_meiotic|embryo_count|triploidy|haploidy",
+        phenotype="maternal_meiotic_aneuploidy|embryo_count|triploidy|haploidy",
         parent="mother|father",
     shell:
-        "Rscript --vanilla {input.gwas_Rscript_maternal} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {output.gwas_output}"
+        "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {output.gwas_output}"
