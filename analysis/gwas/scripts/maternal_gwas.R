@@ -9,22 +9,23 @@ library(purrr)
 
 # take in arguments 
 args <- commandArgs(trailingOnly = TRUE)
-eigenvec <- args[1]
+metadata <- args[1]
 bed <- args[2]
-bim <- args[3]
-pheno <- args[4]
-metadata <- args[5]
-discovery_test_f <- args[6]
-dataset_type <- args[7] # discovery or test
-out_fname <- args[8]
+discovery_test_f <- args[3]
+eigenvec <- args[4]
+pheno <- args[5]
+bim <- args[6]
+out_fname <- args[7]
+dataset_type <- args[8] # discovery or test
 
 # read in files from arguments 
-eigenvec <- fread(eigenvec)
-bed <- BEDMatrix(bed)
-bim <- fread(bim) %>% setnames(., c("chr", "snp_id", "drop", "pos", "ref", "alt"))
-pheno <- fread(pheno, sep = ",")
 metadata <- fread(metadata)
+bed <- BEDMatrix(bed)
 discovery_test_f <- fread(discovery_test_f)
+eigenvec <- fread(eigenvec)
+pheno <- fread(pheno, sep = ",")
+bim <- fread(bim) %>% setnames(., c("chr", "snp_id", "drop", "pos", "ref", "alt"))
+
 
 # separate into discovery or test 
 discovery_test <- function(dataset_type, metadata, bed, discovery_test_f) {

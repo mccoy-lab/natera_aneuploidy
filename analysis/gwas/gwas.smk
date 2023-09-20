@@ -28,10 +28,13 @@ parent_pca = "genotypes_pca.eigenvec"
 genotype_files = (
     "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
 )
+ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz"
 gwas_Rscript_maternal = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/maternal_gwas.R"
 gwas_Rscript_paternal = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/paternal_gwas.R"
-phenotype_input_path = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/results/"
-gwas_output_path = "/natera_spectrum/gwas/output_files/"
+phenotype_scripts = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/"
+phenotype_results = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/"
+gwas_scripts = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/"
+gwas_results = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/"
 
 
 # Define the chromosomes that you will be running the pipeline on ...
@@ -43,6 +46,8 @@ rule all:
     input:
         expand(
             gwas_output_path + "maternal_meiotic_mat_{dataset_type}_{chrom}.txt",
+            phenotype="haploidy",
+            parent="mother"
             dataset_type="discovery",
             chrom=22,
         ),
@@ -123,20 +128,45 @@ rule vcf2bed:
         "plink2 --vcf {input.vcf_input} --keep-allele-order --double-id --make-bed --threads {threads} --out {params.outfix}"
 
 
+rule generate_phenotypes: 
+    """Make file for each phenotype"""
+    input: 
+        rscript=phenotype_scripts + "{phenotype}_by_{parent}.R", # Rscript to make each phenotype ,and based on which parent (if necessary)  
+        ploidy_calls=ploidy_calls,
+    output: 
+        phenotype_file=phenotype_results + "{phenotype}_by_{parent}.txt", # a .txt file for each phenotype R script that was made 
+    wildcard_constraints:
+        phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy|embryo_count",
+        parent="mother|father",
+    params: 
+        nullisomy_min=5,
+        ploidy_max=3,
+        ploidy_min=20,
+    run: 
+        if wildcards.phenotype = "maternal_meiotic_aneuploidy":
+            shell("Rscript {input.rscript} {input.ploidy_calls} {output.phenotype_file} {params.nullisomy_min} {params.ploidy_max}")
+        else if wildcards.phenotype == "haploidy" or wildcards.phenotype == "triploidy":
+            shell("Rscript {input.rscript} {input.ploidy_calls} {output.phenotype_file} {params.ploidy_min}")
+        else if wildcards.phenotype == "embryo_count":
+            shell("Rscript {input.rscript} {input.ploidy_calls} {output.phenotype_file}")
+
+
 rule gwas_maternal_m_meiotic:
     """Maternal GWAS with maternal meiotic error"""
     input:
+        gwas_rscript=gwas_scripts + "gwas_{phenotype}_by_{parent}.R", 
         metadata=metadata,
-        gwas_Rscript_maternal=gwas_Rscript_maternal,
-        parental_pcs=rules.run_plink_pca.output.eigenvec,
-        bed=rules.vcf2bed.output.bedfile,
-        bim=rules.vcf2bed.output.bimfile,
-        pheno=phenotype_input_path + "ploidy_by_fam_{dataset_type}.txt",
+        bed=rules.vcf2bed.output.bedfile, 
         discovery_test=rules.discovery_validate_split.output.discovery_validate_maternal,
+        parental_pcs=rules.run_plink_pca.output.eigenvec,
+        #pheno=phenotype_results + "{phenotype}_by_{parent}.txt", # can i make this go with the output from the above rule? not sure how to do that with wild cards involved
+        pheno=rules.generate_phenotypes.output.phenotype_file,
+        bim=rules.vcf2bed.output.bimfile,
     output:
-        gwas_maternal_m_meiotic_out=gwas_output_path
-        + "maternal_meiotic_mat_{dataset_type}_{chrom}.txt",
+        gwas_output=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
     wildcard_constraints:
-        dataset_type="discovery|test"
+        dataset_type="discovery|test",
+        phenotype="maternal_meiotic|embryo_count|triploidy|haploidy",
+        parent="mother|father",
     shell:
-        "Rscript --vanilla {input.gwas_Rscript_maternal} {input.parental_pcs} {input.bed} {input.bim} {input.pheno} {input.metadata} {input.discovery_test} {wildcards.dataset_type} {output.gwas_maternal_m_meiotic_out}"
+        "Rscript --vanilla {input.gwas_Rscript_maternal} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {output.gwas_output}"
