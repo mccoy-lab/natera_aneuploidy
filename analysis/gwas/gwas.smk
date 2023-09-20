@@ -10,7 +10,7 @@ king_outputs_fp = (
 )
 vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
 alleleorder_fp = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/opticall_concat_total.norm.b38.alleleorder"
-discovery_validate_R = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/discovery_validate_split.R"
+discovery_validate_R = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/discovery_test_split.R"
 metadata = (
     "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 )
@@ -30,7 +30,7 @@ genotype_files = (
 )
 gwas_Rscript_maternal = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/maternal_gwas.R"
 gwas_Rscript_paternal = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/paternal_gwas.R"
-phenotype_input_path = "/natera_spectrum/gwas/phenotyping/phenotype_files/"  # update this for Rockfish and match to output from other file
+phenotype_input_path = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/results/"
 gwas_output_path = "/natera_spectrum/gwas/output_files/"
 
 
@@ -44,7 +44,7 @@ rule all:
         expand(
             gwas_output_path + "maternal_meiotic_mat_{dataset_type}_{chrom}.txt",
             dataset_type="discovery",
-            chrom=chroms,
+            chrom=22,
         ),
 
 
@@ -53,14 +53,19 @@ rule run_king:
     """Reformat parental genotypes vcf and run king to identify related individuals"""
     input:
         vcf_input=vcf_fp + "opticall_concat_total.norm.b38.vcf.gz",
-        alleleorder_fp=alleleorder_fp,
     output:
-        alleleorder_bed=alleleorder_fp + ".bed",
-        king_outputs=king_outputs_fp,
+        king_bed=temp(king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.bed"),
+        king_bim=temp(king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.bim"),
+        king_fam=temp(king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.fam"),
+        king_log=temp(king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.log"),
+        king_outputs=king_outputs_fp + "kingunrelated_toberemoved.txt",
+    params:
+        plink_outfix=king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder",
+        king_outfix=king_outputs_fp,
     shell:
         """
-        plink --vcf {input.vcf_input} --double-id --allow-extra-chr --make-bed --out {input.alleleorder_fp} 
-        {king_exec} -b {output.alleleorder_bed} --unrelated --degree 2 {output.king_outputs}
+        plink --vcf {input.vcf_input} --double-id --allow-extra-chr --make-bed --out {params.plink_outfix} 
+        {king_exec} -b {output.king_bed} --unrelated --degree 2 --prefix {params.king_outfix}
         """
 
 
@@ -82,37 +87,48 @@ rule discovery_validate_split:
         "Rscript --vanilla {input.discovery_validate_R} {input.metadata} {input.fam_file} {input.king_to_remove} {output.discovery_validate_maternal} {output.discovery_validate_paternal} {output.plot_discovery_validate}"
 
 
-rule compute_PCs:
+rule run_plink_pca:
     """Run plink to get principal components for parental genotypes"""
     input:
-        vcf_input=vcf_fp + "opticall_concat_total.norm.b38.vcf.gz",
+        concat_vcf=vcf_fp + "opticall_concat_total.norm.b38.vcf.gz",
+        concat_vcf_tbi= vcf_fp + "opticall_concat_total.norm.b38.vcf.gz.tbi",
     output:
-        pcs_out=pcs_output,
+        eigenvec=pcs_out+"parental_genotypes.eigenvec",
+        eigenval=pcs_out+"parental_genotypes.eigenval",
+        log=pcs_out+"parental_genotypes.log",
+    resources:
+        time="1:00:00",
+        mem_mb="4G",
+    params:
+        outfix=pcs_out+"parental_genotypes",
+        pcs=20,
+    threads: 24
     shell:
-        "plink --vcf {input.vcf_input} --double-id --allow-extra-chr --pca --out {output.pcs_out}"
+        "plink2 --vcf {input.concat_vcf} --pca {params.pcs} approx --threads {threads} --out {params.outfix}"
 
 
 rule vcf2bed:
-    """Take vcf for each chromosome, convert to bed as a temp file for use in the gwas"""
+    """Take vcf for each chromosome, convert to bed as a temp file for use in the GWAS"""
     input:
         vcf_input=vcf_fp + "opticall_concat_{chrom}.norm.b38.vcf.gz",
     output:
-        bedfile=temp(vcf_input + "opticall_concat_{chrom}.norm.b38.bed"),
-        bimfile=temp(vcf_input + "opticall_concat_{chrom}.norm.b38.bim"),
-        famfile=temp(vcf_input + "opticall_concat_{chrom}.norm.b38.fam"),
-        logfile=temp(vcf_input + "opticall_concat_{chrom}.norm.b38.log"),
+        bedfile=temp(vcf_fp + "opticall_concat_{chrom}.norm.b38.bed"),
+        bimfile=temp(vcf_fp + "opticall_concat_{chrom}.norm.b38.bim"),
+        famfile=temp(vcf_fp + "opticall_concat_{chrom}.norm.b38.fam"),
+        logfile=temp(vcf_fp + "opticall_concat_{chrom}.norm.b38.log"),
     params:
-        out_prefix=lambda wildcards: vcf_fp + f"opticall_concat_{wildcards.chrom}.norm.b38",
+        outfix=lambda wildcards: vcf_fp + f"opticall_concat_{wildcards.chrom}.norm.b38",
+    threads: 24
     shell:
-        "plink --vcf {input.vcf_input} --keep-allele-order --double-id --make-bed --out {params.out_prefix}"
+        "plink2 --vcf {input.vcf_input} --keep-allele-order --double-id --make-bed --threads {threads} --out {params.outfix}"
 
 
 rule gwas_maternal_m_meiotic:
     """Maternal GWAS with maternal meiotic error"""
     input:
-        metadata,
+        metadata=metadata,
         gwas_Rscript_maternal=gwas_Rscript_maternal,
-        parental_pcs=rules.compute_PCs.output.pcs_out,
+        parental_pcs=rules.run_plink_pca.output.eigenvec,
         bed=rules.vcf2bed.output.bedfile,
         bim=rules.vcf2bed.output.bimfile,
         pheno=phenotype_input_path + "ploidy_by_fam_{dataset_type}.txt",
