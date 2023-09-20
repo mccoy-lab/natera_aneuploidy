@@ -15,8 +15,8 @@ bim <- args[3]
 pheno <- args[4]
 metadata <- args[5]
 discovery_test_f <- args[6]
-out_fname <- args[7]
-dataset_type <- args[8] # discovery or test
+dataset_type <- args[7] # discovery or test
+out_fname <- args[8]
 
 # read in files from arguments 
 eigenvec <- fread(eigenvec)
