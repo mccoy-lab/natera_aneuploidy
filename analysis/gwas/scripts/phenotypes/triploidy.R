@@ -1,6 +1,7 @@
 # load libraries
 library(data.table)
 library(tidyr)
+library(dplyr)
 
 # Usage: ./triploidy_by_mother.R \ 
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/triploidy_by_mother.csv \
@@ -30,14 +31,20 @@ embryos[, putative_cn := colnames(embryos[, 10:15])[apply(embryos[, 10:15], 1, w
 # create column for each chromosome number
 embryos$chromosome <- gsub("chr", "", embryos$chrom) %>% as.integer()
 
-# count triploid embryos per mother
-triploid_counts_by_parent <- embryos %>% 
-  group_by({{parent}}, child) %>% 
-  summarise(num_trisomies = sum(putative_cn == "3m" | putative_cn == "3p")) %>% 
-  mutate(is_triploid = if_else(num_trisomies >= triploidy_threshold, "true", "false")) %>% 
-  count(is_triploid) %>%
-  pivot_wider(names_from = is_triploid, values_from = n, values_fill = 0) %>% 
-  replace(is.na(.), 0)
+# Define a function to count triploid embryos per parent column
+count_triploid_by_parent <- function(data, parent_column, triploidy_threshold) {
+  data %>%
+    group_by({{ parent_column }}, child) %>%
+    summarise(num_trisomies = sum(putative_cn == "3m" | putative_cn == "3p")) %>%
+    mutate(is_triploid = if_else(num_trisomies >= triploidy_threshold, "aneu_true", "aneu_false")) %>%
+    count(is_triploid) %>%
+    pivot_wider(names_from = is_triploid, values_from = n, values_fill = 0) %>%
+    replace(is.na(.), 0)
+}
+
+# Call the function with the specified parent column
+triploid_counts_by_parent <- count_triploid_by_parent(embryos, !!as.name(parent), triploidy_threshold)
+colnames(triploid_counts_by_parent)[1] <- "array"
 
 # write to file 
 write.csv(triploid_counts_by_parent, out_fname, row.names = FALSE)

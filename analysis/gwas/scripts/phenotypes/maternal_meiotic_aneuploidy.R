@@ -70,7 +70,8 @@ calculate_counts <- function(data, parent_column) {
 }
 
 # Call the function with the specified parent column
-embryo_counts_by_parent <- calculate_counts(embryos_filtered, !!as.name(parent))
+embryo_counts_by_parent <- calculate_counts(embryos_filtered, !!as.name(parent)) %>%
+  setnames(., c("array", "aneu_false", "aneu_true"))
 
 # write to file 
 write.csv(embryo_counts_by_parent, out_fname, row.names = FALSE)

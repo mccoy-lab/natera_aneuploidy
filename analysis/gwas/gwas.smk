@@ -39,7 +39,7 @@ rule all:
     input:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
-            phenotype="maternal_meiotic_aneuploidy",
+            phenotype="triploidy",
             parent="mother",
             dataset_type="discovery",
             chrom=22,
