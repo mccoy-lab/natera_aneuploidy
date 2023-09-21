@@ -138,8 +138,9 @@ rule generate_phenotypes:
     input:
         rscript=phenotype_scripts + "{phenotype}_by_{parent}.R",
         ploidy_calls=ploidy_calls,
+        metadata=metadata,
     output:
-        phenotype_file=phenotype_results + "{phenotype}_by_{parent}.txt",
+        phenotype_file=phenotype_results + "{phenotype}_by_{parent}.csv",
     wildcard_constraints:
         phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy|embryo_count",
         parent="mother|father",
@@ -148,12 +149,14 @@ rule generate_phenotypes:
         ploidy_max=3,
         ploidy_min=20,
     run:
-        command = "Rscript {input.rscript} {input.ploidy_calls} {output.phenotype_file}"
+        command = "Rscript --vanilla {input.rscript} {output.phenotype_file}"
 
         if wildcards.phenotype == "maternal_meiotic_aneuploidy":
-            command += " {params.nullisomy_min} {params.ploidy_max}"
+            command += " {input.ploidy_calls} {params.nullisomy_min} {params.ploidy_max}"
         elif wildcards.phenotype in ["haploidy", "triploidy"]:
-            command += " {params.ploidy_min}"
+            command += " {input.ploidy_calls} {params.ploidy_min}"
+        elif wildcards.phenotype == "embryo_count": 
+            command += " {input.metadata}"
 
         shell(command)
 
