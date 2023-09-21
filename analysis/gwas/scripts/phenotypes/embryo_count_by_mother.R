@@ -6,13 +6,13 @@ library(dplyr)
 library(tidyr)
 
 # Usage: ./embryo_count_by_mother.R \ 
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/embryo_count_by_mother.csv \
 # /data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv \
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/embryo_count_mother.csv
 
 # accept args from snakemake
 args = commandArgs(trailingOnly = TRUE)
-metadata_fp <- args[1]
-out_fname <- args[2]
+out_fname <- args[1]
+metadata_fp <- args[2]
 
 # read in metadata 
 metadata <- fread(metadata_fp)

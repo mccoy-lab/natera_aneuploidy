@@ -3,14 +3,14 @@ library(data.table)
 library(tidyr)
 
 # Usage: ./triploidy_by_mother.R \ 
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/triploidy_by_mother.csv \
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz \ 
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/triploid_count_mother.csv \
 # 20
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
-input_data <- args[1]
-out_fname <- args[2]
+out_fname <- args[1]
+input_data <- args[2]
 triploidy_threshold <- args[3]
 
 # read in data
