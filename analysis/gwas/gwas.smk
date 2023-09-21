@@ -20,7 +20,6 @@ pcs_out = "results/parental_genotypes_pcs/"
 
 
 # -------- Setting key variables/paths for running GWAS across phenotypes in the Natera dataset ------- #
-parent_pca = "genotypes_pca.eigenvec"
 genotype_files = (
     "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
 )
@@ -167,6 +166,7 @@ rule run_gwas:
         parental_pcs=rules.run_plink_pca.output.eigenvec,
         pheno=rules.generate_phenotypes.output.phenotype_file,
         bim=rules.vcf2bed.output.bimfile,
+        fam=rules.vcf2bed.output.famfile,
     output:
         gwas_output=gwas_results
         + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",

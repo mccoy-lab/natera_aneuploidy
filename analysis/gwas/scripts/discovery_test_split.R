@@ -20,7 +20,7 @@ output_paternal <- args[5]
 # read files from args
 metadata <- fread(metadata)
 fam <- fread(fam) 
-king_related_arrays <- fread(king_related_arrays)
+king_related_arrays <- fread(king_related_arrays, header = FALSE)
 
 # output filepaths 
 #plot_fp <- "/scratch16/rmccoy22/scarios1/natera_spectrum/gwas/background/discovery_validation_split_covariates.pdf"
@@ -48,8 +48,8 @@ weighted_ages <- metadata_merged_array %>%
   as.data.frame()
 
 # add the weighted age and embryo count columns to the main metadata table
-metadata_merged_array_ages <- merge(weighted_ages, metadata_merged_array, by = "array_id_merged")
-metadata_merged_array_ages <- metadata_merged_array_ages %>% as.data.table()
+metadata_merged_array_ages <- merge(weighted_ages, metadata_merged_array, by = "array_id_merged") %>%
+  as.data.table()
 
 
 # get individuals who were genotyped successfully and in the bed output .fam file 

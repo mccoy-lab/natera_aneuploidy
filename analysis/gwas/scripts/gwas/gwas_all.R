@@ -27,9 +27,10 @@ eigenvec <- fread(eigenvec)
 pheno <- fread(pheno, sep = ",")
 bim <- fread(bim) %>% setnames(., c("chr", "snp_id", "drop", "pos", "ref", "alt"))
 
+print("read in all files")
 
 # separate into discovery or test 
-discovery_test <- function(dataset_type, metadata, bed, discovery_test) {
+discovery_test_split <- function(dataset_type, metadata, bed, discovery_test) {
   if (dataset_type == "discovery") {
     dataset <- discovery_test[discovery_test$is_discovery == TRUE,]
   } else if (data_type == "test") {
@@ -47,18 +48,22 @@ discovery_test <- function(dataset_type, metadata, bed, discovery_test) {
 }
 
 # get relevant parts of bed file 
-bed_dataset <- discovery_test(dataset_type, metadata, bed, discovery_test)
+bed_dataset <- discovery_test_split(dataset_type, metadata, bed, discovery_test)
+
+print("split discovery/test")
 # get variables to call function 
 bed_dataset_indices <- 1:nrow(bed_dataset)
+
+print("got bed indices")
 
 # format pca 
 pca_scores <- as.data.table(eigenvec)
 # keep PCs 1 through 20
 pca_scores <- pca_scores[,2:12]
 colnames(pca_scores) <- c("array", "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10")
+print("formatted pca")
 
-
-# function to run GWAS on each site if it's a ploidy phenotype (triploid, haploid, meiotic aneuploidy)
+# function to run GWAS on each site if it's a ploidy phenotype (triploid, haploid, maternal meiotic aneuploidy)
 gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices) {
   
   gt <- data.table(names(genotypes[subject_indices, snp_index]), unname(genotypes[subject_indices, snp_index])) %>%
@@ -140,7 +145,7 @@ gwas_maternal_age <- function(snp_index, genotypes, phenotypes, metadata, locs, 
 }
 
 # run GWAS based on phenotype passed argument 
-if (phenotype == "aneuploidy") {
+if (phenotype == "maternal_meiotic_aneuploidy") {
   # aneuploidy phenotypes 
   gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_aneuploidy(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = 48L)
 } else if (phenotype == "embryo_count") {

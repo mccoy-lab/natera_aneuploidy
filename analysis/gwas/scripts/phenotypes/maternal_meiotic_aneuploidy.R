@@ -57,15 +57,20 @@ non_hap <- count_haploidies[count_haploidies$num_monosomies < ploidy_threshold,]
 embryos_filtered <- embryos[embryos$child %in% successful_amp$child & embryos$child %in% non_trip$child & embryos$child %in% non_hap$child]
 
 
-# count maternal meiotic aneuploidies per embryo
-embryo_counts_by_parent <- embryos_filtered %>% 
-  group_by({{parent}}, child) %>% 
-  summarise(mat_aneu = sum(putative_cn == "3m" | putative_cn == "1p")) %>% 
-  mutate(is_aneu = if_else(mat_aneu > 0, "true", "false")) %>% 
-  count(is_aneu) %>%
-  pivot_wider(names_from = is_aneu,  values_from = n, values_fill = 0, names_prefix = "aneu_") %>% 
-  replace(is.na(.), 0)
+# count maternal meiotic aneuploidies per embryo, based on parent
+calculate_counts <- function(data, parent_column) {
+  data %>%
+    group_by({{ parent_column }}, child) %>%
+    summarise(mat_aneu = sum(putative_cn == "3m" | putative_cn == "1p")) %>%
+    mutate(is_aneu = if_else(mat_aneu > 0, "true", "false")) %>%
+    count(is_aneu) %>%
+    pivot_wider(names_from = is_aneu, values_from = n, values_fill = 0, names_prefix = "aneu_") %>%
+    replace(is.na(.), 0) %>%
+    as.data.table()
+}
 
+# Call the function with the specified parent column
+embryo_counts_by_parent <- calculate_counts(embryos_filtered, !!as.name(parent))
 
 # write to file 
 write.csv(embryo_counts_by_parent, out_fname, row.names = FALSE)
