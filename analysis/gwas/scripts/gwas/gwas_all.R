@@ -90,7 +90,7 @@ gwas_embryo_count <- function(snp_index, genotypes, phenotypes, metadata, locs, 
   snp_pos <- locs[snp_index]$pos
   
   gt <- merge(gt, metadata, by = "array") %>%
-    merge(pheno, by = "casefile_id") %>%
+    merge(pheno, by = "array") %>%
     merge(pcs, by = "array") %>%
     .[!duplicated(array)]
   
