@@ -4,14 +4,16 @@ library(tidyr)
 
 # Usage: ./triploidy_by_mother.R \ 
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/triploidy_by_mother.csv \
+# mother \
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz \ 
 # 20
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 out_fname <- args[1]
-input_data <- args[2]
-triploidy_threshold <- args[3]
+parent <- args[2]
+input_data <- args[3]
+triploidy_threshold <- args[4]
 
 # read in data
 input_data <- fread(input_data)
@@ -29,8 +31,8 @@ embryos[, putative_cn := colnames(embryos[, 10:15])[apply(embryos[, 10:15], 1, w
 embryos$chromosome <- gsub("chr", "", embryos$chrom) %>% as.integer()
 
 # count triploid embryos per mother
-triploid_counts_by_mother <- embryos %>% 
-  group_by(mother, child) %>% 
+triploid_counts_by_parent <- embryos %>% 
+  group_by({{parent}}, child) %>% 
   summarise(num_trisomies = sum(putative_cn == "3m" | putative_cn == "3p")) %>% 
   mutate(is_triploid = if_else(num_trisomies >= triploidy_threshold, "true", "false")) %>% 
   count(is_triploid) %>%
@@ -38,4 +40,4 @@ triploid_counts_by_mother <- embryos %>%
   replace(is.na(.), 0)
 
 # write to file 
-write.csv(triploid_counts_by_mother, out_fname, row.names = FALSE)
+write.csv(triploid_counts_by_parent, out_fname, row.names = FALSE)
