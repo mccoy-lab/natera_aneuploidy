@@ -17,7 +17,8 @@ pheno <- args[5]
 bim <- args[6]
 dataset_type <- args[7] # discovery or test
 phenotype <- args[8] # aneuploidy type, embryo count, or age 
-out_fname <- args[9]
+parent <- args[9]
+out_fname <- args[10]
 
 # read in files from arguments 
 metadata <- fread(metadata)
@@ -52,8 +53,15 @@ bed_dataset <- discovery_test_split(dataset_type, metadata, bed, discovery_test)
 bed_dataset_indices <- 1:nrow(bed_dataset)
 
 # function to run GWAS on each site if it's a ploidy phenotype (triploid, haploid, maternal meiotic aneuploidy)
-gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices) {
+gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices, parent) {
   
+  # Determine the age covariate column based on the "parent" argument
+  if (parent == "mother") {
+    age_column <- "patient_age"
+  } else if (parent == "father") {
+    age_column <- "partner_age"
+  } 
+
   gt <- data.table(names(genotypes[subject_indices, snp_index]), unname(genotypes[subject_indices, snp_index])) %>%
     setnames(., c("array", "alt_count")) %>%
     .[, array := sub("(.*?_.*?)_.*", "\\1", array)]
@@ -67,7 +75,8 @@ gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pc
 	  merge(pcs, by = "array") %>%
 	  .[!duplicated(array)]
   
-  m1 <- glm(cbind(aneu_true, aneu_false) ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + patient_age + alt_count, family = "quasibinomial", data = gt) %>% summary()
+  formula_string <- paste0("cbind(aneu_true, aneu_false) ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + ", age_column, " + alt_count")
+  m1 <- glm(formula_string, family = "quasibinomial", data = gt) %>% summary()
   
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
 
@@ -133,9 +142,9 @@ gwas_maternal_age <- function(snp_index, genotypes, phenotypes, metadata, locs, 
 }
 
 # run GWAS based on phenotype passed argument 
-if (phenotype == "maternal_meiotic_aneuploidy" | phenotype == "triploidy" | phenotype == "haploidy") {
+if (phenotype %in% c("maternal_meiotic_aneuploidy", "triploidy", "haploidy")) {
   # aneuploidy phenotypes 
-  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_aneuploidy(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = 48L)
+  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_aneuploidy(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices, parent), mc.cores = 48L)
 } else if (phenotype == "embryo_count") {
   # embryo count
   gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_embryo_count(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = 48L)

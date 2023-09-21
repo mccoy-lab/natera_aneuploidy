@@ -14,29 +14,41 @@ library(tidyr)
 args = commandArgs(trailingOnly = TRUE)
 out_fname <- args[1]
 parent <- args[2]
-metadata_fp <- args[3]
+metadata <- args[3]
 
 # read in metadata 
-metadata <- fread(metadata_fp)
+metadata <- fread(metadata)
 
-# create new column that tags every individual affiliated with each mother even if in different caseIDs
-metadata_merged_array <- metadata %>%
-  mutate(array_id_merged = ifelse(family_position == "mother", paste0(array, "_merged"), NA_character_)) %>%
-  group_by(casefile_id) %>%
-  fill(array_id_merged) %>%
-  ungroup() 
+create_merged_array_and_weighted_ages <- function(metadata, parent) {
 
-# create dataframe that calculates the weighted age (based on age at each embryo), number of embryos, and number of visits 
-weighted_ages <- metadata_merged_array %>%
-  filter(family_position == "child") %>%
-  group_by(array_id_merged) %>%
-  summarise(weighted_age = sum(patient_age) / n(),
-            child_count = n(), 
-            num_visits = length(unique(patient_age))) %>% 
-  as.data.frame()
+  # Create new column that tags every individual affiliated with each parent even if in different caseIDs
+  metadata_merged_array <- metadata %>%
+    mutate(
+      array_id_merged = ifelse(family_position == parent, paste0(array, "_merged"), NA_character_)
+    ) %>%
+    group_by(casefile_id) %>%
+    fill(array_id_merged) %>%
+    ungroup()
 
-# remove "_merged" from array column to allow easier downstream intersection 
-weighted_ages$array <- gsub('_merged', '', weighted_ages$array_id_merged)
+  # Create dataframe that calculates the weighted age, number of embryos, and number of visits
+  weighted_ages <- metadata_merged_array %>%
+    filter(family_position == "child") %>%
+    group_by(array_id_merged) %>%
+    summarise(
+      weighted_age = sum(patient_age) / n(),
+      num_embryos = n(),
+      num_visits = length(unique(patient_age))
+    ) %>%
+    as.data.frame()
+
+  # Remove "_merged" from array column to allow easier downstream intersection
+  weighted_ages$array <- gsub('_merged', '', weighted_ages$array_id_merged)
+
+  return(weighted_ages)
+}
+
+result <- create_merged_array_and_weighted_ages(metadata, parent)
+
   
 # write to file 
-write.csv(weighted_ages, out_fname)
+write.csv(result, out_fname)

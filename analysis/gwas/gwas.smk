@@ -31,7 +31,7 @@ gwas_results = "results/gwas/"
 
 
 # Define the chromosomes that you will be running the pipeline on ...
-chroms = range(1, 24)
+#chroms = range(1, 24)
 
 
 # -------- Rule all to run whole pipeline -------- #
@@ -39,11 +39,10 @@ rule all:
     input:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
-            #phenotype=["embryo_count", "haploidy"],
-            phenotype="embryo_count",
-            parent="father",
-            dataset_type="test",
-            chrom=22,
+            phenotype=["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy"],
+            parent="mother",
+            dataset_type="discovery",
+            chrom=range(2, 24, 2),
         ),
 
 
@@ -173,7 +172,7 @@ rule run_gwas:
         + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
     wildcard_constraints:
         dataset_type="discovery|test",
-        phenotype="maternal_meiotic_aneuploidy|embryo_count|triploidy|haploidy",
+        phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count",
         parent="mother|father",
     shell:
-        "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {output.gwas_output}"
+        "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {output.gwas_output}"
