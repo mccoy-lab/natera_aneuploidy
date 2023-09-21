@@ -7,30 +7,28 @@
 
 # -------- Setting variables and paths for pre-GWAS processing steps ------- #
 king_exec = "~/code/king"
-king_outputs_fp = "./results/"
+king_outputs_fp = "results/"
 vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
-alleleorder_fp = "./results/opticall_concat_total.norm.b38.alleleorder"
-discovery_validate_R = "./scripts/discovery_test_split.R"
+alleleorder_fp = "results/opticall_concat_total.norm.b38.alleleorder"
+discovery_validate_R = "scripts/discovery_test_split.R"
 metadata = (
     "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 )
 fam_file = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam"
-discovery_validate_out_fp = "./results/"
-plot_discovery_validate = "./results/discovery_validation_split_covariates.pdf"
-pcs_out = "./results/parental_genotypes_pcs/"
+discovery_validate_out_fp = "results/"
+pcs_out = "results/parental_genotypes_pcs/"
 
 
 # -------- Setting key variables/paths for running GWAS across phenotypes in the Natera dataset ------- #
-linker_file = ""  # two-column file with mom's arrayID with associate dad arrayID for use in paternal DNA gwas
 parent_pca = "genotypes_pca.eigenvec"
 genotype_files = (
     "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
 )
 ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz"
-phenotype_scripts = "./scripts/phenotypes/"
-phenotype_results = "./results/phenotypes/"
-gwas_scripts = "./scripts/gwas/"
-gwas_results = "./results/gwas/"
+phenotype_scripts = "scripts/phenotypes/"
+phenotype_results = "results/phenotypes/"
+gwas_scripts = "scripts/gwas/"
+gwas_results = "results/gwas/"
 
 
 # Define the chromosomes that you will be running the pipeline on ...
@@ -67,7 +65,6 @@ rule run_king:
         king_log=temp(
             king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.log"
         ),
-        king_outputs=king_outputs_fp + "kingunrelated_toberemoved.txt",
     params:
         plink_outfix=king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder",
         king_outfix=king_outputs_fp,
@@ -84,16 +81,14 @@ rule discovery_validate_split:
         discovery_validate_R=discovery_validate_R,
         metadata=metadata,
         fam_file=fam_file,
-        king_to_remove=king_outputs_fp + "kingunrelated_toberemoved.txt",
+        king_to_remove=king_outputs_fp + "unrelated_toberemoved.txt",
     output:
         discovery_validate_maternal=discovery_validate_out_fp
         + "discover_validate_split_mother.txt",
         discovery_validate_paternal=discovery_validate_out_fp
         + "discover_validate_split_father.txt",
-        plot_discovery_validate=discovery_validate_out_fp
-        + "discover_validate_plots.pdf",
     shell:
-        "Rscript --vanilla {input.discovery_validate_R} {input.metadata} {input.fam_file} {input.king_to_remove} {output.discovery_validate_maternal} {output.discovery_validate_paternal} {output.plot_discovery_validate}"
+        "Rscript --vanilla {input.discovery_validate_R} {input.metadata} {input.fam_file} {input.king_to_remove} {output.discovery_validate_maternal} {output.discovery_validate_paternal}"
 
 
 rule run_plink_pca:
@@ -136,7 +131,7 @@ rule vcf2bed:
 rule generate_phenotypes:
     """Make file for each phenotype"""
     input:
-        rscript=phenotype_scripts + "{phenotype}_by_{parent}.R",
+        rscript=phenotype_scripts + "{phenotype}.R",
         ploidy_calls=ploidy_calls,
         metadata=metadata,
     output:
@@ -149,7 +144,7 @@ rule generate_phenotypes:
         ploidy_max=3,
         ploidy_min=20,
     run:
-        command = "Rscript --vanilla {input.rscript} {output.phenotype_file}"
+        command = "Rscript --vanilla {input.rscript} {output.phenotype_file} {wildcards.parent}"
 
         if wildcards.phenotype == "maternal_meiotic_aneuploidy":
             command += " {input.ploidy_calls} {params.nullisomy_min} {params.ploidy_max}"
@@ -169,9 +164,7 @@ rule run_gwas:
         bed=rules.vcf2bed.output.bedfile,
         discovery_test=discovery_validate_out_fp
         + "discover_validate_split_{parent}.txt",
-        #discovery_test=rules.discovery_validate_split.output.discovery_validate_maternal,
         parental_pcs=rules.run_plink_pca.output.eigenvec,
-        #pheno=phenotype_results + "{phenotype}_by_{parent}.txt", # can i make this go with the output from the above rule? not sure how to do that with wild cards involved
         pheno=rules.generate_phenotypes.output.phenotype_file,
         bim=rules.vcf2bed.output.bimfile,
     output:

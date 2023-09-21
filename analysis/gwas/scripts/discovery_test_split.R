@@ -1,18 +1,31 @@
 library(data.table)
 library(ggplot2)
-library(ggpubr)
-
+#library(ggpubr)
 library(dplyr)
+library(tidyr)
 
 # input files necessary 
-metadata <- fread("/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv")
-fam <- fread("/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam")
-king_related_arrays <- fread("/scratch16/rmccoy22/scarios1/natera_spectrum/gwas/background/king_outputs/kingunrelated_toberemoved.txt", header = FALSE)
+#metadata <- fread("/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv")
+#fam <- fread("/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam")
+#king_related_arrays <- fread("/scratch16/rmccoy22/scarios1/natera_spectrum/gwas/background/king_outputs/kingunrelated_toberemoved.txt", header = FALSE)
+
+# get command line arguments
+args <- commandArgs(trailingOnly = TRUE)
+metadata <- args[1]
+fam <- args[2]
+king_related_arrays <- args[3]
+output_maternal <- args[4]
+output_paternal <- args[5]
+
+# read files from args
+metadata <- fread(metadata)
+fam <- fread(fam) 
+king_related_arrays <- fread(king_related_arrays)
 
 # output filepaths 
-plot_fp <- "/scratch16/rmccoy22/scarios1/natera_spectrum/gwas/background/discovery_validation_split_covariates.pdf"
-output_maternal <- "/scratch16/rmccoy22/scarios1/natera_spectrum/gwas/background/discover_validate_split_f.txt"
-output_paternal <- "/scratch16/rmccoy22/scarios1/natera_spectrum/gwas/background/discover_validate_split_m.txt"
+#plot_fp <- "/scratch16/rmccoy22/scarios1/natera_spectrum/gwas/background/discovery_validation_split_covariates.pdf"
+#output_maternal <- "/scratch16/rmccoy22/scarios1/natera_spectrum/gwas/background/discover_validate_split_f.txt"
+#output_paternal <- "/scratch16/rmccoy22/scarios1/natera_spectrum/gwas/background/discover_validate_split_m.txt"
 
 # remove families affected by donors 
 metadata <- replace(metadata, metadata=='', NA)
@@ -106,47 +119,47 @@ evensplit <- splitdf.randomize(metadata_merged_array_ages_mothers, min_p=0.05, t
 metadata_merged_array_ages_mothers[, is_discovery := array %in% evensplit$trainset$array]
 
 
-# plot cumulative dist of the covariates 
-p1 <- ggplot(data = metadata_merged_array_ages_mothers, aes(x = weighted_age, color = is_discovery)) +
-  geom_density() +
-  theme_bw() +
-  theme(axis.line = element_line(), panel.grid = element_blank(), panel.border = element_blank()) +
-  xlab("Patient Age") +
-  ylab("Density") + 
-  scale_color_manual(labels = c("Validation", "Discovery"), values = c("blue", "red")) + 
-  guides(color=guide_legend("Data Split Assignment"))
+# # plot cumulative dist of the covariates 
+# p1 <- ggplot(data = metadata_merged_array_ages_mothers, aes(x = weighted_age, color = is_discovery)) +
+#   geom_density() +
+#   theme_bw() +
+#   theme(axis.line = element_line(), panel.grid = element_blank(), panel.border = element_blank()) +
+#   xlab("Patient Age") +
+#   ylab("Density") + 
+#   scale_color_manual(labels = c("Validation", "Discovery"), values = c("blue", "red")) + 
+#   guides(color=guide_legend("Data Split Assignment"))
 
 
-p2 <- ggplot(data = metadata_merged_array_ages_mothers, aes(x = partner_age, color = is_discovery)) +
-  geom_density() +
-  #xlim(20, 83) + 
-  theme_bw() +
-  theme(axis.line = element_line(), panel.grid = element_blank(), panel.border = element_blank()) +
-  xlab("Partner Age") +
-  ylab("Density") + 
-  scale_color_manual(labels = c("Validation", "Discovery"), values = c("blue", "red")) + 
-  guides(color=guide_legend("Data Split Assignment"))
+# p2 <- ggplot(data = metadata_merged_array_ages_mothers, aes(x = partner_age, color = is_discovery)) +
+#   geom_density() +
+#   #xlim(20, 83) + 
+#   theme_bw() +
+#   theme(axis.line = element_line(), panel.grid = element_blank(), panel.border = element_blank()) +
+#   xlab("Partner Age") +
+#   ylab("Density") + 
+#   scale_color_manual(labels = c("Validation", "Discovery"), values = c("blue", "red")) + 
+#   guides(color=guide_legend("Data Split Assignment"))
 
 
-p3 <- ggplot(data = metadata_merged_array_ages_mothers, aes(x = child_count, color = is_discovery)) +
-  geom_density() +
-  theme_bw() +
-  theme(axis.line = element_line(), panel.grid = element_blank(), panel.border = element_blank()) +
-  xlab("Number of Embryos") +
-  ylab("Density") + 
-  scale_color_manual(labels = c("Validation", "Discovery"), values = c("blue", "red")) + 
-  guides(color=guide_legend("Data Split Assignment"))
+# p3 <- ggplot(data = metadata_merged_array_ages_mothers, aes(x = child_count, color = is_discovery)) +
+#   geom_density() +
+#   theme_bw() +
+#   theme(axis.line = element_line(), panel.grid = element_blank(), panel.border = element_blank()) +
+#   xlab("Number of Embryos") +
+#   ylab("Density") + 
+#   scale_color_manual(labels = c("Validation", "Discovery"), values = c("blue", "red")) + 
+#   guides(color=guide_legend("Data Split Assignment"))
 
 
-# Plot all three variables as one figure 
-pdf(plot_fp)
-ggpubr::ggarrange(p1, p2, p3, # list of plots
-                  labels = "AUTO", # labels
-                  common.legend = T, # COMMON LEGEND
-                  legend = "bottom", # legend position
-                  align = "hv", # Align them both, horizontal and vertical
-                  nrow = 1)  # number of rows
-dev.off()
+# # Plot all three variables as one figure 
+# pdf(plot_fpn)
+# ggpubr::ggarrange(p1, p2, p3, # list of plots
+#                   labels = "AUTO", # labels
+#                   common.legend = T, # COMMON LEGEND
+#                   legend = "bottom", # legend position
+#                   align = "hv", # Align them both, horizontal and vertical
+#                   nrow = 1)  # number of rows
+# dev.off()
 
 # write mothers to file 
 fwrite(metadata_merged_array_ages_mothers[,c("array", "family_position", "is_discovery")], 
