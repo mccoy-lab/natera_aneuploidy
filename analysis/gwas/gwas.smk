@@ -2,25 +2,22 @@
 
 # Usage: nohup snakemake -p --cores 48 --snakefile gwas.smk > nohup_date.out 2>&1 &
 # Optional: add -j 12 to submit as 12 jobs, etc.
-# Optional: add -n to do a dry run 
+# Optional: add -n to do a dry run
+# Run from the filepath /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
 
 # -------- Setting variables and paths for pre-GWAS processing steps ------- #
 king_exec = "~/code/king"
-king_outputs_fp = (
-    "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/"
-)
+king_outputs_fp = "./results/"
 vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
-alleleorder_fp = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/opticall_concat_total.norm.b38.alleleorder"
-discovery_validate_R = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/discovery_test_split.R"
+alleleorder_fp = "./results/opticall_concat_total.norm.b38.alleleorder"
+discovery_validate_R = "./scripts/discovery_test_split.R"
 metadata = (
     "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 )
 fam_file = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam"
-discovery_validate_out_fp = (
-    "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/"
-)
-plot_discovery_validate = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_validation_split_covariates.pdf"
-pcs_out = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/parental_genotypes_pcs/"
+discovery_validate_out_fp = "./results/"
+plot_discovery_validate = "./results/discovery_validation_split_covariates.pdf"
+pcs_out = "./results/parental_genotypes_pcs/"
 
 
 # -------- Setting key variables/paths for running GWAS across phenotypes in the Natera dataset ------- #
@@ -30,10 +27,10 @@ genotype_files = (
     "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
 )
 ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz"
-phenotype_scripts = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/"
-phenotype_results = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/"
-gwas_scripts = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/"
-gwas_results = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/"
+phenotype_scripts = "./scripts/phenotypes/"
+phenotype_results = "./results/phenotypes/"
+gwas_scripts = "./scripts/gwas/"
+gwas_results = "./results/gwas/"
 
 
 # Define the chromosomes that you will be running the pipeline on ...
@@ -58,10 +55,18 @@ rule run_king:
     input:
         vcf_input=vcf_fp + "opticall_concat_total.norm.b38.vcf.gz",
     output:
-        king_bed=temp(king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.bed"),
-        king_bim=temp(king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.bim"),
-        king_fam=temp(king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.fam"),
-        king_log=temp(king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.log"),
+        king_bed=temp(
+            king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.bed"
+        ),
+        king_bim=temp(
+            king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.bim"
+        ),
+        king_fam=temp(
+            king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.fam"
+        ),
+        king_log=temp(
+            king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.log"
+        ),
         king_outputs=king_outputs_fp + "kingunrelated_toberemoved.txt",
     params:
         plink_outfix=king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder",
@@ -95,16 +100,16 @@ rule run_plink_pca:
     """Run plink to get principal components for parental genotypes"""
     input:
         concat_vcf=vcf_fp + "opticall_concat_total.norm.b38.vcf.gz",
-        concat_vcf_tbi= vcf_fp + "opticall_concat_total.norm.b38.vcf.gz.tbi",
+        concat_vcf_tbi=vcf_fp + "opticall_concat_total.norm.b38.vcf.gz.tbi",
     output:
-        eigenvec=pcs_out+"parental_genotypes.eigenvec",
-        eigenval=pcs_out+"parental_genotypes.eigenval",
-        log=pcs_out+"parental_genotypes.log",
+        eigenvec=pcs_out + "parental_genotypes.eigenvec",
+        eigenval=pcs_out + "parental_genotypes.eigenval",
+        log=pcs_out + "parental_genotypes.log",
     resources:
         time="1:00:00",
         mem_mb="4G",
     params:
-        outfix=pcs_out+"parental_genotypes",
+        outfix=pcs_out + "parental_genotypes",
         pcs=20,
     threads: 24
     shell:
@@ -121,29 +126,30 @@ rule vcf2bed:
         famfile=temp(gwas_results + "opticall_concat_{chrom}.norm.b38.fam"),
         logfile=temp(gwas_results + "opticall_concat_{chrom}.norm.b38.log"),
     params:
-        outfix=lambda wildcards: gwas_results + f"opticall_concat_{wildcards.chrom}.norm.b38",
+        outfix=lambda wildcards: gwas_results
+        + f"opticall_concat_{wildcards.chrom}.norm.b38",
     threads: 24
     shell:
         "plink2 --vcf {input.vcf_input} --keep-allele-order --double-id --make-bed --threads {threads} --out {params.outfix}"
 
 
-rule generate_phenotypes: 
+rule generate_phenotypes:
     """Make file for each phenotype"""
-    input: 
-        rscript=phenotype_scripts + "{phenotype}_by_{parent}.R", 
+    input:
+        rscript=phenotype_scripts + "{phenotype}_by_{parent}.R",
         ploidy_calls=ploidy_calls,
-    output: 
-        phenotype_file=phenotype_results + "{phenotype}_by_{parent}.txt", 
+    output:
+        phenotype_file=phenotype_results + "{phenotype}_by_{parent}.txt",
     wildcard_constraints:
         phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy|embryo_count",
         parent="mother|father",
-    params: 
+    params:
         nullisomy_min=5,
         ploidy_max=3,
         ploidy_min=20,
-    run: 
+    run:
         command = "Rscript {input.rscript} {input.ploidy_calls} {output.phenotype_file}"
-        
+
         if wildcards.phenotype == "maternal_meiotic_aneuploidy":
             command += " {params.nullisomy_min} {params.ploidy_max}"
         elif wildcards.phenotype in ["haploidy", "triploidy"]:
@@ -155,20 +161,22 @@ rule generate_phenotypes:
 rule run_gwas:
     """Run each GWAS"""
     input:
-        gwas_rscript=gwas_scripts + "gwas_{phenotype}.R", 
+        gwas_rscript=gwas_scripts + "gwas_all.R",
         metadata=metadata,
-        bed=rules.vcf2bed.output.bedfile, 
-        discovery_test=discovery_validate_out_fp + "discover_validate_split_{parent}.txt",
+        bed=rules.vcf2bed.output.bedfile,
+        discovery_test=discovery_validate_out_fp
+        + "discover_validate_split_{parent}.txt",
         #discovery_test=rules.discovery_validate_split.output.discovery_validate_maternal,
         parental_pcs=rules.run_plink_pca.output.eigenvec,
         #pheno=phenotype_results + "{phenotype}_by_{parent}.txt", # can i make this go with the output from the above rule? not sure how to do that with wild cards involved
         pheno=rules.generate_phenotypes.output.phenotype_file,
         bim=rules.vcf2bed.output.bimfile,
     output:
-        gwas_output=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
+        gwas_output=gwas_results
+        + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
     wildcard_constraints:
         dataset_type="discovery|test",
         phenotype="maternal_meiotic_aneuploidy|embryo_count|triploidy|haploidy",
         parent="mother|father",
     shell:
-        "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {output.gwas_output}"
+        "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {output.gwas_output}"
