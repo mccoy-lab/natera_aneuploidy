@@ -15,9 +15,9 @@ discovery_test <- args[3] # either maternal or paternal info read in
 eigenvec <- args[4]
 pheno <- args[5]
 bim <- args[6]
-out_fname <- args[7]
-dataset_type <- args[8] # discovery or test
-phenotype <- args[9] # aneuploidy type, embryo count, or age 
+dataset_type <- args[7] # discovery or test
+phenotype <- args[8] # aneuploidy type, embryo count, or age 
+out_fname <- args[9]
 
 # read in files from arguments 
 metadata <- fread(metadata)
