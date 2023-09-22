@@ -139,6 +139,7 @@ rule generate_phenotypes:
         phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy|embryo_count",
         parent="mother|father",
     params:
+        bayes_factor_cutoff=2,
         nullisomy_min=5,
         ploidy_max=3,
         ploidy_min=20,
@@ -146,9 +147,9 @@ rule generate_phenotypes:
         command = "Rscript --vanilla {input.rscript} {output.phenotype_file} {wildcards.parent}"
 
         if wildcards.phenotype == "maternal_meiotic_aneuploidy":
-            command += " {input.ploidy_calls} {params.nullisomy_min} {params.ploidy_max}"
+            command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.nullisomy_min} {params.ploidy_max}"
         elif wildcards.phenotype in ["haploidy", "triploidy"]:
-            command += " {input.ploidy_calls} {params.ploidy_min}"
+            command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min}"
         elif wildcards.phenotype == "embryo_count": 
             command += " {input.metadata}"
 

@@ -3,10 +3,12 @@ library(data.table)
 library(tidyr)
 library(dplyr)
 
-# Usage: ./maternal_meiotic_aneuploidy.R \ 
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/maternal_meiotic_aneuploidy_mother.csv \
+# Usage: 
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/maternal_meiotic_aneuploidy.R \ 
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/maternal_meiotic_aneuploidy_by_mother.csv \
 # mother \
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz \ 
+# 2 \
 # 5 \ # 5 or more chromosomes at cn=0 is considered failed amplification 
 # 3 # 3 or more aneuploid chromosomes is not considered "maternal aneuploidy" but rather another ploidy 
 
@@ -15,8 +17,9 @@ args <- commandArgs(trailingOnly = TRUE)
 out_fname <- args[1]
 parent <- args[2]
 input_data <- args[3]
-nullisomy_threshold <- args[4]
-ploidy_threshold <- args[5] 
+bayes_factor_cutoff <- args[4]
+nullisomy_threshold <- args[5]
+ploidy_threshold <- args[6] 
 # number of chromosomes greater than which the embryo is not just "aneuploid" but rather has an entire ploidy
 
 
@@ -25,7 +28,7 @@ input_data <- fread(input_data)
 # keep only rows that have probabilities for all 6 cn states
 embryos <- input_data[complete.cases(input_data[,c("0", "1m", "1p", "2", "3m", "3p")]),]
 # filter bayes factors 
-embryos <- embryos[embryos$bf_max > 2,]
+embryos <- embryos[embryos$bf_max > bayes_factor_cutoff,]
 
 # find max posterior probability 
 selected_columns <- c("0", "1m", "1p", "2", "3m", "3p")

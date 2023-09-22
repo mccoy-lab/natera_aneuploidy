@@ -3,10 +3,12 @@ library(data.table)
 library(tidyr)
 library(dplyr)
 
-# Usage: ./triploidy_by_mother.R \ 
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/phenotypes/triploidy_by_mother.csv \
+# Usage: 
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/triploidy_by_mother.R \ 
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/triploidy_by_mother.csv \
 # mother \
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz \ 
+# 2 \
 # 20
 
 # get command line arguments
@@ -14,12 +16,15 @@ args <- commandArgs(trailingOnly = TRUE)
 out_fname <- args[1]
 parent <- args[2]
 input_data <- args[3]
-triploidy_threshold <- args[4]
+bayes_factor_cutoff <- args[4]
+triploidy_threshold <- args[5]
 
 # read in data
 input_data <- fread(input_data)
 # keep only rows that have probabilities for all 6 cn states
 embryos <- input_data[complete.cases(input_data[,c("0", "1m", "1p", "2", "3m", "3p")]),]
+# filter bayes factors 
+embryos <- embryos[embryos$bf_max > bayes_factor_cutoff,]
 
 
 # find max posterior probability 
@@ -31,7 +36,7 @@ embryos[, putative_cn := colnames(embryos[, 10:15])[apply(embryos[, 10:15], 1, w
 # create column for each chromosome number
 embryos$chromosome <- gsub("chr", "", embryos$chrom) %>% as.integer()
 
-# Define a function to count triploid embryos per parent column
+# define function to count triploid embryos per parent column
 count_triploid_by_parent <- function(data, parent_column, triploidy_threshold) {
   data %>%
     group_by({{ parent_column }}, child) %>%
@@ -42,7 +47,7 @@ count_triploid_by_parent <- function(data, parent_column, triploidy_threshold) {
     replace(is.na(.), 0)
 }
 
-# Call the function with the specified parent column
+# call function with the specified parent column
 triploid_counts_by_parent <- count_triploid_by_parent(embryos, !!as.name(parent), triploidy_threshold)
 colnames(triploid_counts_by_parent)[1] <- "array"
 
