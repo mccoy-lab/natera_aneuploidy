@@ -42,7 +42,7 @@ rule all:
             phenotype=["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy"],
             parent="mother",
             dataset_type="discovery",
-            chrom=range(2, 24, 2),
+            chrom=range(1, 23, 2),
         ),
 
 
@@ -176,3 +176,7 @@ rule run_gwas:
         parent="mother|father",
     shell:
         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {output.gwas_output}"
+
+
+rule merge_chrom: 
+    """Merge chromosomes from each GWAS"""

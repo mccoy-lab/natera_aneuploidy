@@ -7,6 +7,18 @@ library(dplyr)
 library(pbmcapply)
 library(purrr)
 
+# Usage: ./gwas_all.R \
+# "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/opticall_concat_9.norm.b38.bed" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_mother.txt" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/parental_genotypes_pcs/parental_genotypes.eigenvec" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/haploidy_by_mother.csv" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/opticall_concat_9.norm.b38.bim" \
+# "discovery" \
+# "haploidy" \
+# "mother" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/gwas_haploidy_by_mother_discovery_9.txt
+
 # take in arguments 
 args <- commandArgs(trailingOnly = TRUE)
 metadata <- args[1]
@@ -16,7 +28,7 @@ pca_scores <- args[4]
 pheno <- args[5]
 bim <- args[6]
 dataset_type <- args[7] # discovery or test
-phenotype <- args[8] # aneuploidy type, embryo count, or age 
+phenotype_name <- args[8] # aneuploidy type, embryo count, or age 
 parent <- args[9]
 out_fname <- args[10]
 
@@ -142,13 +154,13 @@ gwas_maternal_age <- function(snp_index, genotypes, phenotypes, metadata, locs, 
 }
 
 # run GWAS based on phenotype passed argument 
-if (phenotype %in% c("maternal_meiotic_aneuploidy", "triploidy", "haploidy")) {
+if (phenotype_name %in% c("maternal_meiotic_aneuploidy", "triploidy", "haploidy")) {
   # aneuploidy phenotypes 
   gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_aneuploidy(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices, parent), mc.cores = 48L)
-} else if (phenotype == "embryo_count") {
+} else if (phenotype_name == "embryo_count") {
   # embryo count
   gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_embryo_count(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = 48L)
-} else if (phenotype == "maternal_age") {
+} else if (phenotype_name == "maternal_age") {
   # maternal age 
   gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_maternal_age(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = 48L)
 }
