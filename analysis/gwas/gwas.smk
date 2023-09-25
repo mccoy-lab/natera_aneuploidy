@@ -40,8 +40,8 @@ rule all:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
             #phenotype=["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy", "parental_triploidy"],
-            phenotype="parental_triploidy",
-            parent="father",
+            phenotype="triploidy",
+            parent="mother",
             dataset_type="discovery",
             chrom=4,
         ),
