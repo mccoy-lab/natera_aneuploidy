@@ -23,7 +23,7 @@ pcs_out = "results/parental_genotypes_pcs/"
 genotype_files = (
     "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
 )
-ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz"
+ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos_v2.karyohmm_v14.bph_sph_trisomy.071023.tsv.gz"
 phenotype_scripts = "scripts/phenotypes/"
 phenotype_results = "results/phenotypes/"
 gwas_scripts = "scripts/gwas/"
@@ -39,10 +39,11 @@ rule all:
     input:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
-            phenotype=["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy"],
-            parent="mother",
+            #phenotype=["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy", "parental_triploidy"],
+            phenotype="parental_triploidy",
+            parent="father",
             dataset_type="discovery",
-            chrom=range(1, 23, 2),
+            chrom=4,
         ),
 
 
@@ -136,7 +137,7 @@ rule generate_phenotypes:
     output:
         phenotype_file=phenotype_results + "{phenotype}_by_{parent}.csv",
     wildcard_constraints:
-        phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy|embryo_count",
+        phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy|embryo_count|parental_triploidy",
         parent="mother|father",
     params:
         bayes_factor_cutoff=2,
@@ -148,7 +149,7 @@ rule generate_phenotypes:
 
         if wildcards.phenotype == "maternal_meiotic_aneuploidy":
             command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.nullisomy_min} {params.ploidy_max}"
-        elif wildcards.phenotype in ["haploidy", "triploidy"]:
+        elif wildcards.phenotype in ["haploidy", "triploidy", "parental_triploidy"]:
             command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min}"
         elif wildcards.phenotype == "embryo_count": 
             command += " {input.metadata}"
@@ -173,11 +174,8 @@ rule run_gwas:
         + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
     wildcard_constraints:
         dataset_type="discovery|test",
-        phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count",
+        phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
         parent="mother|father",
     shell:
         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {output.gwas_output}"
 
-
-rule merge_chrom: 
-    """Merge chromosomes from each GWAS"""

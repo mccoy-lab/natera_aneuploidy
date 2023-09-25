@@ -64,7 +64,7 @@ bed_dataset <- discovery_test_split(dataset_type, metadata, bed, discovery_test)
 # get variables to call function 
 bed_dataset_indices <- 1:nrow(bed_dataset)
 
-# function to run GWAS on each site if it's a ploidy phenotype (triploid, haploid, maternal meiotic aneuploidy)
+# function to run GWAS on each site if it's a ploidy phenotype (triploid, haploid, maternal meiotic aneuploidy, parental_triploidy)
 gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices, parent) {
   
   # Determine the age covariate column based on the "parent" argument
@@ -154,7 +154,7 @@ gwas_maternal_age <- function(snp_index, genotypes, phenotypes, metadata, locs, 
 }
 
 # run GWAS based on phenotype passed argument 
-if (phenotype_name %in% c("maternal_meiotic_aneuploidy", "triploidy", "haploidy")) {
+if (phenotype_name %in% c("maternal_meiotic_aneuploidy", "triploidy", "haploidy", "parental_triploidy")) {
   # aneuploidy phenotypes 
   gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_aneuploidy(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices, parent), mc.cores = 48L)
 } else if (phenotype_name == "embryo_count") {
