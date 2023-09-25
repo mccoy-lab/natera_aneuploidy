@@ -4,10 +4,10 @@ library(tidyr)
 library(dplyr)
 
 # Usage: 
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/triploidy_by_mother.R \ 
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/triploidy.R \ 
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/triploidy_by_mother.csv \
 # mother \
-# /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v11.052723.tsv.gz \ 
+# /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos_v2.karyohmm_v14.bph_sph_trisomy.071023.tsv.gz \ 
 # 2 \
 # 20
 
@@ -16,8 +16,8 @@ args <- commandArgs(trailingOnly = TRUE)
 out_fname <- args[1]
 parent <- args[2]
 input_data <- args[3]
-bayes_factor_cutoff <- args[4]
-triploidy_threshold <- args[5]
+bayes_factor_cutoff <- as.numeric(args[4])
+triploidy_threshold <- as.numeric(args[5])
 
 # read in data
 input_data <- fread(input_data)
@@ -32,7 +32,7 @@ selected_columns <- c("0", "1m", "1p", "2", "3m", "3p")
 highest_values <- apply(embryos[, selected_columns, with = FALSE], 1, function(x) max(x, na.rm = TRUE))
 embryos[, highest := highest_values]
 # add column for most likely copy number 
-embryos[, putative_cn := colnames(embryos[, 10:15])[apply(embryos[, 10:15], 1, which.max)]]
+embryos[, putative_cn := colnames(embryos[, 7:12])[apply(embryos[, 7:12], 1, which.max)]]
 # create column for each chromosome number
 embryos$chromosome <- gsub("chr", "", embryos$chrom) %>% as.integer()
 
