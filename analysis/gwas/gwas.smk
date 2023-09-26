@@ -43,7 +43,7 @@ rule all:
             phenotype="triploidy",
             parent="mother",
             dataset_type="discovery",
-            chrom=4,
+            chrom=22,
         ),
 
 

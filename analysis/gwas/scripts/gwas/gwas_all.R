@@ -92,11 +92,16 @@ gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pc
   
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
 
-  return(data.table(snp = snp_name, pos = snp_pos, 
+  gt_filtered  <- gt %>% filter(!is.na(alt_count))
+  alt_counts <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
+
+  return(data.table(snp = snp_name, 
+                    pos = snp_pos, 
                     beta = unlist(coef[term == "alt_count", 2]),
                     se = unlist(coef[term == "alt_count", 3]),
                     t = unlist(coef[term == "alt_count", 4]),
-                    p.value = unlist(coef[term == "alt_count", 5]))) 
+                    p.value = unlist(coef[term == "alt_count", 5]),
+                    maf = alt_counts)) 
 }
 
 # function to run GWAS on each site if it's embryo count 
@@ -119,11 +124,16 @@ gwas_embryo_count <- function(snp_index, genotypes, phenotypes, metadata, locs, 
   
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
 
-  return(data.table(snp = snp_name, pos = snp_pos, 
+  gt_filtered  <- gt %>% filter(!is.na(alt_count))
+  alt_counts <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
+
+  return(data.table(snp = snp_name, 
+                    pos = snp_pos, 
                     beta = unlist(coef[term == "alt_count", 2]),
                     se = unlist(coef[term == "alt_count", 3]),
                     t = unlist(coef[term == "alt_count", 4]),
-                    p.value = unlist(coef[term == "alt_count", 5])))
+                    p.value = unlist(coef[term == "alt_count", 5]),
+                    maf = alt_counts))
 }
 
 # function to run GWAS on each site for maternal age 
@@ -146,11 +156,16 @@ gwas_maternal_age <- function(snp_index, genotypes, phenotypes, metadata, locs, 
   
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
 
-  return(data.table(snp = snp_name, pos = snp_pos, 
+  gt_filtered  <- gt %>% filter(!is.na(alt_count))
+  alt_counts <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
+
+  return(data.table(snp = snp_name, 
+                    pos = snp_pos, 
                     beta = unlist(coef[term == "alt_count", 2]),
                     se = unlist(coef[term == "alt_count", 3]),
                     t = unlist(coef[term == "alt_count", 4]),
-                    p.value = unlist(coef[term == "alt_count", 5])))  
+                    p.value = unlist(coef[term == "alt_count", 5]),
+                    maf = alt_counts))  
 }
 
 # run GWAS based on phenotype passed argument 
