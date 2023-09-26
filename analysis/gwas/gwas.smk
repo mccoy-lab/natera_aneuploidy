@@ -9,21 +9,14 @@
 king_exec = "~/code/king"
 king_outputs_fp = "results/"
 vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
-alleleorder_fp = "results/opticall_concat_total.norm.b38.alleleorder"
-discovery_validate_R = "scripts/discovery_test_split.R"
 metadata = (
     "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 )
-fam_file = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam"
 discovery_validate_out_fp = "results/"
 pcs_out = "results/parental_genotypes_pcs/"
 
 
 # -------- Setting key variables/paths for running GWAS across phenotypes in the Natera dataset ------- #
-genotype_files = (
-    "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
-)
-ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos_v2.karyohmm_v14.bph_sph_trisomy.071023.tsv.gz"
 phenotype_scripts = "scripts/phenotypes/"
 phenotype_results = "results/phenotypes/"
 gwas_scripts = "scripts/gwas/"
@@ -33,6 +26,7 @@ gwas_results = "results/gwas/"
 # Define the chromosomes that you will be running the pipeline on ...
 #chroms = range(1, 24)
 
+shell.prefix("set -o pipefail; ")
 
 # -------- Rule all to run whole pipeline -------- #
 rule all:
@@ -78,9 +72,9 @@ rule run_king:
 rule discovery_validate_split:
     """Split families into discovery/validation sets for use in GWAS"""
     input:
-        discovery_validate_R=discovery_validate_R,
+        discovery_validate_R="scripts/discovery_test_split.R",
         metadata=metadata,
-        fam_file=fam_file,
+        fam_file="/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam",
         king_to_remove=king_outputs_fp + "unrelated_toberemoved.txt",
     output:
         discovery_validate_maternal=discovery_validate_out_fp
@@ -132,7 +126,7 @@ rule generate_phenotypes:
     """Make file for each phenotype"""
     input:
         rscript=phenotype_scripts + "{phenotype}.R",
-        ploidy_calls=ploidy_calls,
+        ploidy_calls="/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos_v2.karyohmm_v14.bph_sph_trisomy.071023.tsv.gz",
         metadata=metadata,
     output:
         phenotype_file=phenotype_results + "{phenotype}_by_{parent}.csv",
