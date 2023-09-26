@@ -28,9 +28,9 @@ embryos <- embryos[embryos$bf_max > bayes_factor_cutoff,]
 
 
 # find max posterior probability 
-selected_columns <- c("0", "1m", "1p", "2", "3m", "3p")
-highest_values <- apply(embryos[, selected_columns, with = FALSE], 1, function(x) max(x, na.rm = TRUE))
-embryos[, highest := highest_values]
+#selected_columns <- c("0", "1m", "1p", "2", "3m", "3p")
+#highest_values <- apply(embryos[, selected_columns, with = FALSE], 1, function(x) max(x, na.rm = TRUE))
+#embryos[, highest := highest_values]
 # add column for most likely copy number 
 embryos[, putative_cn := colnames(embryos[, 7:12])[apply(embryos[, 7:12], 1, which.max)]]
 # create column for each chromosome number

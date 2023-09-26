@@ -6,7 +6,7 @@ library(dplyr)
 library(tidyr)
 
 # Usage: 
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/embryo_count_by_mother.R \ 
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/embryo_count.R \ 
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/embryo_count_by_mother.csv \
 # mother \
 # /data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv \
