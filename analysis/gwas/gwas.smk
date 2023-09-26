@@ -34,10 +34,10 @@ rule all:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
             #phenotype=["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy", "parental_triploidy"],
-            phenotype="triploidy",
+            phenotype="maternal_meiotic_aneuploidy",
             parent="mother",
             dataset_type="discovery",
-            chrom=22,
+            chrom=4,
         ),
 
 
@@ -136,8 +136,8 @@ rule generate_phenotypes:
     params:
         bayes_factor_cutoff=2,
         nullisomy_min=5,
-        ploidy_max=3,
-        ploidy_min=20,
+        ploidy_max=11,
+        ploidy_min=12,
     run:
         command = "Rscript --vanilla {input.rscript} {output.phenotype_file} {wildcards.parent}"
 
