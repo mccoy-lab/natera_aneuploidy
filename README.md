@@ -32,7 +32,6 @@ find . -name "*.tsv" | while read line; do cat $line; done | awk '!visited[$0]++
 We also have a post-processing workflow (`aneuploidy_post`) of the posterior tracebacks for defining some additional downstream features. Some of these analyses include:
 
 * Dissection of SPH vs. BPH for trisomies in centromere-proximal and centromere-distal regions of chromosomes for determining trisomies originating at MI vs MII
-* Coarse identification of segmental aneuploidies from a set of embryos.
 
 
 ### GWAS
