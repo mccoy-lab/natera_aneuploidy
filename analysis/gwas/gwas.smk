@@ -25,19 +25,22 @@ gwas_results = "results/gwas/"
 
 # Define the chromosomes that you will be running the pipeline on ...
 #chroms = range(1, 24)
+phenotypes = ["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy", "parental_triploidy"]
+parents = ["mother", "father"]
+dataset_type = ["discovery", "test"]
 
 shell.prefix("set -o pipefail; ")
 
 # -------- Rule all to run whole pipeline -------- #
+
 rule all:
     input:
         expand(
-            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
+            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.txt",
             #phenotype=["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy", "parental_triploidy"],
             phenotype="maternal_meiotic_aneuploidy",
             parent="mother",
-            dataset_type="discovery",
-            chrom=4,
+            dataset_type="discovery",           
         ),
 
 
@@ -173,3 +176,18 @@ rule run_gwas:
     shell:
         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
 
+rule merge_chroms:
+    input:
+        expand(
+            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
+            phenotype=phenotypes,
+            parent=parents,
+            dataset_type=dataset_type,
+            chrom=range(1, 23),  
+        ),
+    output:
+        merged_file = gwas_results + "gwas_{phenotype}_{parent}_total.txt",
+    shell:
+        
+        cat {input} > {output.merged_file}
+        
