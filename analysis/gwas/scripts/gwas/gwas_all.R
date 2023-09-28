@@ -30,7 +30,7 @@ bim <- args[6]
 dataset_type <- args[7] # discovery or test
 phenotype_name <- args[8] # aneuploidy type, embryo count, or age 
 parent <- args[9]
-threads <- args[10] # for use in mc.cores
+threads <- as.numeric(args[10]) # for use in mc.cores
 out_fname <- args[11]
 
 # read in files from arguments 
