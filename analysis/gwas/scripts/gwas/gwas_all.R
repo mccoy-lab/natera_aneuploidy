@@ -77,6 +77,8 @@ bed_dataset <- discovery_test_split(dataset_type, metadata, bed, discovery_test)
 bed_dataset_indices <- 1:nrow(bed_dataset)
 
 # function to pre-process gt info for each site 
+# the genotypes info has each arrayID pasted twice, e.g., 10005770025_R06C01_10005770025_R06C01
+# the reg ex keeps everything before the second underscore, returning the array info to its standard format, e.g., 10005770025_R06C01
 get_gt <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices) {
   gt <- data.table(names(genotypes[subject_indices, snp_index]), unname(genotypes[subject_indices, snp_index])) %>%
     setnames(., c("array", "alt_count")) %>%
