@@ -162,14 +162,14 @@ rule run_gwas:
         parental_pcs=rules.run_plink_pca.output.eigenvec,
         pheno=rules.generate_phenotypes.output.phenotype_file,
         bim=rules.vcf2bed.output.bimfile,
-        fam=rules.vcf2bed.output.famfile,
     output:
         gwas_output=gwas_results
         + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
+    threads: 32
     wildcard_constraints:
         dataset_type="discovery|test",
         phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
         parent="mother|father",
     shell:
-        "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {output.gwas_output}"
+        "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
 

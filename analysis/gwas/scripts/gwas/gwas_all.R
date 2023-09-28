@@ -30,7 +30,8 @@ bim <- args[6]
 dataset_type <- args[7] # discovery or test
 phenotype_name <- args[8] # aneuploidy type, embryo count, or age 
 parent <- args[9]
-out_fname <- args[10]
+threads <- args[10] # for use in mc.cores
+out_fname <- args[11]
 
 # read in files from arguments 
 metadata <- fread(metadata)
@@ -156,13 +157,13 @@ gwas_maternal_age <- function(snp_index, genotypes, phenotypes, metadata, locs, 
 # run GWAS based on phenotype passed argument 
 if (phenotype_name %in% c("maternal_meiotic_aneuploidy", "triploidy", "haploidy", "parental_triploidy")) {
   # aneuploidy phenotypes 
-  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_aneuploidy(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices, parent), mc.cores = 48L)
+  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_aneuploidy(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices, parent), mc.cores = threads)
 } else if (phenotype_name == "embryo_count") {
   # embryo count
-  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_embryo_count(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = 48L)
+  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_embryo_count(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = threads)
 } else if (phenotype_name == "maternal_age") {
   # maternal age 
-  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_maternal_age(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = 48L)
+  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_maternal_age(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = threads)
 }
 
 # bind output
