@@ -28,7 +28,7 @@ shell.prefix("set -o pipefail; ")
 rule all:
     input:
         expand(
-            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.txt.gz",
+            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
             #phenotype=["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy", "parental_triploidy"],
             phenotype="maternal_meiotic_aneuploidy",
             parent="mother",
@@ -158,7 +158,7 @@ rule run_gwas:
         pheno=rules.generate_phenotypes.output.phenotype_file,
         bim=rules.vcf2bed.output.bimfile,
     output:
-        gwas_output=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
+        gwas_output=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
     threads: 32
     wildcard_constraints:
         dataset_type="discovery|test",
@@ -171,14 +171,14 @@ rule merge_chroms:
     """Create single file for each phenotype, merging all chromosomes"""
     input:
         expand(
-            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
+            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
             phenotype=phenotypes,
             parent=parents,
             dataset_type=dataset_type,
             chrom=range(1, 23),  
         ),
     output:
-        merged_file = gwas_results + "gwas_{phenotype}_{parent}_total.txt.gz",
+        merged_file = gwas_results + "gwas_{phenotype}_{parent}_total.tsv.gz",
     shell:
         "cat {input} | gzip > {output.merged_file}"
         

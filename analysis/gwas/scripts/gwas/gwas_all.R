@@ -17,7 +17,7 @@ library(purrr)
 # "discovery" \
 # "haploidy" \
 # "mother" \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/gwas_haploidy_by_mother_discovery_9.txt
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/gwas_haploidy_by_mother_discovery_9.tsv
 
 # take in arguments 
 args <- commandArgs(trailingOnly = TRUE)
@@ -187,6 +187,6 @@ gwas_results_dt <- rbindlist(gwas_results[unlist(map(gwas_results, is.data.table
   setorder(., p.value)
 
 # write to file
-write.table(gwas_results_dt, out_fname, append = FALSE, sep = " ", dec = ".",
+write.table(gwas_results_dt, out_fname, append = FALSE, sep = "\t", dec = ".",
             row.names = TRUE, col.names = TRUE, quote = FALSE)
 
