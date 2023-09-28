@@ -34,3 +34,16 @@ count_ploidy_by_parent <- function(data, parent, phenotype, ploidy_threshold) {
   
   return(result)
 }
+
+count_complex_ploidy_by_parent <- function(data, parent) {
+	# group ploidy by respective parent 
+	result <- embryos %>%
+		group_by({{parent}}, child) %>%
+		summarise(parents_affected = sum(any(bf_max_cat %in% c("3m", "1p")) & any(bf_max_cat %in% c("1m", "3p")))) %>% 
+		mutate(is_ploidy = if_else(parents_affected > 1, "aneu_true", "aneu_false")) %>%
+		count(is_ploidy) %>%
+		pivot_wider(names_from = is_ploidy, values_from = n, values_fill = 0) %>%
+		replace(is.na(.), 0)
+
+	return(result)
+}
