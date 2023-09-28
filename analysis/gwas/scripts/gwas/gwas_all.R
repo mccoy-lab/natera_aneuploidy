@@ -109,7 +109,7 @@ gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pc
                     se = unlist(coef[term == "alt_count", 3]),
                     t = unlist(coef[term == "alt_count", 4]),
                     p.value = unlist(coef[term == "alt_count", 5]),
-                    maf = alt_af)) 
+                    af = alt_af)) 
 }
 
 # function to run GWAS on each site if it's embryo count 
@@ -130,7 +130,7 @@ gwas_embryo_count <- function(snp_index, genotypes, phenotypes, metadata, locs, 
                     se = unlist(coef[term == "alt_count", 3]),
                     t = unlist(coef[term == "alt_count", 4]),
                     p.value = unlist(coef[term == "alt_count", 5]),
-                    maf = alt_af))
+                    af = alt_af))
 }
 
 # function to run GWAS on each site for maternal age 
@@ -151,7 +151,7 @@ gwas_maternal_age <- function(snp_index, genotypes, phenotypes, metadata, locs, 
                     se = unlist(coef[term == "alt_count", 3]),
                     t = unlist(coef[term == "alt_count", 4]),
                     p.value = unlist(coef[term == "alt_count", 5]),
-                    maf = alt_af))  
+                    af = alt_af))  
 }
 
 # run GWAS based on phenotype passed argument 
