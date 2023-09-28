@@ -101,7 +101,7 @@ gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pc
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
 
   gt_filtered  <- gt %>% filter(!is.na(alt_count))
-  alt_counts <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
+  alt_af <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
 
   return(data.table(snp = snp_name, 
                     pos = snp_pos, 
@@ -109,7 +109,7 @@ gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pc
                     se = unlist(coef[term == "alt_count", 3]),
                     t = unlist(coef[term == "alt_count", 4]),
                     p.value = unlist(coef[term == "alt_count", 5]),
-                    maf = alt_counts)) 
+                    maf = alt_af)) 
 }
 
 # function to run GWAS on each site if it's embryo count 
@@ -122,7 +122,7 @@ gwas_embryo_count <- function(snp_index, genotypes, phenotypes, metadata, locs, 
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
 
   gt_filtered  <- gt %>% filter(!is.na(alt_count))
-  alt_counts <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
+  alt_af <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
 
   return(data.table(snp = snp_name, 
                     pos = snp_pos, 
@@ -130,7 +130,7 @@ gwas_embryo_count <- function(snp_index, genotypes, phenotypes, metadata, locs, 
                     se = unlist(coef[term == "alt_count", 3]),
                     t = unlist(coef[term == "alt_count", 4]),
                     p.value = unlist(coef[term == "alt_count", 5]),
-                    maf = alt_counts))
+                    maf = alt_af))
 }
 
 # function to run GWAS on each site for maternal age 
@@ -139,7 +139,7 @@ gwas_maternal_age <- function(snp_index, genotypes, phenotypes, metadata, locs, 
   gt <- get_gt(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices)
 
   gt_filtered  <- gt %>% filter(!is.na(alt_count))
-  alt_counts <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
+  alt_af <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
   
   m1 <- glm(weighted_age ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + alt_count, family = "poisson", data = gt) %>% summary()
   
@@ -151,7 +151,7 @@ gwas_maternal_age <- function(snp_index, genotypes, phenotypes, metadata, locs, 
                     se = unlist(coef[term == "alt_count", 3]),
                     t = unlist(coef[term == "alt_count", 4]),
                     p.value = unlist(coef[term == "alt_count", 5]),
-                    maf = alt_counts))  
+                    maf = alt_af))  
 }
 
 # run GWAS based on phenotype passed argument 
