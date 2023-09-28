@@ -30,7 +30,8 @@ bim <- args[6]
 dataset_type <- args[7] # discovery or test
 phenotype_name <- args[8] # aneuploidy type, embryo count, or age 
 parent <- args[9]
-out_fname <- args[10]
+threads <- args[10] # for use in mc.cores
+out_fname <- args[11]
 
 # read in files from arguments 
 metadata <- fread(metadata)
@@ -64,16 +65,8 @@ bed_dataset <- discovery_test_split(dataset_type, metadata, bed, discovery_test)
 # get variables to call function 
 bed_dataset_indices <- 1:nrow(bed_dataset)
 
-# function to run GWAS on each site if it's a ploidy phenotype (triploid, haploid, maternal meiotic aneuploidy, parental_triploidy)
-gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices, parent) {
-  
-  # Determine the age covariate column based on the "parent" argument
-  if (parent == "mother") {
-    age_column <- "patient_age"
-  } else if (parent == "father") {
-    age_column <- "partner_age"
-  } 
-
+# function to pre-process gt info for each site 
+get_gt <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices) {
   gt <- data.table(names(genotypes[subject_indices, snp_index]), unname(genotypes[subject_indices, snp_index])) %>%
     setnames(., c("array", "alt_count")) %>%
     .[, array := sub("(.*?_.*?)_.*", "\\1", array)]
@@ -83,9 +76,24 @@ gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pc
   snp_pos <- locs[snp_index]$pos
   
   gt <- merge(gt, metadata, by = "array") %>%
-    merge(pheno, by = "array") %>%
-	  merge(pcs, by = "array") %>%
-	  .[!duplicated(array)]
+    merge(phenotypes, by = "casefile_id") %>%
+    merge(pcs, by = "array") %>%
+    .[!duplicated(array)]
+
+  return(gt)
+}
+
+# function to run GWAS on each site if it's a ploidy phenotype (triploid, haploid, maternal meiotic aneuploidy, parental_triploidy)
+gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices, parent) {
+  
+  gt <- get_gt(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices)
+
+  # Determine the age covariate column based on the "parent" argument
+  if (parent == "mother") {
+    age_column <- "patient_age"
+  } else if (parent == "father") {
+    age_column <- "partner_age"
+  } 
   
   formula_string <- paste0("cbind(aneu_true, aneu_false) ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + ", age_column, " + alt_count")
   m1 <- glm(formula_string, family = "quasibinomial", data = gt) %>% summary()
@@ -93,7 +101,7 @@ gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pc
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
 
   gt_filtered  <- gt %>% filter(!is.na(alt_count))
-  alt_counts <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
+  alt_af <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
 
   return(data.table(snp = snp_name, 
                     pos = snp_pos, 
@@ -101,31 +109,20 @@ gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, pc
                     se = unlist(coef[term == "alt_count", 3]),
                     t = unlist(coef[term == "alt_count", 4]),
                     p.value = unlist(coef[term == "alt_count", 5]),
-                    maf = alt_counts)) 
+                    af = alt_af)) 
 }
 
 # function to run GWAS on each site if it's embryo count 
 gwas_embryo_count <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices) {
   
-  gt <- data.table(names(genotypes[subject_indices, snp_index]), unname(genotypes[subject_indices, snp_index])) %>%
-    setnames(., c("array", "alt_count")) %>%
-    .[, array := sub("(.*?_.*?)_.*", "\\1", array)]
-  
-  snp_name <- colnames(genotypes)[snp_index]
-  snp_chr <- locs[snp_index]$chr
-  snp_pos <- locs[snp_index]$pos
-  
-  gt <- merge(gt, metadata, by = "array") %>%
-    merge(pheno, by = "array") %>%
-    merge(pcs, by = "array") %>%
-    .[!duplicated(array)]
+  gt <- get_gt(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices)
   
   m1 <- glm(num_embryos ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + weighted_age + alt_count, family = "poisson", data = gt) %>% summary()
   
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
 
   gt_filtered  <- gt %>% filter(!is.na(alt_count))
-  alt_counts <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
+  alt_af <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
 
   return(data.table(snp = snp_name, 
                     pos = snp_pos, 
@@ -133,31 +130,20 @@ gwas_embryo_count <- function(snp_index, genotypes, phenotypes, metadata, locs, 
                     se = unlist(coef[term == "alt_count", 3]),
                     t = unlist(coef[term == "alt_count", 4]),
                     p.value = unlist(coef[term == "alt_count", 5]),
-                    maf = alt_counts))
+                    af = alt_af))
 }
 
 # function to run GWAS on each site for maternal age 
 gwas_maternal_age <- function(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices) {
   
-  gt <- data.table(names(genotypes[subject_indices, snp_index]), unname(genotypes[subject_indices, snp_index])) %>%
-    setnames(., c("array", "alt_count")) %>%
-    .[, array := sub("(.*?_.*?)_.*", "\\1", array)]
-  
-  snp_name <- colnames(genotypes)[snp_index]
-  snp_chr <- locs[snp_index]$chr
-  snp_pos <- locs[snp_index]$pos
-  
-  gt <- merge(gt, metadata, by = "array") %>%
-    merge(pheno, by = "casefile_id") %>%
-    merge(pcs, by = "array") %>%
-    .[!duplicated(array)]
+  gt <- get_gt(snp_index, genotypes, phenotypes, metadata, locs, pcs, subject_indices)
+
+  gt_filtered  <- gt %>% filter(!is.na(alt_count))
+  alt_af <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
   
   m1 <- glm(weighted_age ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + alt_count, family = "poisson", data = gt) %>% summary()
   
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
-
-  gt_filtered  <- gt %>% filter(!is.na(alt_count))
-  alt_counts <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
 
   return(data.table(snp = snp_name, 
                     pos = snp_pos, 
@@ -165,19 +151,19 @@ gwas_maternal_age <- function(snp_index, genotypes, phenotypes, metadata, locs, 
                     se = unlist(coef[term == "alt_count", 3]),
                     t = unlist(coef[term == "alt_count", 4]),
                     p.value = unlist(coef[term == "alt_count", 5]),
-                    maf = alt_counts))  
+                    af = alt_af))  
 }
 
 # run GWAS based on phenotype passed argument 
 if (phenotype_name %in% c("maternal_meiotic_aneuploidy", "triploidy", "haploidy", "parental_triploidy")) {
   # aneuploidy phenotypes 
-  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_aneuploidy(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices, parent), mc.cores = 48L)
+  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_aneuploidy(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices, parent), mc.cores = threads)
 } else if (phenotype_name == "embryo_count") {
   # embryo count
-  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_embryo_count(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = 48L)
+  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_embryo_count(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = threads)
 } else if (phenotype_name == "maternal_age") {
   # maternal age 
-  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_maternal_age(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = 48L)
+  gwas_results <- pbmclapply(1:ncol(bed_dataset), function(x) gwas_maternal_age(x, bed_dataset, pheno, metadata, bim, pca_scores, bed_dataset_indices), mc.cores = threads)
 }
 
 # bind output
