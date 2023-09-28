@@ -1,16 +1,18 @@
+## Make phenotype file for embryos affected by paternal triploidy (cn = 3p for a number above the threshold)
+
 ## load libraries
 library(data.table)
 library(tidyr)
 library(dplyr)
 
 # Usage: 
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/maternal_triploidy.R \ 
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/maternal_triploidy_by_mother.csv \
-# mother \ 
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/paternal_triploidy.R \ 
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/paternal_triploidy_by_father.csv \
+# father \ 
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos_v2.karyohmm_v14.bph_sph_trisomy.071023.tsv.gz \ 
 # 2 \ 
 # 10 \ 
-# maternal_triploidy
+# paternal_triploidy
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
@@ -29,11 +31,11 @@ phenotype <- args[6]
 
 # check input 
 if (!(parent %in% c("mother", "father"))) {
-  stop("Invalid 'parent' argument. Use 'mother' or 'father'.")
+    stop("Invalid 'parent' argument. Use 'mother' or 'father'.")
 }
 
 # source Rscript with functions `filter_data` and `count_ploidy_by_parent`
-source("get_ploidy.R")
+source("helper_functions/get_ploidy.R")
 
 # read in and filter data 
 embryos <- fread(embryos)

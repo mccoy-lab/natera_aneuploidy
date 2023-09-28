@@ -1,3 +1,5 @@
+## Make phenotype file for embryos affected by maternal triploidy (cn = 3m for a number above the threshold)
+
 ## load libraries
 library(data.table)
 library(tidyr)
@@ -29,11 +31,11 @@ phenotype <- args[6]
 
 # check input 
 if (!(parent %in% c("mother", "father"))) {
-  stop("Invalid 'parent' argument. Use 'mother' or 'father'.")
+    stop("Invalid 'parent' argument. Use 'mother' or 'father'.")
 }
 
 # source Rscript with functions `filter_data` and `count_ploidy_by_parent`
-source("get_ploidy.R")
+source("helper_functions/get_ploidy.R")
 
 # read in and filter data 
 embryos <- fread(embryos)
