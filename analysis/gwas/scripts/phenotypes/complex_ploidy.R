@@ -26,23 +26,14 @@ bayes_factor_cutoff <- as.numeric(args[4])
 # minimum number of chromosomes affected to declare phenotype 
 ploidy_threshold <- as.numeric(args[5])
 
-# check input 
-if (!(parent %in% c("mother", "father"))) {
-    stop("Invalid 'parent' argument. Use 'mother' or 'father'.")
-}
-
 # source Rscript with functions `filter_data` and `count_ploidy_by_parent`
 source("helper_functions/get_ploidy.R")
 
 # read in and filter data 
 embryos <- fread(embryos)
-embryos_filtered <- filter_data(embryos, bayes_factor_cutoff)
 
-# group ploidy by respective parent
-ploidy_counts_by_parent <- count_complex_ploidy_by_parent(embryos, !!as.name(parent))
-colnames(ploidy_counts_by_parent)[1] <- "array"
+# generate phenotypes 
+ploidy_counts_by_parent <- run_phenotype(embryos, bayes_factor_cutoff, parent, phenotype, ploidy_threshold)
 
 # write to file 
 write.csv(ploidy_counts_by_parent, out_fname, row.names = FALSE)
-
-
