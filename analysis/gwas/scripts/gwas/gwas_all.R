@@ -21,16 +21,27 @@ library(purrr)
 
 # take in arguments 
 args <- commandArgs(trailingOnly = TRUE)
+# metadata for all years 
 metadata <- args[1]
+# parental genotypes as described https://github.com/mccoy-lab/natera_spectrum/tree/main/genotyping
 bed <- args[2]
-discovery_test <- args[3] # either maternal or paternal info read in 
+# discovery-test split for applicable parent
+discovery_test <- args[3] 
+# PCs for parents, output from plink 
 pca_scores <- args[4]
+# phenotype file of interest
 pheno <- args[5]
+# file containing snp name and map positions, corresponds with bed file 
 bim <- args[6]
-dataset_type <- args[7] # discovery or test
-phenotype_name <- args[8] # aneuploidy type, embryo count, or age 
+# string variable noting whether to GWAS using the discovery or test set for parents 
+dataset_type <- args[7] 
+# string variable naming the phenotype being considered (e.g., aneuploidy type, embryo count)
+phenotype_name <- args[8] 
+# string variable noting which parent to GWAS 
 parent <- args[9]
-threads <- as.numeric(args[10]) # for use in mc.cores
+# number of threads to use in mc.cores for GWAS 
+threads <- as.numeric(args[10]) 
+# output file name 
 out_fname <- args[11]
 
 # read in files from arguments 
