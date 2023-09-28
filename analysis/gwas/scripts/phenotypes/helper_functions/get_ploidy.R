@@ -17,11 +17,12 @@ filter_data <- function(embryos, bayes_factor_cutoff) {
 }
 
 
-count_ploidy_by_parent <- function(data, parent, phenotype, ploidy_threshold) {
-	# check input 
-	if (!(parent %in% c("mother", "father"))) {
-    	stop("Invalid 'parent' argument. Use 'mother' or 'father'.")
-	}
+count_ploidy_by_parent <- function(embryos, parent_col, phenotype, ploidy_threshold, parent) {
+
+    # check input 
+    if (!(parent %in% c("mother", "father"))) {
+        stop("Invalid 'parent' argument. Use 'mother' or 'father'.")
+    }
 
     # choose relevant aneuploidies based on phenotype 
     if (phenotype == "maternal_triploidy") {
@@ -32,14 +33,16 @@ count_ploidy_by_parent <- function(data, parent, phenotype, ploidy_threshold) {
         cn <- "1p"
     } else if (phenotype == "paternal_haploidy") {
         cn <- "1m"
+    } else if (phenotype == "maternal_meiotic") {
+        cn <- c("3m", "1p")
     } else {
         stop("Invalid 'phenotype' argument.")
     }
     
     # group ploidy by respective parent
-    result <- data %>%
-        group_by({{parent}}, child) %>%
-        summarise(num_affected = sum(bf_max_cat == cn)) %>%
+    result <- embryos %>%
+        group_by({{parent_col}}, child) %>%
+        summarise(num_affected = sum(bf_max_cat %in% cn)) %>%
         mutate(is_ploidy = if_else(num_affected >= ploidy_threshold, "aneu_true", "aneu_false")) %>%
         count(is_ploidy) %>%
         pivot_wider(names_from = is_ploidy, values_from = n, values_fill = 0) %>%
@@ -48,7 +51,7 @@ count_ploidy_by_parent <- function(data, parent, phenotype, ploidy_threshold) {
     return(result)
 }
 
-count_complex_ploidy_by_parent <- function(data, parent) {
+count_complex_ploidy_by_parent <- function(embryos, parent_col, parent) {
 	# check input 
 	if (!(parent %in% c("mother", "father"))) {
     	stop("Invalid 'parent' argument. Use 'mother' or 'father'.")
@@ -71,7 +74,7 @@ run_phenotype <- function(embryos, bayes_factor_cutoff, parent, phenotype, ploid
     embryos_filtered <- filter_data(embryos, bayes_factor_cutoff)
 
 	# group ploidy by respective parent 
-	ploidy_counts_by_parent <- count_ploidy_by_parent(embryos, !!as.name(parent), phenotype, ploidy_threshold)
+	ploidy_counts_by_parent <- count_ploidy_by_parent(embryos_filtered, !!as.name(parent), phenotype, ploidy_threshold, parent)
 	colnames(ploidy_counts_by_parent)[1] <- "array"
 
 	return(ploidy_counts_by_parent)

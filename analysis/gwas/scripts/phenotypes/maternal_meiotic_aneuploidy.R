@@ -16,23 +16,23 @@ library(dplyr)
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
+# output file name
 out_fname <- args[1]
+# parent to measure phenotype
 parent <- args[2]
-input_data <- args[3]
+# ploidy calls from karyohmm
+embryos <- args[3]
+# minimum bayes factor for filtering
 bayes_factor_cutoff <- as.numeric(args[4])
+# maximum number of chromosomes that are allowed nullisomies; anything more is considered failed amplification
 nullisomy_threshold <- as.numeric(args[5])
+# maximum number of chromosomes that are allowed aneuploidy; anything more is a whole-genome ploidy
 ploidy_threshold <- as.numeric(args[6])
 
 
 # read in and filter data
-input_data <- fread(input_data)
-# keep only rows that have probabilities for all 6 cn states
-embryos <- input_data[complete.cases(input_data[,c("0", "1m", "1p", "2", "3m", "3p")]),]
-# filter bayes factors 
-embryos <- embryos[embryos$bf_max > bayes_factor_cutoff,]
-# create column for just chromosome number 
-embryos$chromosome <- gsub("chr", "", embryos$chrom) %>% as.integer()
-
+embryos <- fread(embryos)
+embryos <- filter_data(embryos, bayes_factor_cutoff)
 
 # remove embryos with failed amplification (5 or more nullisomies), triploidies, or haploidies 
 count_nullisomies <- embryos %>% 
