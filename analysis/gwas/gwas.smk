@@ -16,23 +16,29 @@ pcs_out = "results/parental_genotypes_pcs/"
 gwas_results = "results/gwas/"
 
 
-# Define the parameters that the pipeline will run on 
-#chroms = range(1, 24)
-phenotypes = ["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy", "parental_triploidy"]
+# Define the parameters that the pipeline will run on
+# chroms = range(1, 24)
+phenotypes = [
+    "embryo_count",
+    "haploidy",
+    "maternal_meiotic_aneuploidy",
+    "triploidy",
+    "parental_triploidy",
+]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
 
-shell.prefix("set -o pipefail; ")
+# shell.prefix("set -o pipefail; ")
+
 
 # -------- Rule all to run whole pipeline -------- #
 rule all:
     input:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            #phenotype=["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy", "parental_triploidy"],
             phenotype="maternal_meiotic_aneuploidy",
             parent="mother",
-            dataset_type="discovery",           
+            dataset_type="discovery",
         ),
 
 
@@ -138,9 +144,11 @@ rule generate_phenotypes:
 
         if wildcards.phenotype == "maternal_meiotic_aneuploidy":
             command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.nullisomy_min} {params.ploidy_max}"
-        elif wildcards.phenotype in ["haploidy", "triploidy", "parental_triploidy"]:
-            command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min}"
-        elif wildcards.phenotype == "embryo_count": 
+        elif wildcards.phenotype in ["maternal_haploidy", "maternal_triploidy", "paternal_haploidy", "paternal_triploidy"]:
+            command += (
+                " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min} {params.phenotype}"
+            )
+        elif wildcards.phenotype == "embryo_count":
             command += " {input.metadata}"
 
         shell(command)
@@ -152,13 +160,13 @@ rule run_gwas:
         gwas_rscript="scripts/gwas/gwas_all.R",
         metadata=metadata,
         bed=rules.vcf2bed.output.bedfile,
-        discovery_test=general_outputs_fp
-        + "discover_validate_split_{parent}.txt",
+        discovery_test=general_outputs_fp + "discover_validate_split_{parent}.txt",
         parental_pcs=rules.run_plink_pca.output.eigenvec,
         pheno=rules.generate_phenotypes.output.phenotype_file,
         bim=rules.vcf2bed.output.bimfile,
     output:
-        gwas_output=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
+        gwas_output=gwas_results
+        + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
     threads: 32
     wildcard_constraints:
         dataset_type="discovery|test",
@@ -166,6 +174,7 @@ rule run_gwas:
         parent="mother|father",
     shell:
         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
+
 
 rule merge_chroms:
     """Create single file for each phenotype, merging all chromosomes"""
@@ -175,10 +184,9 @@ rule merge_chroms:
             phenotype=phenotypes,
             parent=parents,
             dataset_type=dataset_type,
-            chrom=range(1, 23),  
+            chrom=range(1, 23),
         ),
     output:
-        merged_file = gwas_results + "gwas_{phenotype}_{parent}_total.tsv.gz",
+        merged_file=gwas_results + "gwas_{phenotype}_{parent}_total.tsv.gz",
     shell:
         "cat {input} | gzip > {output.merged_file}"
-        
