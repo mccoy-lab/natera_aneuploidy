@@ -29,6 +29,8 @@ nullisomy_threshold <- as.numeric(args[5])
 # maximum number of chromosomes that are allowed aneuploidy; anything more is a whole-genome ploidy
 ploidy_threshold <- as.numeric(args[6])
 
+# source Rscript with functions `filter_data` and `count_ploidy_by_parent`
+source("helper_functions/get_ploidy.R")
 
 # read in and filter data
 embryos <- fread(embryos)
@@ -54,20 +56,9 @@ embryos_filtered <- embryos[embryos$child %in% successful_amp$child & embryos$ch
 
 
 # count maternal meiotic aneuploidies per embryo, based on parent
-calculate_counts <- function(data, parent_column) {
-    data %>%
-        group_by({{ parent_column }}, child) %>%
-        summarise(mat_aneu = sum(bf_max_cat == "3m" | bf_max_cat == "1p")) %>%
-        mutate(is_aneu = if_else(mat_aneu > 0, "true", "false")) %>%
-        count(is_aneu) %>%
-        pivot_wider(names_from = is_aneu, values_from = n, values_fill = 0, names_prefix = "aneu_") %>%
-        replace(is.na(.), 0) %>%
-        as.data.table()
-}
-
-# Call the function with the specified parent column
-embryo_counts_by_parent <- calculate_counts(embryos_filtered, !!as.name(parent)) %>%
-    setnames(., c("array", "aneu_false", "aneu_true"))
+# group ploidy by respective parent 
+ploidy_counts_by_parent <- count_ploidy_by_parent(embryos_filtered, !!as.name(parent), phenotype, ploidy_threshold, parent)
+colnames(ploidy_counts_by_parent)[1] <- "array"
 
 # write to file 
-write.csv(embryo_counts_by_parent, out_fname, row.names = FALSE)
+write.csv(ploidy_counts_by_parent, out_fname, row.names = FALSE)
