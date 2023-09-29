@@ -3,68 +3,66 @@
 # Usage: nohup snakemake -p --cores 48 --snakefile gwas.smk > nohup_date.out 2>&1 &
 # Optional: add -j 12 to submit as 12 jobs, etc.
 # Optional: add -n to do a dry run
-# Run from the filepath /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
+# Executed from /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
 
-# -------- Setting variables and paths for pre-GWAS processing steps ------- #
+# -------- Setting variables and paths for pre-GWAS processing steps and GWAS outputs ------- #
 king_exec = "~/code/king"
-king_outputs_fp = "results/"
+general_outputs_fp = "results/"
 vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
 metadata = (
     "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 )
-discovery_validate_out_fp = "results/"
 pcs_out = "results/parental_genotypes_pcs/"
-
-
-# -------- Setting key variables/paths for running GWAS across phenotypes in the Natera dataset ------- #
-phenotype_scripts = "scripts/phenotypes/"
-phenotype_results = "results/phenotypes/"
-gwas_scripts = "scripts/gwas/"
 gwas_results = "results/gwas/"
 
 
-# Define the chromosomes that you will be running the pipeline on ...
-#chroms = range(1, 24)
-phenotypes = ["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy", "parental_triploidy"]
+# Define the parameters that the pipeline will run on
+# chroms = range(1, 24)
+phenotypes = [
+    "embryo_count",
+    "haploidy",
+    "maternal_meiotic_aneuploidy",
+    "triploidy",
+    "parental_triploidy",
+]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
 
-shell.prefix("set -o pipefail; ")
+# shell.prefix("set -o pipefail; ")
+
 
 # -------- Rule all to run whole pipeline -------- #
-
 rule all:
     input:
         expand(
-            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.txt",
-            #phenotype=["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy", "parental_triploidy"],
+            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
             phenotype="maternal_meiotic_aneuploidy",
             parent="mother",
-            dataset_type="discovery",           
+            dataset_type="discovery",
         ),
 
 
-# -------- Functions to determine run GWAS on maternal and paternal for each phenotype, and plot -------- #
+# -------- Functions to determine run GWAS on maternal and paternal for each phenotype -------- #
 rule run_king:
     """Reformat parental genotypes vcf and run king to identify related individuals"""
     input:
         vcf_input=vcf_fp + "opticall_concat_total.norm.b38.vcf.gz",
     output:
         king_bed=temp(
-            king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.bed"
+            general_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.bed"
         ),
         king_bim=temp(
-            king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.bim"
+            general_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.bim"
         ),
         king_fam=temp(
-            king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.fam"
+            general_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.fam"
         ),
         king_log=temp(
-            king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.log"
+            general_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.log"
         ),
     params:
-        plink_outfix=king_outputs_fp + "opticall_concat_total.norm.b38.alleleorder",
-        king_outfix=king_outputs_fp,
+        plink_outfix=general_outputs_fp + "opticall_concat_total.norm.b38.alleleorder",
+        king_outfix=general_outputs_fp,
     shell:
         """
         plink --vcf {input.vcf_input} --double-id --allow-extra-chr --make-bed --out {params.plink_outfix} 
@@ -78,11 +76,11 @@ rule discovery_validate_split:
         discovery_validate_R="scripts/discovery_test_split.R",
         metadata=metadata,
         fam_file="/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam",
-        king_to_remove=king_outputs_fp + "unrelated_toberemoved.txt",
+        king_to_remove=general_outputs_fp + "unrelated_toberemoved.txt",
     output:
-        discovery_validate_maternal=discovery_validate_out_fp
+        discovery_validate_maternal=general_outputs_fp
         + "discover_validate_split_mother.txt",
-        discovery_validate_paternal=discovery_validate_out_fp
+        discovery_validate_paternal=general_outputs_fp
         + "discover_validate_split_father.txt",
     shell:
         "Rscript --vanilla {input.discovery_validate_R} {input.metadata} {input.fam_file} {input.king_to_remove} {output.discovery_validate_maternal} {output.discovery_validate_paternal}"
@@ -128,11 +126,11 @@ rule vcf2bed:
 rule generate_phenotypes:
     """Make file for each phenotype"""
     input:
-        rscript=phenotype_scripts + "{phenotype}.R",
+        rscript="scripts/phenotypes/{phenotype}.R",
         ploidy_calls="/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos_v2.karyohmm_v14.bph_sph_trisomy.071023.tsv.gz",
         metadata=metadata,
     output:
-        phenotype_file=phenotype_results + "{phenotype}_by_{parent}.csv",
+        phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
     wildcard_constraints:
         phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy|embryo_count|parental_triploidy",
         parent="mother|father",
@@ -146,28 +144,29 @@ rule generate_phenotypes:
 
         if wildcards.phenotype == "maternal_meiotic_aneuploidy":
             command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.nullisomy_min} {params.ploidy_max}"
-        elif wildcards.phenotype in ["haploidy", "triploidy", "parental_triploidy"]:
-            command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min}"
-        elif wildcards.phenotype == "embryo_count": 
+        elif wildcards.phenotype in ["maternal_haploidy", "maternal_triploidy", "paternal_haploidy", "paternal_triploidy"]:
+            command += (
+                " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min} {params.phenotype}"
+            )
+        elif wildcards.phenotype == "embryo_count":
             command += " {input.metadata}"
 
         shell(command)
 
 
 rule run_gwas:
-    """Run each GWAS"""
+    """Run GWAS for each set of parameters"""
     input:
-        gwas_rscript=gwas_scripts + "gwas_all.R",
+        gwas_rscript="scripts/gwas/gwas_all.R",
         metadata=metadata,
         bed=rules.vcf2bed.output.bedfile,
-        discovery_test=discovery_validate_out_fp
-        + "discover_validate_split_{parent}.txt",
+        discovery_test=general_outputs_fp + "discover_validate_split_{parent}.txt",
         parental_pcs=rules.run_plink_pca.output.eigenvec,
         pheno=rules.generate_phenotypes.output.phenotype_file,
         bim=rules.vcf2bed.output.bimfile,
     output:
         gwas_output=gwas_results
-        + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
+        + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
     threads: 32
     wildcard_constraints:
         dataset_type="discovery|test",
@@ -176,18 +175,18 @@ rule run_gwas:
     shell:
         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
 
+
 rule merge_chroms:
+    """Create single file for each phenotype, merging all chromosomes"""
     input:
         expand(
-            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.txt",
+            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
             phenotype=phenotypes,
             parent=parents,
             dataset_type=dataset_type,
-            chrom=range(1, 23),  
+            chrom=range(1, 23),
         ),
     output:
-        merged_file = gwas_results + "gwas_{phenotype}_{parent}_total.txt",
+        merged_file=gwas_results + "gwas_{phenotype}_{parent}_total.tsv.gz",
     shell:
-        
-        cat {input} > {output.merged_file}
-        
+        "cat {input} | gzip > {output.merged_file}"

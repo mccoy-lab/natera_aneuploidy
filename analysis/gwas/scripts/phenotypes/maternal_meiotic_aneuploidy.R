@@ -1,3 +1,5 @@
+## Make phenotype file for embryos affected by maternal meiotic aneuploidy (cn = 1p or 3m for a number of chromosomes between the thresholds)
+
 # load libraries
 library(data.table)
 library(tidyr)
@@ -10,71 +12,53 @@ library(dplyr)
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos_v2.karyohmm_v14.bph_sph_trisomy.071023.tsv.gz \ 
 # 2 \
 # 5 \ # 5 or more chromosomes at cn=0 is considered failed amplification 
-# 3 # 3 or more aneuploid chromosomes is not considered "maternal aneuploidy" but rather another ploidy 
+# 3 # 3 or more aneuploid chromosomes is not considered "maternal aneuploidy" but rather another ploidy (number of chromosomes greater than which the embryo is not just "aneuploid" but rather has an entire ploidy) 
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
+# output file name
 out_fname <- args[1]
+# parent to measure phenotype
 parent <- args[2]
-input_data <- args[3]
+# ploidy calls from karyohmm
+embryos <- args[3]
+# minimum bayes factor for filtering
 bayes_factor_cutoff <- as.numeric(args[4])
+# maximum number of chromosomes that are allowed nullisomies; anything more is considered failed amplification
 nullisomy_threshold <- as.numeric(args[5])
+# maximum number of chromosomes that are allowed aneuploidy; anything more is a whole-genome ploidy
 ploidy_threshold <- as.numeric(args[6])
-# number of chromosomes greater than which the embryo is not just "aneuploid" but rather has an entire ploidy
 
+# source Rscript with functions `filter_data` and `count_ploidy_by_parent`
+source("helper_functions/get_ploidy.R")
 
-# read in data
-input_data <- fread(input_data)
-# keep only rows that have probabilities for all 6 cn states
-embryos <- input_data[complete.cases(input_data[,c("0", "1m", "1p", "2", "3m", "3p")]),]
-# filter bayes factors 
-embryos <- embryos[embryos$bf_max > bayes_factor_cutoff,]
+# read in and filter data
+embryos <- fread(embryos)
+embryos <- filter_data(embryos, bayes_factor_cutoff)
 
-# find max posterior probability 
-selected_columns <- c("0", "1m", "1p", "2", "3m", "3p")
-highest_values <- apply(embryos[, selected_columns, with = FALSE], 1, function(x) max(x, na.rm = TRUE))
-embryos[, highest := highest_values]
-# add column that says what the copy number is 
-embryos[, putative_cn := colnames(embryos[, 7:12])[apply(embryos[, 7:12], 1, which.max)]]
-# create new column that is just the chromosome number 
-embryos$chromosome <- gsub("chr", "", embryos$chrom) %>% as.integer()
-
-
-# remove embryos with failed amplification, triploidies, or haploidies 
-# grab embryos with 5 or more nullisomies (suggests failed amplification)
+# remove embryos with failed amplification (5 or more nullisomies), triploidies, or haploidies 
 count_nullisomies <- embryos %>% 
-  group_by({{parent}}, child) %>% 
-  summarise(num_nullisomies = sum(putative_cn == "0"))
+    group_by({{parent}}, child) %>% 
+    summarise(num_nullisomies = sum(bf_max_cat == "0"))
 successful_amp <- count_nullisomies[count_nullisomies$num_nullisomies < nullisomy_threshold,]
 # grab triploid embryos 
 count_triploidies <- embryos %>% 
-  group_by({{parent}}, child) %>% 
-  summarise(num_trisomies = sum(putative_cn == "3m" | putative_cn == "3p")) 
+    group_by({{parent}}, child) %>% 
+    summarise(num_trisomies = sum(bf_max_cat == "3m" | bf_max_cat == "3p")) 
 non_trip <- count_triploidies[count_triploidies$num_trisomies < ploidy_threshold,]              
 # grab haploid embryos (this would also catch isoUPD embryos)
 count_haploidies <- embryos %>% 
-  group_by({{parent}}, child) %>% 
-  summarise(num_monosomies = sum(putative_cn == "1m" | putative_cn == "1p"))
+    group_by({{parent}}, child) %>% 
+    summarise(num_monosomies = sum(bf_max_cat == "1m" | bf_max_cat == "1p"))
 non_hap <- count_haploidies[count_haploidies$num_monosomies < ploidy_threshold,]
 # remove failed amp, triploid, haploid embryos 
 embryos_filtered <- embryos[embryos$child %in% successful_amp$child & embryos$child %in% non_trip$child & embryos$child %in% non_hap$child]
 
 
 # count maternal meiotic aneuploidies per embryo, based on parent
-calculate_counts <- function(data, parent_column) {
-  data %>%
-    group_by({{ parent_column }}, child) %>%
-    summarise(mat_aneu = sum(putative_cn == "3m" | putative_cn == "1p")) %>%
-    mutate(is_aneu = if_else(mat_aneu > 0, "true", "false")) %>%
-    count(is_aneu) %>%
-    pivot_wider(names_from = is_aneu, values_from = n, values_fill = 0, names_prefix = "aneu_") %>%
-    replace(is.na(.), 0) %>%
-    as.data.table()
-}
-
-# Call the function with the specified parent column
-embryo_counts_by_parent <- calculate_counts(embryos_filtered, !!as.name(parent)) %>%
-  setnames(., c("array", "aneu_false", "aneu_true"))
+# group ploidy by respective parent 
+ploidy_counts_by_parent <- count_ploidy_by_parent(embryos_filtered, !!as.name(parent), phenotype, ploidy_threshold, parent)
+colnames(ploidy_counts_by_parent)[1] <- "array"
 
 # write to file 
-write.csv(embryo_counts_by_parent, out_fname, row.names = FALSE)
+write.csv(ploidy_counts_by_parent, out_fname, row.names = FALSE)
