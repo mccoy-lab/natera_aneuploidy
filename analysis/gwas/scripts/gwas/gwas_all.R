@@ -44,6 +44,27 @@ threads <- as.numeric(args[10])
 # output file name 
 out_fname <- args[11]
 
+
+# Check if input files exist
+stopifnot(file.exists(metadata), "Metadata file not found")
+stopifnot(file.exists(bed), "BED file not found")
+stopifnot(file.exists(discovery_test), "Discovery test file not found")
+stopifnot(file.exists(pca_scores), "PCA scores file not found")
+stopifnot(file.exists(pheno), "Phenotype file not found")
+stopifnot(file.exists(bim), "BIM file not found")
+
+# Check valid dataset_type, phenotype_name, and parent
+stopifnot(dataset_type %in% c("discovery", "test"), "Invalid dataset_type")
+stopifnot(phenotype_name %in% c("maternal_meiotic_aneuploidy", "maternal_triploidy", "paternal_triploidy", "maternal_haploidy", "paternal_haploidy", "embryo_count", "maternal_age"), "Invalid phenotype_name")
+stopifnot(parent %in% c("mother", "father"), "Invalid parent")
+
+# Check valid threads value
+stopifnot(is.numeric(threads) && threads >= 1, "Invalid number of threads")
+
+# Check valid out_fname
+stopifnot(!is.null(out_fname) && nchar(out_fname) > 0, "Invalid output file name")
+
+
 # read in files from arguments 
 metadata <- fread(metadata)
 bed <- BEDMatrix(bed)
