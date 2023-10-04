@@ -17,12 +17,14 @@ hmm_sims:
       - 15
       - 20
       - 25
+      - 30
     pi0:
+      - 20
       - 40
       - 60
       - 80
     skew:
-      - 0
+      - 100
   mixed_sims:
     reps: 20
     p_aneuploid:
@@ -53,8 +55,8 @@ hmm_sims:
     m:
       - 5000
     pi0:
-      - 42
+      - 60
     std_dev:
-      - 30
+      - 20
     skew:
       - 0
