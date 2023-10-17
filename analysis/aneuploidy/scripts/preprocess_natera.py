@@ -329,4 +329,7 @@ if __name__ == "__main__":
         print(f"Processing {c}...", file=sys.stderr)
         chrom_dict = main(child_csv=snakemake.input['child_data'], cytosnp_map=snakemake.input['cytosnp_map'], alleles_file=snakemake.input['alleles_file'], cytosnp_cluster=snakemake.input['egt_cluster'], norm_xy=None, raw_xy=None, meanr=snakemake.input['meanr_file'], vcf_file=v, mother_id=snakemake.wildcards['mother_id'], father_id=snakemake.wildcards['father_id'])
         meta_dict[c] = chrom_dict
+    meta_dict['mother'] = snakemake.wildcards['mother_id']
+    meta_dict['father'] = snakemake.wildcards['father_id']
+    meta_dict['child'] = snakemake.wildcards['child_id']
     pickle.dump(meta_dict, gz.open(snakemake.output['baf_pkl'], 'wb')) 

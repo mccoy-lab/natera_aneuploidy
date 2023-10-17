@@ -36,10 +36,17 @@ def main(baf, output):
     chroms = [f'chr{i}' for i in range(1,23)]
     with gz.open(baf,'r') as f:
         data = np.load(f, allow_pickle=True)
+    mother = data['mother']
+    father = data['father']
+    child = data['child']
     with PdfPages(output) as pdf:
-        for c in tqdm(chroms):
+        for i,c in tqdm(enumerate(chroms)):
+
             fig, ax = draw_baf_plots(baf_data = data, chrom=c) 
-            fig.suptitle(f'{c}')
+            if i == 0:
+                fig.suptitle(f'{mother}+{father}: {child}\n{c}')
+            else:
+                fig.suptitle(f'{c}')
             pdf.savefig() 
             plt.close()
 
