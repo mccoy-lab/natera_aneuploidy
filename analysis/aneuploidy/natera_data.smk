@@ -25,7 +25,7 @@ chroms = [f"chr{i}" for i in range(1, 23)]
 for i, c in enumerate(range(1, 23)):
     vcf_dict[
         chroms[i]
-    ] = f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/eagle_phased_hg38/natera_parents.b38.chr{c}.vcf.gz"
+    ] = f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/eagle_phased_hg38/natera_parents.b38.chr{c}.vcf.gz"
 
 
 # Read in the aggregate metadata file
