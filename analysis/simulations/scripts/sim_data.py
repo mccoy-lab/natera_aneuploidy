@@ -256,7 +256,10 @@ def sim_b_allele_freq(mat_hap, pat_hap, ploidy=2, std_dev=0.2, mix_prop=0.3, see
     baf = np.zeros(true_geno.size)
     for i in range(baf.size):
         if ploidy == 0:
-            baf[i] = np.random.uniform()
+            # NOTE: this is actually modeling a null intensity on x-y
+            x = np.random.uniform()
+            y = np.random.uniform()
+            baf[i] = np.arctan(y/x) / (np.pi/2.0) 
         else:
             mu_i = true_geno[i] / ploidy
             a, b = (0 - mu_i) / std_dev, (1 - mu_i) / std_dev
