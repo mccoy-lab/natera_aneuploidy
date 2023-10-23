@@ -460,6 +460,7 @@ if __name__ == "__main__":
             mix_prop=snakemake.params["pi0"],
             mat_skew=snakemake.params["mat_skew"],
             alpha=snakemake.params["alpha"],
+            switch_err_rate=3e-2
         )
     try:
         table_data["mother"] = snakemake.params["father_id"]

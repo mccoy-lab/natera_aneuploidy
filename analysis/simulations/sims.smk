@@ -100,9 +100,9 @@ rule hmm_baf_lrr_ploidy:
         model_comp=True,
         unphased=False,
         phase_error=lambda wildcards: wildcards.p == "1",
-        mother_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
-        father_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
-        child_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
+        mother_id=lambda wildcards: f"k{wildcards.k}_p{wildcards.p}_m{wildcards.rep}",
+        father_id=lambda wildcards: f"k{wildcards.k}_p{wildcards.p}_m{wildcards.rep}",
+        child_id=lambda wildcards: f"k{wildcards.k}_p{wildcards.p}_m{wildcards.rep}",
     script:
         "scripts/baf_hmm.py"
 
