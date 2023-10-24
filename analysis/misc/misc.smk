@@ -13,7 +13,7 @@ chroms = [f"chr{i}" for i in range(1, 23)]
 for c in chroms:
     vcf_dict_natera_parents[
         c
-    ] = f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/eagle_phased_hg38/natera_parents.b38.{c}.vcf.gz"
+    ] = f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/eagle_phased_hg38/natera_parents.b38.{c}.vcf.gz"
     vcf_dict_1kg_phase3[
         c
     ] = f"/scratch4/rmccoy22/sharedData/populationDatasets/1KGP_phase3/GRCh38_phased_vcfs/ALL.{c}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
