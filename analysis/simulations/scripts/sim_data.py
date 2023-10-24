@@ -377,7 +377,7 @@ def mixed_ploidy_sim(
     np.random.seed(seed)
     mat_haps, pat_haps = draw_parental_genotypes(afs=afs, m=m, seed=seed)
     mat_haps_prime, pat_haps_prime, _, _ = create_switch_errors(
-        mat_haps, pat_haps, err_rate=1e-2, seed=seed
+        mat_haps, pat_haps, err_rate=3e-2, seed=seed
     )
     # 2. Draw cells from a distribution of ploidies
     mix_ploidies = np.random.choice(ploidies, p=props, size=ncells)
@@ -437,11 +437,12 @@ if __name__ == "__main__":
         afs = None
     # Run the full simulation using the defined helper function
     if snakemake.params["mixed_ploidy"]:
-        p = snakemake.params["p"]
+        p_mono = snakemake.params["p_mono"]
+        p_tri = snakemake.params["p_tri"]
         table_data = mixed_ploidy_sim(
             afs=afs,
             ploidies=np.array([0, 1, 2, 3]),
-            props=np.array([0.0, p / 2.0, 1.0 - p, p / 2.0]),
+            props=np.array([0.0, p_tri, 1.0 - p_mono - p_tri, p_tri]),
             ncells=snakemake.params["n"],
             m=snakemake.params["m"],
             mat_skew=snakemake.params["mat_skew"],
