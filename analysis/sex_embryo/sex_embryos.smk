@@ -13,7 +13,9 @@ alleles_file = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp-
 cluster_file = "/scratch16/rmccoy22/abiddan1/natera_spectrum/r_expected/HumanCytoSNP-12v2-1_NS550.cluster.tsv.gz"
 strand_file = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp-12v2-1_h-b37.strand"
 strand_refalt = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp-12v2-1_h-b37.strand.RefAlt"
-cytosnp_map_v12 = "/data/rmccoy22/natera_spectrum/snp_map_cyto12b_f004.txt"
+cytosnp_map_v12 = (
+    "/data/rmccoy22/natera_spectrum/data/illumina_files/snp_map_cyto12b_f004.txt"
+)
 lrrs = ["none"]
 
 # Create the VCF data dictionary for the sex-chromosomes
