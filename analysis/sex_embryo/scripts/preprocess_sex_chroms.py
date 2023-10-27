@@ -7,7 +7,7 @@ import pickle
 import sys
 
 
-def obtain_parental_genotypes(vcf_file, mother_id, father_id, af=0.01, threads=4):
+def obtain_parental_genotypes(vcf_file, mother_id, father_id, af=0.001, threads=4):
     """Obtain the parental genotypes and check that these are in the dataset.
 
     Returns:
@@ -87,7 +87,9 @@ def complement(allele):
         raise ValueError(f"Not a correct allele ")
 
 
-def filter_parent_child_data(child_df, mat_haps, pat_haps, rsids, pos, ref, alt):
+def filter_parent_child_data(
+    child_df, mat_haps, pat_haps, rsids, pos, ref, alt, chrY=False
+):
     """Filter the resultant parent-child data for this chromosome."""
     assert rsids.size == ref.size
     assert ref.size == alt.size
@@ -96,8 +98,7 @@ def filter_parent_child_data(child_df, mat_haps, pat_haps, rsids, pos, ref, alt)
     assert mat_haps.shape[1] == rsids.size
     assert pat_haps.shape[1] == rsids.size
     bafs = np.zeros(len(rsids))
-    lrrs_raw = np.empty(len(rsids))
-    lrrs_norm = np.empty(len(rsids))
+    print(child_df[child_df.rsid.isin(rsids)])
     rsid_dict = {}
     for r, baf, B in tqdm(
         zip(child_df.rsid.values, child_df.b.values, child_df.B.values)
@@ -105,11 +106,15 @@ def filter_parent_child_data(child_df, mat_haps, pat_haps, rsids, pos, ref, alt)
         rsid_dict[r] = (baf, B)
     for i, (r, rx, ax) in tqdm(enumerate(zip(rsids, ref, alt))):
         (cur_baf, b_allele) = rsid_dict[r]
-        if (
-            valid_allele(b_allele)
-            and (np.sum(mat_haps[:, i]) in [0, 1, 2])
-            and (np.sum(pat_haps[:, i]) in [0, 1, 2])
-        ):
+        if chrY:
+            cond = valid_allele(b_allele) and (np.sum(pat_haps[:, i]) in [0, 1, 2])
+        else:
+            cond = (
+                valid_allele(b_allele)
+                and (np.sum(mat_haps[:, i]) in [0, 1, 2])
+                and (np.sum(pat_haps[:, i]) in [0, 1, 2])
+            )
+        if cond:
             if (b_allele == ax) | (b_allele == complement(ax)):
                 bafs[i] = cur_baf
             elif (b_allele == rx) | (b_allele == complement(rx)):
@@ -137,6 +142,7 @@ def main(
     vcf_file,
     mother_id,
     father_id,
+    chrY=False,
 ):
     """
     Main function for BAF processing.
@@ -146,9 +152,6 @@ def main(
         - cytosnp_map: CytoSNP v12 Mapping file.
         - alleles_file: Alleles for specific cytosnp probes.
         - cytosnp_cluster: Cytosnp clusters from the EGT file.
-        - norm_xy: Normalized XY-intensities.
-        - raw_xy: Raw XY-intensities.
-        - meanr: mean-R tables based on raw intensity.
         - vcf_file: VCF File containing parental genotypes.
         - mother_id: Mother ID.
         - father_id: Father ID
@@ -172,7 +175,7 @@ def main(
     print("Filtering parent & embryo data ... ", file=sys.stderr)
     # Filter the parent child data
     baf, mat_haps, pat_haps, rsids, pos, refs, alts = filter_parent_child_data(
-        child_df, mat_haps, pat_haps, rsids, pos, ref, alt
+        child_df, mat_haps, pat_haps, rsids, pos, ref, alt, chrY=chrY
     )
     print("Finished parent & embryo filtering!", file=sys.stderr)
     # Save the data to an npz file or table
@@ -201,6 +204,7 @@ if __name__ == "__main__":
             vcf_file=v,
             mother_id=snakemake.wildcards["mother_id"],
             father_id=snakemake.wildcards["father_id"],
+            chrY=(c == "chrY"),
         )
         chrom_dict["mother_id"] = snakemake.wildcards["mother_id"]
         chrom_dict["father_id"] = snakemake.wildcards["father_id"]
