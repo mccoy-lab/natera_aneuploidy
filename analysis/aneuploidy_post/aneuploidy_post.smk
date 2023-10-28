@@ -13,7 +13,7 @@ from io import StringIO
 metadata_file = "../../data/spectrum_metadata_merged.csv"
 centromeres_file = "../../data/gaps/centromeres_grch38.bed"
 aneuploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.102523.tsv.gz"
-results_dir = "../aneuploidy/results/natera_inference/"
+results_dir = "../aneuploidy/results/natera_inference"
 
 
 # ------- Rules Section ------- #
@@ -76,7 +76,7 @@ rule trisomy_bph_sph:
         bph_tsv="results/bph_sph/{mother}+{father}+{child}.{chrom}.tsv",
     resources:
         time="0:10:00",
-        mem_mb="1G",
+        mem_mb="5G",
     params:
         bp_padding=10e6,
     script:
