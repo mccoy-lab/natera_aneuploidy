@@ -442,7 +442,7 @@ if __name__ == "__main__":
         table_data = mixed_ploidy_sim(
             afs=afs,
             ploidies=np.array([0, 1, 2, 3]),
-            props=np.array([0.0, p_tri, 1.0 - p_mono - p_tri, p_tri]),
+            props=np.array([0.0, p_mono, 1.0 - p_mono - p_tri, p_tri]),
             ncells=snakemake.params["n"],
             m=snakemake.params["m"],
             mat_skew=snakemake.params["mat_skew"],

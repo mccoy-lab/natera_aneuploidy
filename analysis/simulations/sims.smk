@@ -259,9 +259,20 @@ rule hmm_model_chromosomes_mixed:
 
 rule collect_mixed_ploidy:
     input:
-        mixed_ploidy_tsvs=expand(
+        mixed_ploidy_tsvs_mono=expand(
             "results/hmm_ploidy_comp/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.ploidy.tsv",
             p_mono=config["hmm_sims"]["mixed_sims"]["p_mono"],
+            p_tri=0,
+            rep=range(1, config["hmm_sims"]["mixed_sims"]["reps"] + 1),
+            m=config["hmm_sims"]["mixed_sims"]["m"],
+            pi0=config["hmm_sims"]["mixed_sims"]["pi0"],
+            sigma=config["hmm_sims"]["mixed_sims"]["std_dev"],
+            skew=config["hmm_sims"]["mixed_sims"]["skew"],
+            n=config["hmm_sims"]["mixed_sims"]["ncells"],
+        ),
+        mixed_ploidy_tsvs_tri=expand(
+            "results/hmm_ploidy_comp/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.ploidy.tsv",
+            p_mono=0,
             p_tri=config["hmm_sims"]["mixed_sims"]["p_tri"],
             rep=range(1, config["hmm_sims"]["mixed_sims"]["reps"] + 1),
             m=config["hmm_sims"]["mixed_sims"]["m"],
@@ -274,7 +285,10 @@ rule collect_mixed_ploidy:
         tot_mixed_tsv="results/mixed_ploidy_sims.tsv.gz",
     run:
         dfs = []
-        for p in input.mixed_ploidy_tsvs:
+        for p in input.mixed_ploidy_tsvs_mono:
+            df = pd.read_csv(p, sep="\t")
+            dfs.append(df)
+        for p in input.mixed_ploidy_tsvs_tri:
             df = pd.read_csv(p, sep="\t")
             dfs.append(df)
         tot_df = pd.concat(dfs)
