@@ -247,13 +247,13 @@ rule hmm_model_chromosomes_mixed:
         n = int(wildcards.n)
         with open(output.ploidy, "w") as out:
             out.write(
-                "mother\tfather\tchild\trep\tm\tploidies\tn\tp_mono\tp_tri\tsigma\tpi0\tsigma_est\tpi0_est\t1m\t1p\t2\t3m\t3p\n"
+                "mother\tfather\tchild\trep\tm\tploidies\tn\tp_mono\tp_tri\tsigma\tpi0\tsigma_est\tpi0_est\t0\t1m\t1p\t2\t3m\t3p\n"
             )
             data = np.load(input.hmm_model)
             sim_data = np.load(input.sims)
             ploid_str = ",".join([str(x) for x in sim_data["ploidies"]])
             out.write(
-                f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{wildcards.rep}\t{wildcards.m}\t{ploid_str}\t{n}\t{prop_mono}\t{prop_tri}\t{sigma}\t{pi0}\t{data['sigma_est']}\t{data['pi0_est']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\n"
+                f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{wildcards.rep}\t{wildcards.m}\t{ploid_str}\t{n}\t{prop_mono}\t{prop_tri}\t{sigma}\t{pi0}\t{data['sigma_est']}\t{data['pi0_est']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\n"
             )
 
 

@@ -85,3 +85,24 @@ rule run_plink_pca:
     threads: 24
     shell:
         "plink2 --vcf {input.concat_vcf} --pca {params.pcs} approx --threads {threads} --out {params.outfix}"
+
+
+# -------- 2. Validation experiment with data from Ivan Vogel & Eva Hoffmann -------- #
+
+rule run_karyohmm_ivan:
+    input:
+        "/scratch4/rmccoy22/ivogel/PGD_all_families_csv/{family}.csv"
+    output:
+        "results/ivan_validation_data/{family}.tsv"
+    script:
+        "scripts/karyohmm_ivan_pgd_data.py"
+
+rule collect_karyohmm_ivan:
+    """We have 245 embryos from Ivan that we have assessed."""
+    input:
+        karyohmm_calls = expand("results/ivan_validation_data/PGD_family_{n}.tsv", n=range(1,245))
+    output:
+       dfs = []
+       for i in input.karyohmm_calls:
+           df = pd.read_csv(i, sep="\t")
+           dfs.append(df)
