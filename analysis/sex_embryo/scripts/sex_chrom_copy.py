@@ -105,13 +105,15 @@ def posterior_chrY_karyotype(bafs, pat_haps, **kwargs):
         warnings.warn(
             "Heterozygotes observed on chrY...these are excluded from the likelihood."
         )
-    # NOTE: just create a null maternal haplotype (which we never sample anyways ...
+    # NOTE: just create a null maternal haplotype (which we never sample anyways ...)
     mat_haps = np.zeros(shape=(2, bafs.size))
     # 1. Setup HMM with altered state-space
     hmm = MetaHMM()
     hmm.states = chrY_states
     hmm.karyotypes = np.array(chrY_state_names, dtype=str)
-    pi0_est, sigma_est = hmm.est_sigma_pi0(bafs, mat_haps, pat_haps, r=1e-4)
+    pi0_est, sigma_est = hmm.est_sigma_pi0(
+        bafs, mat_haps, pat_haps, sigma_bounds=(1e-2, 0.4), r=1e-4
+    )
     # 2. run fwd-bwd decoding for the HMM for state probabilities
     gammas, states, karyotypes = hmm.forward_backward(
         bafs=bafs,

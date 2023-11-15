@@ -256,7 +256,10 @@ def sim_b_allele_freq(mat_hap, pat_hap, ploidy=2, std_dev=0.2, mix_prop=0.3, see
     baf = np.zeros(true_geno.size)
     for i in range(baf.size):
         if ploidy == 0:
-            baf[i] = np.random.uniform()
+            # NOTE: this is actually modeling a null intensity on x-y
+            x = np.random.uniform()
+            y = np.random.uniform()
+            baf[i] = np.arctan(y/x) / (np.pi/2.0) 
         else:
             mu_i = true_geno[i] / ploidy
             a, b = (0 - mu_i) / std_dev, (1 - mu_i) / std_dev
@@ -374,7 +377,7 @@ def mixed_ploidy_sim(
     np.random.seed(seed)
     mat_haps, pat_haps = draw_parental_genotypes(afs=afs, m=m, seed=seed)
     mat_haps_prime, pat_haps_prime, _, _ = create_switch_errors(
-        mat_haps, pat_haps, err_rate=1e-2, seed=seed
+        mat_haps, pat_haps, err_rate=3e-2, seed=seed
     )
     # 2. Draw cells from a distribution of ploidies
     mix_ploidies = np.random.choice(ploidies, p=props, size=ncells)
@@ -434,11 +437,12 @@ if __name__ == "__main__":
         afs = None
     # Run the full simulation using the defined helper function
     if snakemake.params["mixed_ploidy"]:
-        p = snakemake.params["p"]
+        p_mono = snakemake.params["p_mono"]
+        p_tri = snakemake.params["p_tri"]
         table_data = mixed_ploidy_sim(
             afs=afs,
             ploidies=np.array([0, 1, 2, 3]),
-            props=np.array([0.0, p / 2.0, 1.0 - p, p / 2.0]),
+            props=np.array([0.0, p_mono, 1.0 - p_mono - p_tri, p_tri]),
             ncells=snakemake.params["n"],
             m=snakemake.params["m"],
             mat_skew=snakemake.params["mat_skew"],
@@ -457,6 +461,7 @@ if __name__ == "__main__":
             mix_prop=snakemake.params["pi0"],
             mat_skew=snakemake.params["mat_skew"],
             alpha=snakemake.params["alpha"],
+            switch_err_rate=3e-2
         )
     try:
         table_data["mother"] = snakemake.params["father_id"]

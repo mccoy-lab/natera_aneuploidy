@@ -10,8 +10,7 @@ from io import StringIO
 # ---- Parameters for inference in Natera Data ---- #
 metadata_file = "../../data/spectrum_metadata_merged.csv"
 alleles_file = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp-12v2-1_h.update_alleles.txt"
-cluster_file = "/scratch16/rmccoy22/abiddan1/natera_spectrum/Rexpected/HumanCytoSNP-12v2-1_NS550.cluster.tsv.gz"
-meanr_file = "/scratch16/rmccoy22/abiddan1/natera_spectrum/Rexpected/meanR_child.txt"
+cluster_file = "/scratch16/rmccoy22/abiddan1/natera_spectrum/r_expected/HumanCytoSNP-12v2-1_NS550.cluster.tsv.gz"
 strand_file = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp-12v2-1_h-b37.strand"
 strand_refalt = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp-12v2-1_h-b37.strand.RefAlt"
 cytosnp_map_v12 = (
@@ -24,10 +23,10 @@ vcf_dict = {}
 chroms = ["chrX", "chrY"]
 vcf_dict[
     "chrX"
-] = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_23.norm.b38.vcf.gz"
+] = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_23.norm.b38.vcf.gz"
 vcf_dict[
     "chrY"
-] = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_24.norm.b38.vcf.gz"
+] = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_24.norm.b38.vcf.gz"
 
 # Read in the aggregate metadata file
 meta_df = pd.read_csv(metadata_file)
@@ -162,7 +161,6 @@ rule preprocess_baf_data_sex_chrom:
         cytosnp_map=cytosnp_map_v12,
         alleles_file=alleles_file,
         egt_cluster=cluster_file,
-        meanr_file=meanr_file,
         vcf_file=[vcf_dict[c] for c in chroms],
         child_data=lambda wildcards: find_child_data(wildcards.child_id)[0],
     output:

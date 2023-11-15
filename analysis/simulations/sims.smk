@@ -35,8 +35,8 @@ configfile: "config.yaml"
 TARGETS = []
 if config["hmm_sims"]["model_comp"]:
     TARGETS.append("results/total_hmm_ploidy.tsv.gz")
-#if config["hmm_sims"]["mixed_ploidy"]:
-#    TARGETS.append("results/mixed_ploidy_sims.tsv.gz")
+if config["hmm_sims"]["mixed_ploidy"]:
+    TARGETS.append("results/mixed_ploidy_sims.tsv.gz")
 # if config["hmm_sims"]["fpr_sims"]:
 #    TARGETS.append("results/fpr_sims_hmm_ploidy.tsv.gz")
 
@@ -75,7 +75,9 @@ rule sim_baf_lrr_ploidy:
         m=lambda wildcards: int(wildcards.m),
         sigma=lambda wildcards: float(wildcards.sigma) / 100,
         pi0=lambda wildcards: float(wildcards.pi0) / 100,
-        seed=lambda wildcards: int(wildcards.rep) + int(wildcards.pi0) + int(wildcards.sigma),
+        seed=lambda wildcards: int(wildcards.rep)
+        + int(wildcards.pi0)
+        + int(wildcards.sigma),
         mat_skew=lambda wildcards: float(wildcards.skew) / 100,
         mother_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
         father_id=lambda wildcards: f"k{wildcards.k}_m{wildcards.rep}",
@@ -100,9 +102,9 @@ rule hmm_baf_lrr_ploidy:
         model_comp=True,
         unphased=False,
         phase_error=lambda wildcards: wildcards.p == "1",
-        mother_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
-        father_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
-        child_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
+        mother_id=lambda wildcards: f"k{wildcards.k}_p{wildcards.p}_m{wildcards.rep}",
+        father_id=lambda wildcards: f"k{wildcards.k}_p{wildcards.p}_m{wildcards.rep}",
+        child_id=lambda wildcards: f"k{wildcards.k}_p{wildcards.p}_m{wildcards.rep}",
     script:
         "scripts/baf_hmm.py"
 
@@ -184,7 +186,7 @@ rule collect_fpr_baf_model_data:
 rule sim_mixed_ploidy:
     output:
         baf=temp(
-            "results/hmm_simulations/mix_ploidy_{p}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.npz"
+            "results/hmm_simulations/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.npz"
         ),
     resources:
         time="0:10:00",
@@ -192,15 +194,16 @@ rule sim_mixed_ploidy:
     params:
         sfs=config["afs"],
         n=lambda wildcards: int(wildcards.n),
-        p=lambda wildcards: int(wildcards.p) / 100,
+        p_mono=lambda wildcards: int(wildcards.p_mono) / 100,
+        p_tri=lambda wildcards: int(wildcards.p_tri) / 100,
         m=lambda wildcards: int(wildcards.m),
         sigma=lambda wildcards: float(wildcards.sigma) / 100,
         pi0=lambda wildcards: float(wildcards.pi0) / 100,
         seed=lambda wildcards: int(wildcards.rep),
         mat_skew=lambda wildcards: float(wildcards.skew) / 100,
-        mother_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
-        father_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
-        child_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
+        mother_id=lambda wildcards: f"n{wildcards.n}_p{wildcards.p_mono}_{wildcards.p_tri}_m{wildcards.rep}",
+        father_id=lambda wildcards: f"n{wildcards.n}_p{wildcards.p_mono}_{wildcards.p_tri}_m{wildcards.rep}",
+        child_id=lambda wildcards: f"n{wildcards.n}_p{wildcards.p_mono}_{wildcards.p_tri}_m{wildcards.rep}",
         mixed_ploidy=True,
         alpha=1.0,
     script:
@@ -211,18 +214,18 @@ rule hmm_model_comparison_mixed:
     input:
         baf=rules.sim_mixed_ploidy.output.baf,
     output:
-        hmm_out="results/hmm_ploidy_comp/mix_ploidy_{p}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.model_comp.npz",
+        hmm_out="results/hmm_ploidy_comp/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.model_comp.npz",
     resources:
-        time="0:30:00",
+        time="0:10:00",
         mem_mb="2G",
     params:
         model_comp=True,
         unphased=False,
         lrr=False,
         phase_error=True,
-        mother_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
-        father_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
-        child_id=lambda wildcards: f"p{wildcards.p}_m{wildcards.rep}",
+        mother_id=lambda wildcards: f"n{wildcards.n}_p{wildcards.p_mono}_{wildcards.p_tri}_m{wildcards.rep}",
+        father_id=lambda wildcards: f"n{wildcards.n}_p{wildcards.p_mono}_{wildcards.p_tri}_m{wildcards.rep}",
+        child_id=lambda wildcards: f"n{wildcards.n}_p{wildcards.p_mono}_{wildcards.p_tri}_m{wildcards.rep}",
     script:
         "scripts/baf_hmm.py"
 
@@ -230,34 +233,47 @@ rule hmm_model_comparison_mixed:
 rule hmm_model_chromosomes_mixed:
     """Local rule that collapses all ploidy assignments to a single estimand for mixed-ploidy biopsies."""
     input:
-        hmm_model="results/hmm_ploidy_comp/mix_ploidy_{p}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.model_comp.npz",
-        sims="results/hmm_simulations/mix_ploidy_{p}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.npz",
+        hmm_model="results/hmm_ploidy_comp/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.model_comp.npz",
+        sims="results/hmm_simulations/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.npz",
     output:
         ploidy=temp(
-            "results/hmm_ploidy_comp/mix_ploidy_{p}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.ploidy.tsv"
+            "results/hmm_ploidy_comp/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.ploidy.tsv"
         ),
     run:
         sigma = int(wildcards.sigma) / 100
         pi0 = int(wildcards.pi0) / 100
-        prop = int(wildcards.p) / 100
+        prop_mono = int(wildcards.p_mono) / 100
+        prop_tri = int(wildcards.p_tri) / 100
         n = int(wildcards.n)
         with open(output.ploidy, "w") as out:
             out.write(
-                "mother\tfather\tchild\trep\tm\tploidies\tn\tp_aneuploid\tsigma\tpi0\tsigma_est\tpi0_est\t1m\t1p\t2\t3m\t3p\n"
+                "mother\tfather\tchild\trep\tm\tploidies\tn\tp_mono\tp_tri\tsigma\tpi0\tsigma_est\tpi0_est\t0\t1m\t1p\t2\t3m\t3p\n"
             )
             data = np.load(input.hmm_model)
             sim_data = np.load(input.sims)
             ploid_str = ",".join([str(x) for x in sim_data["ploidies"]])
             out.write(
-                f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{wildcards.rep}\t{wildcards.m}\t{ploid_str}\t{n}\t{prop}\t{sigma}\t{pi0}\t{data['sigma_est']}\t{data['pi0_est']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\n"
+                f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{wildcards.rep}\t{wildcards.m}\t{ploid_str}\t{n}\t{prop_mono}\t{prop_tri}\t{sigma}\t{pi0}\t{data['sigma_est']}\t{data['pi0_est']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\n"
             )
 
 
 rule collect_mixed_ploidy:
     input:
-        mixed_ploidy_tsvs=expand(
-            "results/hmm_ploidy_comp/mix_ploidy_{p}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.ploidy.tsv",
-            p=config["hmm_sims"]["mixed_sims"]["p_aneuploid"],
+        mixed_ploidy_tsvs_mono=expand(
+            "results/hmm_ploidy_comp/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.ploidy.tsv",
+            p_mono=config["hmm_sims"]["mixed_sims"]["p_mono"],
+            p_tri=0,
+            rep=range(1, config["hmm_sims"]["mixed_sims"]["reps"] + 1),
+            m=config["hmm_sims"]["mixed_sims"]["m"],
+            pi0=config["hmm_sims"]["mixed_sims"]["pi0"],
+            sigma=config["hmm_sims"]["mixed_sims"]["std_dev"],
+            skew=config["hmm_sims"]["mixed_sims"]["skew"],
+            n=config["hmm_sims"]["mixed_sims"]["ncells"],
+        ),
+        mixed_ploidy_tsvs_tri=expand(
+            "results/hmm_ploidy_comp/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.hmm.ploidy.tsv",
+            p_mono=0,
+            p_tri=config["hmm_sims"]["mixed_sims"]["p_tri"],
             rep=range(1, config["hmm_sims"]["mixed_sims"]["reps"] + 1),
             m=config["hmm_sims"]["mixed_sims"]["m"],
             pi0=config["hmm_sims"]["mixed_sims"]["pi0"],
@@ -269,7 +285,10 @@ rule collect_mixed_ploidy:
         tot_mixed_tsv="results/mixed_ploidy_sims.tsv.gz",
     run:
         dfs = []
-        for p in input.mixed_ploidy_tsvs:
+        for p in input.mixed_ploidy_tsvs_mono:
+            df = pd.read_csv(p, sep="\t")
+            dfs.append(df)
+        for p in input.mixed_ploidy_tsvs_tri:
             df = pd.read_csv(p, sep="\t")
             dfs.append(df)
         tot_df = pd.concat(dfs)

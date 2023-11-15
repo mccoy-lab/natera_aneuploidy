@@ -11,8 +11,8 @@ from io import StringIO
 # ---- Parameters for inference in Natera Data ---- #
 metadata_file = "../../data/spectrum_metadata_merged.csv"
 alleles_file = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp-12v2-1_h.update_alleles.txt"
-cluster_file = "/scratch16/rmccoy22/abiddan1/natera_spectrum/Rexpected/HumanCytoSNP-12v2-1_NS550.cluster.tsv.gz"
-meanr_file = "/scratch16/rmccoy22/abiddan1/natera_spectrum/Rexpected/meanR_child.txt"
+cluster_file = "/scratch16/rmccoy22/abiddan1/natera_spectrum/r_expected/HumanCytoSNP-12v2-1_NS550.cluster.tsv.gz"
+meanr_file = "/scratch16/rmccoy22/abiddan1/natera_spectrum/deprecated/r_expected/meanR_child.txt"
 strand_file = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp-12v2-1_h-b37.strand"
 strand_refalt = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp-12v2-1_h-b37.strand.RefAlt"
 cytosnp_map_v12 = (
@@ -25,7 +25,7 @@ chroms = [f"chr{i}" for i in range(1, 23)]
 for i, c in enumerate(range(1, 23)):
     vcf_dict[
         chroms[i]
-    ] = f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/eagle_phased_hg38/natera_parents.b38.chr{c}.vcf.gz"
+    ] = f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/eagle_phased_hg38/natera_parents.b38.chr{c}.vcf.gz"
 
 
 # Read in the aggregate metadata file
