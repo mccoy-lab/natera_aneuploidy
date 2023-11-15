@@ -112,7 +112,7 @@ if __name__ == "__main__":
         ind = int(snakemake.wildcards['i'])
         print(f"Processing chr{c} for individual {ind} from family {n}")
         baf, mat_haps, pat_haps, categories, max_cat = process_ivan_data(snakemake.input['ivan_csv'], chrom=c, sample_id=ind)
-        res_dict = run_meta_hmm_full(baf, mat_haps, pat_haps, unphased=False)
+        res_dict = run_meta_hmm_full(baf, mat_haps, pat_haps, unphased=True)
         res_dict['ivan_calls'] = categories
         res_dict['ivan_max_cat'] = max_cat
         full_chrom_hmm_dict[c][ind] = res_dict

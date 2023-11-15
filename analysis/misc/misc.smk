@@ -133,8 +133,8 @@ rule run_karyohmm_ivan:
     output:
         hmm_pkl="results/ivan_validation_data/PGD_family_{n}.ind{i}.hmm_results.pkl.gz",
     resources:
-        time="1:00:00",
-        mem_mb="5G",
+        time="0:30:00",
+        mem_mb="10G",
     script:
         "scripts/karyohmm_ivan_pgd_data.py"
 
@@ -147,7 +147,7 @@ rule process_hmm_ivan:
         hmm_tsv="results/ivan_validation_data/PGD_family_{n}.ind{i}.hmm_results.tsv",
     resources:
         time="0:10:00",
-        mem_mb="1G",
+        mem_mb="4G",
     run:
         dfs = []
         cats = np.array(["0", "1m", "1p", "2", "3m", "3p"])
