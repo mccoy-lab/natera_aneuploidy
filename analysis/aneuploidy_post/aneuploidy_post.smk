@@ -90,7 +90,7 @@ rule run_aneuploidy_filtering:
         aneuploidy_tsv=aneuploidy_bph_sph_calls_merged,
         meta_csv=metadata_file,
     output:
-        "results/filt_aneuploidy.tsv.gz",
+        filt_aneuploidy_tsv="results/filt_aneuploidy.tsv.gz",
     params:
         sd=3,
         k=3,

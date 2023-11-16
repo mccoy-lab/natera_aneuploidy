@@ -66,4 +66,6 @@ if __name__ == '__main__':
     mean_noise = np.nanmean(sigma_embryo_means_day5)
     sd_noise = np.nanstd(sigma_embryo_means_day5)
     aneuploidy_df[f'embryo_noise_{sd_filter}sd'] =  (aneuploidy_df.sigma_embryo_mean.values >= mean_noise + sd_filter*sd_noise) | (aneuploidy_df.sigma_embryo_mean.values <= mean_noise - sd_filter*sd_noise)
-    
+    # 6. Determining the mosaic clusters (sigma)
+    # 7. Write the output  
+    aneuploidy_df.to_csv(snakemake.output['filt_aneuploidy_tsv'], index=None, sep="\t")
