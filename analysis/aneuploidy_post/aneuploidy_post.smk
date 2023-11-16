@@ -13,6 +13,7 @@ from io import StringIO
 metadata_file = "../../data/spectrum_metadata_merged.csv"
 centromeres_file = "../../data/gaps/centromeres_grch38.bed"
 aneuploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.102523.tsv.gz"
+aneuploidy_bph_sph_calls_merged = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.bph_sph_trisomy.102523.tsv.gz"
 results_dir = "../aneuploidy/results/natera_inference"
 
 
@@ -81,3 +82,15 @@ rule trisomy_bph_sph:
         bp_padding=10e6,
     script:
         "scripts/bph_vs_sph.py"
+
+rule run_aneuploidy_filtering:
+    """Run the script to generate a filtered set of calls to be used in downstream analyses."""
+    input:
+        aneuploidy_tsv = aneuploidy_bph_sph_calls_merged
+    output:
+        "results/filt_aneuploidy.tsv.gz"
+    params:
+        noise_thresh = 0.95,
+        k = 3
+    script:
+        "scripts/aneuploidy_filtering.py"
