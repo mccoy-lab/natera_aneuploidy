@@ -86,11 +86,12 @@ rule trisomy_bph_sph:
 rule run_aneuploidy_filtering:
     """Run the script to generate a filtered set of calls to be used in downstream analyses."""
     input:
-        aneuploidy_tsv = aneuploidy_bph_sph_calls_merged
+        aneuploidy_tsv = aneuploidy_bph_sph_calls_merged,
+        meta_tsv = metadata_file
     output:
         "results/filt_aneuploidy.tsv.gz"
     params:
-        noise_thresh = 0.95,
-        k = 3
+        sd = 3,
+        k = 3,
     script:
         "scripts/aneuploidy_filtering.py"
