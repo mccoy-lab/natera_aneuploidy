@@ -98,7 +98,11 @@ def cluster_mosaics(
         cur_x = np.zeros(X.shape[0])
         cur_x[full_labels == l] = 1
         gmm_df[n] = cur_x
-    merged_df = df.merge(gmm_df, on=["mother", "father", "child", "chrom"], how="left")
+    merged_df = df.merge(
+        gmm_df,
+        on=["mother", "father", "child", "chrom", "sigma_embryo_mean", "post_max"],
+        how="left",
+    )
     return merged_df
 
 
@@ -133,7 +137,7 @@ if __name__ == "__main__":
     ) | (aneuploidy_df.sigma_embryo_mean.values <= mean_noise - sd_filter * sd_noise)
     # 6. Determining the mosaic clusters (in tranches of sigma per-embryo)
     aneuploidy_df = cluster_mosaics(
-        aneuploidy_df, sd_filter=sd_filter, k=n_clusters, q=10
+        aneuploidy_df, sd_filter=sd_filter, k=n_clusters, q=quantiles
     )
     # 7. Write the output to a gzipped TSV
     aneuploidy_df.to_csv(

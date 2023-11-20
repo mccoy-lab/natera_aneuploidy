@@ -10,7 +10,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import gzip as gz
 
 
-def draw_posterior_plots(baf_data, hmm_data, chrom="chr1"):
+def plot_posterior_plots(baf_data, hmm_data, chrom="chr1"):
     """Draw a heatmap of the posteriors here."""
     pos = baf_data[chrom]["pos"]
     gammas = hmm_data[chrom]["gammas"]
@@ -49,7 +49,7 @@ def main(baf, hmm, output):
     child = data["child"]
     with PdfPages(output) as pdf:
         for i, c in tqdm(enumerate(chroms)):
-            fig, ax = draw_posterior_plots(baf_data=data, hmm_data=hmm_data, chrom=c)
+            fig, ax = plot_posterior_plots(baf_data=data, hmm_data=hmm_data, chrom=c)
             if i == 0:
                 fig.suptitle(f"{mother}+{father}: {child}\n{c}")
             else:
