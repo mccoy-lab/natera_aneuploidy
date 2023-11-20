@@ -41,6 +41,9 @@ TARGETS = ["results/bph_sph/valid_trisomies.tsv"]
 if Path("results/bph_sph/valid_trisomies.tsv").is_file():
     TARGETS.append(expand_bph_sph())
 
+if Path(aneuploidy_bph_sph_calls_merged).is_file():
+    TARGETS.append("results/filt_aneuploidy.tsv.gz")
+
 
 rule all:
     input:
@@ -94,5 +97,6 @@ rule run_aneuploidy_filtering:
     params:
         sd=3,
         k=3,
+        q=10,
     script:
         "scripts/aneuploidy_filtering.py"
