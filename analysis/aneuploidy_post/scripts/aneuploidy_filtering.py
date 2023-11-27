@@ -106,6 +106,14 @@ def cluster_mosaics(
     return merged_df
 
 
+def reset_meiotic_disomy(df):
+    """Reset the putative meiotic disomies since that should be filtered out."""
+    assert "meiotic" in df.columns
+    assert "bf_max_cat" in df.columns
+    df.loc[df.bf_max_cat == "2", "meiotic"] = np.nan
+    return df
+
+
 if __name__ == "__main__":
     # Define the core parameters for the filtering steps ...
     sd_filter = int(snakemake.params["sd"])
@@ -139,6 +147,8 @@ if __name__ == "__main__":
     aneuploidy_df = cluster_mosaics(
         aneuploidy_df, sd_filter=sd_filter, k=n_clusters, q=quantiles
     )
+    # 7. Fix the meiotic disomies
+    aneuploidy_df = reset_meiotic_disomy(aneuploidy_df)
     # 7. Write the output to a gzipped TSV
     aneuploidy_df.to_csv(
         snakemake.output["filt_aneuploidy_tsv"], index=None, sep="\t", na_rep="NA"
