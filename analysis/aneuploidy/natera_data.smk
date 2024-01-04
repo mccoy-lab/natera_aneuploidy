@@ -12,7 +12,9 @@ from io import StringIO
 metadata_file = "../../data/spectrum_metadata_merged.csv"
 alleles_file = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp-12v2-1_h.update_alleles.txt"
 cluster_file = "/scratch16/rmccoy22/abiddan1/natera_spectrum/r_expected/HumanCytoSNP-12v2-1_NS550.cluster.tsv.gz"
-meanr_file = "/scratch16/rmccoy22/abiddan1/natera_spectrum/deprecated/r_expected/meanR_child.txt"
+meanr_file = (
+    "/scratch16/rmccoy22/abiddan1/natera_spectrum/deprecated/r_expected/meanR_child.txt"
+)
 strand_file = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp-12v2-1_h-b37.strand"
 strand_refalt = "/data/rmccoy22/natera_spectrum/data/illumina_files/humancytosnp-12v2-1_h-b37.strand.RefAlt"
 cytosnp_map_v12 = (
@@ -50,35 +52,43 @@ def create_trios(
     meta_df, sample_file, raw_data_path="/data/rmccoy22/natera_spectrum/data/"
 ):
     """Create a list of valid trio datasets."""
-    valid_trios = []
-    unique_mothers = np.unique(
-        meta_df[meta_df.family_position == "mother"].array.values
+    assert "family_position" in meta_df.columns
+    assert "casefile_id" in meta_df.columns
+    assert "array" in meta_df.columns
+    grouped_df = (
+        meta_df.groupby(["casefile_id", "family_position"])["array"]
+        .agg(lambda x: list(x))
+        .reset_index()
     )
-    for m in tqdm(unique_mothers):
-        cases = np.unique(meta_df[meta_df.array == m].casefile_id.values)
-        cur_df = meta_df[np.isin(meta_df.casefile_id, cases)]
-        fathers = np.unique(cur_df[cur_df.family_position == "father"].array.values)
-        if fathers.size > 1:
-            print(f"More than one partner for {m}")
-            for fat in fathers:
-                cur_cases = np.unique(meta_df[meta_df.array == fat].casefile_id.values)
-                cur_df = meta_df[np.isin(meta_df.casefile_id, cur_cases)]
-                for c in cur_df[cur_df.family_position == "child"].array.values:
-                    valid_trios.append((m, fat, c))
-        elif fathers.size == 1:
-            for c in cur_df[cur_df.family_position == "child"].array.values:
-                valid_trios.append((m, fathers[0], c))
-    parents = [line.rstrip() for line in open(sample_file, "r")]
-    # Applies a set of filters here
-    valid_filt_trios = []
-    for m, f, c in tqdm(valid_trios):
-        if (
-            (m in parents)
-            and (f in parents)
-            and find_child_data(c, meta_df, raw_data_path)[1]
-        ):
-            valid_filt_trios.append((m, f, c))
+    valid_trios = []
+    for case in tqdm(np.unique(grouped_df.casefile_id)):
+        cur_df = grouped_df[grouped_df.casefile_id == case]
+        for m in cur_df[cur_df.family_position == "mother"].array.values[0]:
+            for f in cur_df[cur_df.family_position == "father"].array.values[0]:
+                for c in cur_df[cur_df.family_position == "child"].array.values[0]:
+                    valid_trios.append((case, m, f, c))
 
+    valid_df = pd.DataFrame(
+        valid_trios, columns=["casefile_id", "mother", "father", "child"]
+    )
+    parents = [line.rstrip() for line in open(sample_file, "r")]
+    valid_df["parents_in"] = valid_df.mother.isin(parents) & valid_df.father.isin(
+        parents
+    )
+    valid_df["child_found"] = [
+        find_child_data(c)[1] for c in tqdm(valid_df.child.values)
+    ]
+    valid_filt_df = valid_df[
+        valid_df.parents_in & valid_df.child_found
+    ].drop_duplicates()[["mother", "father", "child"]]
+    valid_filt_trios = [
+        (m, f, c)
+        for (m, f, c) in zip(
+            valid_filt_df.mother.values,
+            valid_filt_df.father.values,
+            valid_filt_df.child.values,
+        )
+    ]
     return valid_filt_trios
 
 
@@ -87,9 +97,7 @@ if Path("results/natera_inference/valid_trios.txt").is_file():
     with open("results/natera_inference/valid_trios.txt", "r") as fp:
         for i, line in enumerate(fp):
             [m, f, c] = line.rstrip().split()
-            total_data.append(
-                f"results/natera_inference/{m}+{f}/{c}.total.ploidy.tsv"
-            )
+            total_data.append(f"results/natera_inference/{m}+{f}/{c}.total.ploidy.tsv")
 
 # ------- Rules Section ------- #
 
@@ -239,7 +247,8 @@ rule hmm_model_chromosomes:
                 out.write(
                     f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{c}\t{data['sigma_baf']}\t{data['pi0_baf']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\t{max_bf}\t{max_cat}\n"
                 )
-            
+
+
 rule generate_posterior_table:
     """Generates a full TSV with posterior probabilities for each embryo across ploidy states.
     

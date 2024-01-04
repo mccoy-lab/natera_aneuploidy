@@ -16,15 +16,15 @@ def plot_posterior_plots(baf_data, hmm_data, chrom="chr1"):
     gammas = hmm_data[chrom]["gammas"]
     xhmm = MetaHMM()
     fig, ax = plt.subplots(1, 1, figsize=(7, 3), layout="tight")
-    gamma_karyo = xhmm.marginal_posterior_karyotypes(gammas, xhmm.karyotypes)
+    gamma_karyo, karyo = xhmm.marginal_posterior_karyotypes(gammas, xhmm.karyotypes)
     im = ax.imshow(
         gamma_karyo,
-        interpolation="none",
         aspect="auto",
-        extent=[np.min(pos), np.max(pos), 5, 0],
+        origin='lower',
+        extent=[np.min(pos), np.max(pos), -0.5, 5.5]
     )
-    ax.set_yticks(range(6))
-    ax.set_yticklabels(["0", "1m", "1p", "2", "3m", "3p"])
+    ax.set_yticks(np.arange(6))
+    ax.set_yticklabels(karyo)
     ax.set_xlabel("Position (bp)")
     fig.colorbar(im, label="Posterior Probability")
     return fig, ax
