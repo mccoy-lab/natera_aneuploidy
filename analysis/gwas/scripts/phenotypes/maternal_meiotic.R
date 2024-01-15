@@ -40,7 +40,7 @@ phenotype <- args[8]
 
 # source Rscript with functions `filter_data`, `day5_only`, 
 # `remove_null_wg`, and `count_ploidy_by_parent`
-source("helper_functions/get_ploidy.R")
+source("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/helper_functions/get_ploidy.R")
 
 # read in embryos and metadata 
 embryos <- fread(embryos)

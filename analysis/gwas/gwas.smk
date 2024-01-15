@@ -18,14 +18,17 @@ gwas_results = "results/gwas/"
 
 # Define the parameters that the pipeline will run on
 # chroms = range(1, 24)
-phenotypes = [
-    "embryo_count",
-    "haploidy",
-    "maternal_meiotic",
-    "triploidy",
-]
-parents = ["mother", "father"]
-dataset_type = ["discovery", "test"]
+# phenotypes = [
+#     "embryo_count",
+#     "haploidy",
+#     "maternal_meiotic",
+#     "triploidy",
+# ]
+# parents = ["mother", "father"]
+# dataset_type = ["discovery", "test"]
+phenotypes = "maternal_meiotic"
+parents = "mother"
+dataset_type = "discovery"
 
 # shell.prefix("set -o pipefail; ")
 
@@ -141,14 +144,14 @@ rule generate_phenotypes:
     run:
         command = "Rscript --vanilla {input.rscript} {output.phenotype_file} {wildcards.parent}"
 
-        if wildcards.phenotype == "maternal_meiotic_aneuploidy":
-            command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.nullisomy_min} {params.ploidy_max}"
-        elif wildcards.phenotype in ["haploidy", "triploidy"]:
-            command += (
-                " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min} {params.phenotype}"
-            )
-        elif wildcards.phenotype == "embryo_count":
-            command += " {input.metadata}"
+        if wildcards.phenotype == "maternal_meiotic":
+            command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.nullisomy_min} {params.ploidy_max} {input.metadata} {wildcards.phenotype}"
+        # elif wildcards.phenotype in ["haploidy", "triploidy"]:
+        #     command += (
+        #         " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min} {params.phenotype}"
+        #     )
+        # elif wildcards.phenotype == "embryo_count":
+        #     command += " {input.metadata}"
 
         shell(command)
 
@@ -156,7 +159,7 @@ rule generate_phenotypes:
 rule run_gwas:
     """Run GWAS for each set of parameters"""
     input:
-        gwas_rscript="scripts/gwas/gwas_all.R",
+        gwas_rscript="scripts/gwas/maternal_meiotic.R",
         metadata=metadata,
         bed=rules.vcf2bed.output.bedfile,
         discovery_test=general_outputs_fp + "discover_validate_split_{parent}.txt",
@@ -169,7 +172,7 @@ rule run_gwas:
     threads: 32
     wildcard_constraints:
         dataset_type="discovery|test",
-        phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
+        phenotype="maternal_meiotic|triploidy|haploidy|embryo_count|parental_triploidy",
         parent="mother|father",
     shell:
         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
