@@ -21,9 +21,8 @@ gwas_results = "results/gwas/"
 phenotypes = [
     "embryo_count",
     "haploidy",
-    "maternal_meiotic_aneuploidy",
+    "maternal_meiotic",
     "triploidy",
-    "parental_triploidy",
 ]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
@@ -36,7 +35,7 @@ rule all:
     input:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype="maternal_meiotic_aneuploidy",
+            phenotype="maternal_meiotic",
             parent="mother",
             dataset_type="discovery",
         ),
@@ -127,12 +126,12 @@ rule generate_phenotypes:
     """Make file for each phenotype"""
     input:
         rscript="scripts/phenotypes/{phenotype}.R",
-        ploidy_calls="/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos_v2.karyohmm_v14.bph_sph_trisomy.071023.tsv.gz",
+        ploidy_calls="/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.bph_sph_trisomy.full_annotation.112023.filter_bad_trios.tsv.gz",
         metadata=metadata,
     output:
         phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
     wildcard_constraints:
-        phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy|embryo_count|parental_triploidy",
+        phenotype="maternal_meiotic|haploidy|triploidy|embryo_count",
         parent="mother|father",
     params:
         bayes_factor_cutoff=2,
@@ -144,7 +143,7 @@ rule generate_phenotypes:
 
         if wildcards.phenotype == "maternal_meiotic_aneuploidy":
             command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.nullisomy_min} {params.ploidy_max}"
-        elif wildcards.phenotype in ["maternal_haploidy", "maternal_triploidy", "paternal_haploidy", "paternal_triploidy"]:
+        elif wildcards.phenotype in ["haploidy", "triploidy"]:
             command += (
                 " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min} {params.phenotype}"
             )
