@@ -51,10 +51,14 @@ embryos <- day5_only(embryos, metadata)
 # keep only embryos that meet bf cutoff 
 embryos <- filter_data(embryos, bayes_factor_cutoff)
 
-# remove embryos with failed amplification and whole genome gain/loss 
-embryos_filtered <- remove_null_wg(embryos, !!as.name(parent), 
-                           ploidy_threshold, nullisomy_threshold)
+# remove embryos with failed amplification 
+embryos_filtered <- remove_nullisomies(embryos, !!as.name(parent),
+                                       nullisomy_threshold)
 
+# remove embryos with whole genome gain/loss 
+embryos_filtered <- remove_wholegenome_gainloss(embryos_filtered,
+                                                !!as.name(parent), 
+                                                ploidy_threshold)
 
 # count maternal meiotic aneuploidies per embryo, based on parent
 # group ploidy by respective parent 
