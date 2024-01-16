@@ -184,5 +184,5 @@ gwas_results_dt <-
 
 # write to file
 write.table(gwas_results_dt, out_fname, append = FALSE, sep = "\t", dec = ".",
-            row.names = TRUE, col.names = TRUE, quote = FALSE)
-
+            row.names = FALSE, col.names = TRUE, quote = FALSE)
+ 
