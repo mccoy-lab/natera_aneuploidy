@@ -146,10 +146,10 @@ rule generate_phenotypes:
 
         if wildcards.phenotype == "maternal_meiotic":
             command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.nullisomy_min} {params.ploidy_max} {input.metadata} {wildcards.phenotype}"
-        # elif wildcards.phenotype in ["haploidy", "triploidy"]:
-        #     command += (
-        #         " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min} {params.phenotype}"
-        #     )
+        elif wildcards.phenotype in ["haploidy", "triploidy"]:
+            command += (
+                " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min} {params.phenotype}"
+            )
         # elif wildcards.phenotype == "embryo_count":
         #     command += " {input.metadata}"
 

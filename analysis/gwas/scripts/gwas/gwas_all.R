@@ -131,7 +131,7 @@ get_gt <- function(snp_index, genotypes, phenotypes, metadata, locs,
 # returning the array info to its standard format, e.g., 10005770025_R06C01
 
 # function to run GWAS on each site if it's a ploidy phenotype 
-# (triploid, haploid, maternal meiotic aneuploidy, parental_triploidy)
+# (triploid, haploid, maternal meiotic)
 gwas_aneuploidy <- function(snp_index, genotypes, phenotypes, metadata, locs, 
                             pcs, subject_indices, parent) {
     
