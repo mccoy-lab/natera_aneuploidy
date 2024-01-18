@@ -34,6 +34,7 @@ if __name__ == "__main__":
             pat_haps = baf_data["pat_haps"]
         pi0_est, sigma_est = hmm.est_sigma_pi0(
             bafs=baf_data["baf_embryo"],
+            pos=baf_data["pos"],
             mat_haps=mat_haps,
             pat_haps=pat_haps,
             unphased=snakemake.params["unphased"],
@@ -42,6 +43,7 @@ if __name__ == "__main__":
         print("Starting meta HMM forward-backward algorithm.", file=sys.stderr)
         gammas, states, karyotypes = hmm.forward_backward(
             bafs=baf_data["baf_embryo"],
+            pos=baf_data["pos"],
             mat_haps=mat_haps,
             pat_haps=pat_haps,
             pi0=pi0_est,

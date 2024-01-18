@@ -56,9 +56,7 @@ rule all:
 rule sim_baf_lrr_ploidy:
     """Simulate parental haplotypes and BAF for an individual."""
     output:
-        baf=temp(
-            "results/hmm_simulations/ploidy{k}/sim{rep}_m{m}_pi{pi0}_sigma{sigma}_skew{skew}.a{a}.npz"
-        ),
+        baf="results/hmm_simulations/ploidy{k}/sim{rep}_m{m}_pi{pi0}_sigma{sigma}_skew{skew}.a{a}.npz",
     wildcard_constraints:
         k="\d+",
         m="\d+",
@@ -185,9 +183,7 @@ rule collect_fpr_baf_model_data:
 # ----- Simulation 2: Simulate Mosaic Whole-Chromosome Aneuploidy -------- #
 rule sim_mixed_ploidy:
     output:
-        baf=temp(
-            "results/hmm_simulations/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.npz"
-        ),
+        baf="results/hmm_simulations/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.npz",
     resources:
         time="0:10:00",
         mem_mb="1G",
