@@ -37,6 +37,7 @@ if config["hmm_sims"]["model_comp"]:
     TARGETS.append("results/total_hmm_ploidy.tsv.gz")
 if config["hmm_sims"]["mixed_ploidy"]:
     TARGETS.append("results/mixed_ploidy_sims.tsv.gz")
+    TARGETS.append("results/mixed_ploidy_sims.mosaic_est.tsv.gz")
 # if config["hmm_sims"]["fpr_sims"]:
 #    TARGETS.append("results/fpr_sims_hmm_ploidy.tsv.gz")
 
@@ -279,6 +280,65 @@ rule collect_mixed_ploidy:
         ),
     output:
         tot_mixed_tsv="results/mixed_ploidy_sims.tsv.gz",
+    run:
+        dfs = []
+        for p in input.mixed_ploidy_tsvs_mono:
+            df = pd.read_csv(p, sep="\t")
+            dfs.append(df)
+        for p in input.mixed_ploidy_tsvs_tri:
+            df = pd.read_csv(p, sep="\t")
+            dfs.append(df)
+        tot_df = pd.concat(dfs)
+        tot_df.to_csv(output.tot_mixed_tsv, sep="\t", index=None)
+
+
+# ------------ 2a. Estimation of Mosaic-Cell Fraction --------------- #
+rule estimate_mosaic_cell_fraction:
+    input:
+        baf=rules.sim_mixed_ploidy.output.baf,
+    output:
+        mosaic_tsv="results/mosaic_est/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.tsv",
+    resources:
+        time="0:10:00",
+        mem_mb="2G",
+    params:
+        model_comp=True,
+        unphased=False,
+        lrr=False,
+        phase_error=True,
+        mother_id=lambda wildcards: f"n{wildcards.n}_p{wildcards.p_mono}_{wildcards.p_tri}_m{wildcards.rep}",
+        father_id=lambda wildcards: f"n{wildcards.n}_p{wildcards.p_mono}_{wildcards.p_tri}_m{wildcards.rep}",
+        child_id=lambda wildcards: f"n{wildcards.n}_p{wildcards.p_mono}_{wildcards.p_tri}_m{wildcards.rep}",
+    script:
+        "scripts/mosaic_est.py"
+
+
+rule collect_mosaic_est:
+    input:
+        mixed_ploidy_tsvs_mono=expand(
+            "results/mosaic_est/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.tsv",
+            p_mono=config["hmm_sims"]["mixed_sims"]["p_mono"],
+            p_tri=0,
+            rep=range(1, config["hmm_sims"]["mixed_sims"]["reps"] + 1),
+            m=config["hmm_sims"]["mixed_sims"]["m"],
+            pi0=config["hmm_sims"]["mixed_sims"]["pi0"],
+            sigma=config["hmm_sims"]["mixed_sims"]["std_dev"],
+            skew=config["hmm_sims"]["mixed_sims"]["skew"],
+            n=config["hmm_sims"]["mixed_sims"]["ncells"],
+        ),
+        mixed_ploidy_tsvs_tri=expand(
+            "results/mosaic_est/mix_ploidy_{p_mono}_{p_tri}/sim{rep}_m{m}_n{n}_pi{pi0}_sigma{sigma}_skew{skew}.tsv",
+            p_mono=0,
+            p_tri=config["hmm_sims"]["mixed_sims"]["p_tri"],
+            rep=range(1, config["hmm_sims"]["mixed_sims"]["reps"] + 1),
+            m=config["hmm_sims"]["mixed_sims"]["m"],
+            pi0=config["hmm_sims"]["mixed_sims"]["pi0"],
+            sigma=config["hmm_sims"]["mixed_sims"]["std_dev"],
+            skew=config["hmm_sims"]["mixed_sims"]["skew"],
+            n=config["hmm_sims"]["mixed_sims"]["ncells"],
+        ),
+    output:
+        tot_mixed_tsv="results/mixed_ploidy_sims.mosaic_est.tsv.gz",
     run:
         dfs = []
         for p in input.mixed_ploidy_tsvs_mono:
