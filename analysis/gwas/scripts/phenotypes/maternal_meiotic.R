@@ -63,7 +63,8 @@ embryos_filtered <- remove_wholegenome_gainloss(embryos_filtered,
 # count maternal meiotic aneuploidies per embryo, based on parent
 # group ploidy by respective parent 
 ploidy_counts_by_parent <- count_ploidy_by_parent(embryos_filtered, 
-                                                  !!as.name(parent), phenotype, 
+                                                  !!as.name(parent), 
+                                                  phenotype, 
                                                   ploidy_threshold)
 colnames(ploidy_counts_by_parent)[1] <- "array"
 

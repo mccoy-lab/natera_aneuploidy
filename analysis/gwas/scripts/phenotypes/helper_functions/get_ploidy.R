@@ -32,18 +32,17 @@ filter_data <- function(embryos, bayes_factor_cutoff) {
 day5_only <- function(embryos, metadata) {
   
   # intersect embryo with metadata (few_cells = day 5)
-  day5 <- metadata[metadata$sample_scale == "few_cells",]
-  day5_embryos <- embryos[embryos$child %in% day5$array,]
+  day5_embryos <- embryos[embryos$child %in% metadata[metadata$sample_scale == "few_cells", ]$array, ]
   
   return(day5_embryos)
 }
 
 # function to remove embryos that failed amplification
-remove_failed_amp <- function(embryos, parent_col, nullisomy_threshold) {
+remove_failed_amp <- function(embryos, parent, nullisomy_threshold) {
   
   # count number of chromosomes called as nullisomies for each embryo 
   count_nullisomies <- embryos %>% 
-    group_by({{parent_col}}, child) %>% 
+    group_by({{parent}}, child) %>% 
     summarise(num_nullisomies = sum(bf_max_cat == "0"))
   # keep only embryos with fewer nullisomies than the threshold
   successful_amp <- count_nullisomies[count_nullisomies$num_nullisomies 
@@ -52,16 +51,15 @@ remove_failed_amp <- function(embryos, parent_col, nullisomy_threshold) {
   # remove failed amplification embryos 
   embryos_filtered <- embryos[embryos$child %in% successful_amp$child,]
   
-  # return remaining embryos
   return(embryos_filtered)
 }
 
 # function to identify and remove embryos with whole genome gain/loss 
-remove_wholegenome_gainloss <- function(embryos, parent_col, ploidy_threshold) {
+remove_wholegenome_gainloss <- function(embryos, parent, ploidy_threshold) {
   
   # count number of single-chr aneuploidies in each embryo
   count_aneuploidies <- embryos %>% 
-    group_by({{parent_col}}, child) %>% 
+    group_by({{parent}}, child) %>% 
     summarise(num_aneuploidies = sum(bf_max_cat == "3m" | 
                                        bf_max_cat == "3p" |
                                        bf_max_cat == "1m" |
@@ -70,21 +68,15 @@ remove_wholegenome_gainloss <- function(embryos, parent_col, ploidy_threshold) {
   non_ploidy <- count_aneuploidies[count_aneuploidies$num_aneuploidies 
                                    < ploidy_threshold,]              
   
-  # remove triploid, haploid embryos 
+  # remove embryos affected by multiple aneuploidies 
   embryos_filtered <- embryos[embryos$child %in% non_ploidy$child,]
   
-  # return embryos with this info removed 
   return(embryos_filtered)
 }
 
 # count number of embryos per parent affected by each phenotype 
-count_ploidy_by_parent <- function(embryos, parent_col, phenotype, 
+count_ploidy_by_parent <- function(embryos, parent, phenotype, 
                                    ploidy_threshold) {
-  
-  # check input 
-  if (!(parent %in% c("mother", "father"))) {
-    stop("Invalid 'parent' argument. Use 'mother' or 'father'.")
-  }
   
   # choose relevant aneuploidies based on phenotype 
   if (phenotype == "maternal_triploidy") {
@@ -103,7 +95,7 @@ count_ploidy_by_parent <- function(embryos, parent_col, phenotype,
   
   # group ploidy by respective parent
   result <- embryos %>%
-    group_by({{parent_col}}, child) %>%
+    group_by({{parent}}, child) %>%
     summarise(num_affected = sum(bf_max_cat %in% cn)) %>%
     mutate(is_ploidy = if_else(num_affected > 0, 
                                "aneu_true", "aneu_false")) %>%
@@ -114,11 +106,7 @@ count_ploidy_by_parent <- function(embryos, parent_col, phenotype,
   return(result)
 }
 
-count_complex_ploidy_by_parent <- function(embryos, parent_col, parent) {
-  # check input 
-  if (!(parent %in% c("mother", "father"))) {
-    stop("Invalid 'parent' argument. Use 'mother' or 'father'.")
-  }
+count_complex_ploidy_by_parent <- function(embryos, parent) {
   
   # group ploidy by respective parent 
   result <- embryos %>%
@@ -157,7 +145,7 @@ run_phenotype <- function(embryos, bayes_factor_cutoff, parent,
   # group ploidy by respective parent 
   ploidy_counts_by_parent <- 
     count_ploidy_by_parent(embryos_filtered, !!as.name(parent), 
-                           phenotype, ploidy_threshold, parent)
+                           phenotype, ploidy_threshold)
   colnames(ploidy_counts_by_parent)[1] <- "array"
   
   return(ploidy_counts_by_parent)
