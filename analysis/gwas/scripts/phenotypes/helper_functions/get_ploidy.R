@@ -32,7 +32,8 @@ filter_data <- function(embryos, bayes_factor_cutoff) {
 day5_only <- function(embryos, metadata) {
   
   # intersect embryo with metadata (few_cells = day 5)
-  day5_embryos <- embryos[embryos$child %in% metadata[metadata$sample_scale == "few_cells", ]$array, ]
+  day5_embryos <- embryos[embryos$child %in% metadata[metadata$sample_scale == 
+                                                        "few_cells", ]$array,]
   
   return(day5_embryos)
 }
@@ -65,11 +66,11 @@ remove_wholegenome_gainloss <- function(embryos, parent, ploidy_threshold) {
                                        bf_max_cat == "1m" |
                                        bf_max_cat == "1p"))
   # keep only embryos with number of aneuploidies below the threshold 
-  non_ploidy <- count_aneuploidies[count_aneuploidies$num_aneuploidies 
+  non_ploid <- count_aneuploidies[count_aneuploidies$num_aneuploidies 
                                    < ploidy_threshold,]              
   
   # remove embryos affected by multiple aneuploidies 
-  embryos_filtered <- embryos[embryos$child %in% non_ploidy$child,]
+  embryos_filtered <- embryos[embryos$child %in% non_ploid$child,]
   
   return(embryos_filtered)
 }
@@ -94,9 +95,10 @@ count_ploidy_by_parent <- function(embryos, parent, phenotype,
   }
   
   # group ploidy by respective parent
+  # this works for a single value of cn but doesn't work for if the cn is a list 
   result <- embryos %>%
     group_by({{parent}}, child) %>%
-    summarise(num_affected = sum(bf_max_cat %in% cn)) %>%
+    summarise(num_affected = sum(bf_max_cat %in% cn & {{cn}} > 0.9)) %>%
     mutate(is_ploidy = if_else(num_affected > 0, 
                                "aneu_true", "aneu_false")) %>%
     count(is_ploidy) %>%
