@@ -52,7 +52,7 @@ embryos <- day5_only(embryos, metadata)
 embryos <- filter_data(embryos, bayes_factor_cutoff)
 
 # remove embryos with failed amplification 
-embryos_filtered <- remove_nullisomies(embryos, !!as.name(parent),
+embryos_filtered <- remove_failed_amp(embryos, !!as.name(parent),
                                        nullisomy_threshold)
 
 # remove embryos with whole genome gain/loss 
@@ -64,7 +64,7 @@ embryos_filtered <- remove_wholegenome_gainloss(embryos_filtered,
 # group ploidy by respective parent 
 ploidy_counts_by_parent <- count_ploidy_by_parent(embryos_filtered, 
                                                   !!as.name(parent), phenotype, 
-                                                  ploidy_threshold, parent)
+                                                  ploidy_threshold)
 colnames(ploidy_counts_by_parent)[1] <- "array"
 
 # write to file 
