@@ -19,9 +19,6 @@ if __name__ == "__main__":
         bafs=data["baf_embryo"],
         pos=data["pos"],
     )
-    print(
-        "Estimating Mosaic Cell Fraction using expected heterozygotes & simulated sigma!"
-    )
     m_est.baf_hets()
     m_est.create_transition_matrix()
     sigma = data["std_dev"]
@@ -51,9 +48,6 @@ if __name__ == "__main__":
         "ExpHet",
         gain,
     ]
-    print(
-        "Estimating Mosaic Cell Fraction using expected heterozygotes & default sigma!"
-    )
     m_est.est_mle_theta()
     n_hets = m_est.n_het
     ci_theta = m_est.ci_mle_theta()
@@ -78,7 +72,6 @@ if __name__ == "__main__":
         "ExpHet",
         gain,
     ]
-    print("Estimating Mosaic Cell Fraction using viterbi-genotyping & simulated sigma!")
     m_est.viterbi_hets()
     m_est.create_transition_matrix()
     sigma = data["std_dev"]
@@ -108,7 +101,6 @@ if __name__ == "__main__":
         "ViterbiHet",
         gain,
     ]
-    print("Estimating Mosaic Cell Fraction using viterbi-genotyping & default sigma!")
     m_est.est_mle_theta()
     n_hets = m_est.n_het
     ci_theta = m_est.ci_mle_theta()
@@ -133,8 +125,8 @@ if __name__ == "__main__":
         "ViterbiHet",
         gain,
     ]
-    # Create an updated
-    df = pd.DataFrame(
+    # Create an updated dataframe with all of the results
+    sim_df = pd.DataFrame(
         [
             exp_het_results,
             exp_het_results_default,
@@ -142,7 +134,7 @@ if __name__ == "__main__":
             viterbi_het_results_default,
         ]
     )
-    df.columns = [
+    sim_df.columns = [
         "true_cf",
         "est_cf_lo_95",
         "est_cf_mle",
@@ -156,4 +148,4 @@ if __name__ == "__main__":
         "method",
         "gain",
     ]
-    df.to_csv(snakemake.output["mosaic_tsv"], index=None, sep="\t")
+    sim_df.to_csv(snakemake.output["mosaic_tsv"], index=None, sep="\t")
