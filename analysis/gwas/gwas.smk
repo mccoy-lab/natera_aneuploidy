@@ -13,22 +13,20 @@ metadata = (
     "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 )
 pcs_out = "results/parental_genotypes_pcs/"
+ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.bph_sph_trisomy.full_annotation.112023.filter_bad_trios.tsv.gz"
 gwas_results = "results/gwas/"
 
 
 # Define the parameters that the pipeline will run on
-# chroms = range(1, 24)
-# phenotypes = [
-#     "embryo_count",
-#     "haploidy",
-#     "maternal_meiotic",
-#     "triploidy",
-# ]
-# parents = ["mother", "father"]
-# dataset_type = ["discovery", "test"]
-phenotypes = "maternal_meiotic"
-parents = "mother"
-dataset_type = "discovery"
+chroms = range(1, 24)
+phenotypes = [
+    "embryo_count",
+    "haploidy",
+    "maternal_meiotic",
+    "triploidy"
+    ]
+ parents = ["mother", "father"]
+ dataset_type = ["discovery", "test"]
 
 # shell.prefix("set -o pipefail; ")
 
@@ -38,9 +36,9 @@ rule all:
     input:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype="maternal_meiotic",
-            parent="mother",
-            dataset_type="discovery",
+            phenotype=phenotypes,
+            parent=parents,
+            dataset_type=dataset_type,
         ),
 
 
@@ -129,7 +127,7 @@ rule generate_phenotypes:
     """Make file for each phenotype"""
     input:
         rscript="scripts/phenotypes/{phenotype}.R",
-        ploidy_calls="/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.bph_sph_trisomy.full_annotation.112023.filter_bad_trios.tsv.gz",
+        ploidy_calls=ploidy_calls,
         metadata=metadata,
     output:
         phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
@@ -138,17 +136,18 @@ rule generate_phenotypes:
         parent="mother|father",
     params:
         bayes_factor_cutoff=2,
-        nullisomy_min=5,
-        ploidy_max=11,
-        ploidy_min=12,
+        nullisomy_threshold=5,
+        min_prob=0.9,
+        whole_genome_cutoff=5,
+        whole_genome_threshold=15,
     run:
-        command = "Rscript --vanilla {input.rscript} {output.phenotype_file} {wildcards.parent}"
+        command = "Rscript --vanilla {input.rscript} {output.phenotype_file} {wildcards.parent} {input.ploidy_calls} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {input.metadata} {wildcards.phenotype} {input.min_prob}"
 
         if wildcards.phenotype == "maternal_meiotic":
-            command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.nullisomy_min} {params.ploidy_max} {input.metadata} {wildcards.phenotype}"
+            command += " {params.whole_genome_cutoff} "
         elif wildcards.phenotype in ["haploidy", "triploidy"]:
             command += (
-                " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min} {params.phenotype}"
+                " {params.whole_genome_threshold}"
             )
         # elif wildcards.phenotype == "embryo_count":
         #     command += " {input.metadata}"
