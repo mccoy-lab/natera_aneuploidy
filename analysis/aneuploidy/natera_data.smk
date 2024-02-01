@@ -105,6 +105,7 @@ if Path("results/natera_inference/valid_trios.txt").is_file():
 localrules:
     all,
     hmm_model_chromosomes,
+    generate_posterior_table,
 
 
 rule all:

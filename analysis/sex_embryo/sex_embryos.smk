@@ -50,35 +50,43 @@ def create_trios(
     meta_df, sample_file, raw_data_path="/data/rmccoy22/natera_spectrum/data/"
 ):
     """Create a list of valid trio datasets."""
-    valid_trios = []
-    unique_mothers = np.unique(
-        meta_df[meta_df.family_position == "mother"].array.values
+    assert "family_position" in meta_df.columns
+    assert "casefile_id" in meta_df.columns
+    assert "array" in meta_df.columns
+    grouped_df = (
+        meta_df.groupby(["casefile_id", "family_position"])["array"]
+        .agg(lambda x: list(x))
+        .reset_index()
     )
-    for m in tqdm(unique_mothers):
-        cases = np.unique(meta_df[meta_df.array == m].casefile_id.values)
-        cur_df = meta_df[np.isin(meta_df.casefile_id, cases)]
-        fathers = np.unique(cur_df[cur_df.family_position == "father"].array.values)
-        if fathers.size > 1:
-            print(f"More than one partner for {m}")
-            for fat in fathers:
-                cur_cases = np.unique(meta_df[meta_df.array == fat].casefile_id.values)
-                cur_df = meta_df[np.isin(meta_df.casefile_id, cur_cases)]
-                for c in cur_df[cur_df.family_position == "child"].array.values:
-                    valid_trios.append((m, fat, c))
-        elif fathers.size == 1:
-            for c in cur_df[cur_df.family_position == "child"].array.values:
-                valid_trios.append((m, fathers[0], c))
-    parents = [line.rstrip() for line in open(sample_file, "r")]
-    # Applies a set of filters here
-    valid_filt_trios = []
-    for m, f, c in tqdm(valid_trios):
-        if (
-            (m in parents)
-            and (f in parents)
-            and find_child_data(c, meta_df, raw_data_path)[1]
-        ):
-            valid_filt_trios.append((m, f, c))
+    valid_trios = []
+    for case in tqdm(np.unique(grouped_df.casefile_id)):
+        cur_df = grouped_df[grouped_df.casefile_id == case]
+        for m in cur_df[cur_df.family_position == "mother"].array.values[0]:
+            for f in cur_df[cur_df.family_position == "father"].array.values[0]:
+                for c in cur_df[cur_df.family_position == "child"].array.values[0]:
+                    valid_trios.append((case, m, f, c))
 
+    valid_df = pd.DataFrame(
+        valid_trios, columns=["casefile_id", "mother", "father", "child"]
+    )
+    parents = [line.rstrip() for line in open(sample_file, "r")]
+    valid_df["parents_in"] = valid_df.mother.isin(parents) & valid_df.father.isin(
+        parents
+    )
+    valid_df["child_found"] = [
+        find_child_data(c)[1] for c in tqdm(valid_df.child.values)
+    ]
+    valid_filt_df = valid_df[
+        valid_df.parents_in & valid_df.child_found
+    ].drop_duplicates()[["mother", "father", "child"]]
+    valid_filt_trios = [
+        (m, f, c)
+        for (m, f, c) in zip(
+            valid_filt_df.mother.values,
+            valid_filt_df.father.values,
+            valid_filt_df.child.values,
+        )
+    ]
     return valid_filt_trios
 
 

@@ -56,15 +56,20 @@ rule isolate_trisomies:
         aneuploidy_calls=aneuploidy_calls,
     output:
         trisomy_tsv="results/bph_sph/valid_trisomies.tsv",
+    params:
+        postThreshold=0.90,
     run:
+        ppTrisomy = float(params.postThreshold)
         aneuploidy_df = pd.read_csv(input.aneuploidy_calls, sep="\t")
         assert "bf_max_cat" in aneuploidy_df.columns
         assert "mother" in aneuploidy_df.columns
         assert "father" in aneuploidy_df.columns
         assert "child" in aneuploidy_df.columns
         assert "chrom" in aneuploidy_df.columns
+        assert "3m" in aneuploidy_df.columns
+        assert "3p" in aneuploidy_df.columns
         trisomy_df = aneuploidy_df[
-            (aneuploidy_df.bf_max_cat == "3m") | (aneuploidy_df.bf_max_cat == "3p")
+            (aneuploidy_df["3m"] >= ppTrisomy) | (aneuploidy_df["3p"] >= ppTrisomy)
         ][["mother", "father", "child", "chrom"]]
         trisomy_df.to_csv(output.trisomy_tsv, sep="\t", index=None)
 
