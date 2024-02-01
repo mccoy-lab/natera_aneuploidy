@@ -1,7 +1,8 @@
 ## Script called in each large-scale ploidy phenotype R file
 
 # function to filter embryos by quality
-filter_data <- function(embryos, bayes_factor_cutoff) {
+filter_data <- function(embryos, bayes_factor_cutoff, parent,
+                        nullisomy_threshold) {
   
   # confirm that bayes_factor_cutoff is numeric and positive
   if (!is.numeric(bayes_factor_cutoff) || bayes_factor_cutoff <= 0) {
@@ -11,6 +12,17 @@ filter_data <- function(embryos, bayes_factor_cutoff) {
   
   # remove embryos that have noise more than 3sd from mean
   embryos <- embryos[embryos$embryo_noise_3sd == FALSE,]
+  
+  # remove embryos with failed amplification
+  # count number of chromosomes called as nullisomies for each embryo 
+  count_nullisomies <- embryos %>% 
+    group_by({{parent}}, child) %>% 
+    summarise(num_nullisomies = sum(bf_max_cat == "0"))
+  # identify embryos with fewer nullisomies than the threshold
+  successful_amp <- count_nullisomies[count_nullisomies$num_nullisomies 
+                                      < nullisomy_threshold,]
+  # keep only embryos without failed amplification 
+  embryos <- embryos[embryos$child %in% successful_amp$child,]
   
   # keep only rows that have probabilities for all 6 cn states
   embryos <- embryos[complete.cases(
@@ -38,23 +50,6 @@ day5_only <- function(embryos, metadata) {
   return(day5_embryos)
 }
 
-# function to remove embryos that failed amplification
-remove_failed_amp <- function(embryos, parent, nullisomy_threshold) {
-  
-  # count number of chromosomes called as nullisomies for each embryo 
-  count_nullisomies <- embryos %>% 
-    group_by({{parent}}, child) %>% 
-    summarise(num_nullisomies = sum(bf_max_cat == "0"))
-  # keep only embryos with fewer nullisomies than the threshold
-  successful_amp <- count_nullisomies[count_nullisomies$num_nullisomies 
-                                      < nullisomy_threshold,]
-  
-  # remove failed amplification embryos 
-  embryos_filtered <- embryos[embryos$child %in% successful_amp$child,]
-  
-  return(embryos_filtered)
-}
-
 # function to identify and remove embryos with whole genome gain/loss 
 remove_wholegenome_gainloss <- function(embryos, parent, ploidy_threshold) {
   
@@ -77,7 +72,7 @@ remove_wholegenome_gainloss <- function(embryos, parent, ploidy_threshold) {
 
 # count number of embryos per parent affected by each phenotype 
 count_ploidy_by_parent <- function(embryos, parent, phenotype, 
-                                   ploidy_threshold) {
+                                   ploidy_threshold, min_prob) {
   
   # choose relevant aneuploidies based on phenotype 
   if (phenotype == "maternal_triploidy") {
@@ -94,11 +89,15 @@ count_ploidy_by_parent <- function(embryos, parent, phenotype,
     stop("Invalid 'phenotype' argument.")
   }
   
-  # group ploidy by respective parent
-  # this works for a single value of cn but doesn't work for if the cn is a list 
+  # add a column that checks whether the max posterior is greater than threshold
+  embryos <- embryos %>%
+    mutate(high_prob = pmax(`0`, `1m`, `1p`, `2`, `3m`, `3p`) > min_prob)
+  
+  # group ploidy by respective parent, only counting aneuploidies with 
+  # sufficiently high probability
   result <- embryos %>%
     group_by({{parent}}, child) %>%
-    summarise(num_affected = sum(bf_max_cat %in% cn & {{cn}} > 0.9)) %>%
+    summarise(num_affected = sum(bf_max_cat %in% cn & high_prob == TRUE)) %>%
     mutate(is_ploidy = if_else(num_affected > 0, 
                                "aneu_true", "aneu_false")) %>%
     count(is_ploidy) %>%
@@ -108,33 +107,39 @@ count_ploidy_by_parent <- function(embryos, parent, phenotype,
   return(result)
 }
 
-count_complex_ploidy_by_parent <- function(embryos, parent) {
+# count number of embryos per parent affected by complex ploidy 
+count_complex_ploidy_by_parent <- function(embryos, parent, min_prob) {
   
-  # group ploidy by respective parent 
-  result <- embryos %>%
+  # add a column that checks whether the max posterior is greater than threshold
+  embryos <- embryos %>%
+    mutate(high_prob = pmax(`0`, `1m`, `1p`, `2`, `3m`, `3p`) > min_prob)
+  
+  # get whether it had aneuploidy of any kind that reached the threshold
+  result <- embryos %>% 
     group_by({{parent}}, child) %>%
-    summarise(parents_affected = 
-                sum(any(bf_max_cat %in% c("3m", "1p")) 
-                    & any(bf_max_cat %in% c("1m", "3p")))) %>% 
-    mutate(is_ploidy = if_else(parents_affected > 1, 
+    summarise(num_affected = sum(bf_max_cat %in% 
+                                   c("0", "1m", "1p", "3m", "3p") & 
+                                   high_prob == TRUE)) %>%
+    mutate(is_ploidy = if_else(num_affected > 0, 
                                "aneu_true", "aneu_false")) %>%
     count(is_ploidy) %>%
     pivot_wider(names_from = is_ploidy, 
-                values_from = n, values_fill = 0) %>%
-    replace(is.na(.), 0)
+                values_from = n, values_fill = 0)
   
   return(result)
 }
 
+# generate the phenotype of choice 
 run_phenotype <- function(embryos, bayes_factor_cutoff, parent, 
-                          phenotype, ploidy_threshold, metadata, nullisomy_threshold) {
+                          nullisomy_threshold, metadata, phenotype, 
+                          ploidy_threshold, min_prob) {
+  
   # filter embryo data 
-  embryos_filtered <- filter_data(embryos, bayes_factor_cutoff)
+  embryos_filtered <- filter_data(embryos, bayes_factor_cutoff, 
+                                  !!as.name(parent), nullisomy_threshold)
+  
   # keep only day 5 embryos
   embryos_filtered <- day5_only(embryos_filtered, metadata)
-  # remove nullisomies (amplification errors)
-  embryos_filtered <- remove_nullisomies(embryos_filtered, !!as.name(parent),
-                                         nullisomy_threshold)
   
   # if not considering a whole genome gain/loss phenotype (haploid, triploid),
   # remove whole genome gain/loss embryos
@@ -145,9 +150,10 @@ run_phenotype <- function(embryos, bayes_factor_cutoff, parent,
   } 
   
   # group ploidy by respective parent 
-  ploidy_counts_by_parent <- 
-    count_ploidy_by_parent(embryos_filtered, !!as.name(parent), 
-                           phenotype, ploidy_threshold)
+  ploidy_counts_by_parent <- count_ploidy_by_parent(embryos_filtered, 
+                                                    !!as.name(parent),
+                                                    phenotype, ploidy_threshold,
+                                                    min_prob)
   colnames(ploidy_counts_by_parent)[1] <- "array"
   
   return(ploidy_counts_by_parent)
