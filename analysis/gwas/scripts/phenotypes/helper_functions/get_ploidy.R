@@ -143,26 +143,6 @@ count_ploidy_by_parent <- function(embryos, parent, phenotype,
     ) %>%
     count(is_ploidy) %>%
     pivot_wider(names_from = is_ploidy, values_from = n, values_fill = 0)
-
-  
-    
-  # Count ploidies based on phenotype definition 
-  result <- embryos_filtered %>%
-    group_by({{parent}}, child) %>%
-    summarise(num_affected = sum(bf_max_cat %in% cn)) %>%
-    mutate(
-      is_ploidy = case_when(
-        phenotype == "maternal_meiotic" ~ ifelse(
-          num_affected > 0 & num_affected < max_meiotic,
-          "aneu_true", "aneu_false"),
-        phenotype == "complex_aneuploidy" ~ ifelse(
-          num_affected > 0  & length(unique(bf_max_cat)) >= 2, 
-          "aneu_true", "aneu_false"),
-        TRUE ~ ifelse(num_affected > min_ploidy, "aneu_true", "aneu_false")
-      )
-    ) %>%
-    count(is_ploidy) %>%
-    pivot_wider(names_from = is_ploidy, values_from = n, values_fill = 0)
   
   # match column names with external data 
   colnames(result)[1] <- "array"
