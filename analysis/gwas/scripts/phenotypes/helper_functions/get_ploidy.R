@@ -1,4 +1,5 @@
-## Script called in each large-scale ploidy phenotype R file
+## Functions for use in generating aneuploidy phenotypes 
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/aneuploidy_phenotypes.R
 
 # function to filter embryos by quality
 filter_data <- function(embryos, parent, bayes_factor_cutoff = 2,
@@ -22,6 +23,13 @@ filter_data <- function(embryos, parent, bayes_factor_cutoff = 2,
     	     It should be a positive numeric value.")
   }
   
+  # keep each embryo only once 
+  # consider grouping by mother, child 
+  embryos <- embryos %>%
+    group_by(child) %>%
+    slice(1:22) %>%
+    ungroup()
+  
   # remove embryos that have noise more than 3sd from mean
   embryos <- embryos[embryos$embryo_noise_3sd == FALSE,]
   
@@ -36,23 +44,17 @@ filter_data <- function(embryos, parent, bayes_factor_cutoff = 2,
   # keep only embryos without failed amplification 
   embryos <- embryos[embryos$child %in% successful_amp$child,]
   
-  # keep only rows that have probabilities for all 6 cn states
+  # keep only chrom that have probabilities for all 6 cn states
   embryos <- embryos[complete.cases(
     embryos[,c("0", "1m", "1p", "2", "3m", "3p")]),]
   
   # keep only rows that met the threshold for bayes factor qc
   embryos <- embryos[embryos$bf_max > bayes_factor_cutoff,]
   
-  # keep each embryo only once 
-  embryos <- embryos %>%
-    group_by(child) %>%
-    slice(1:22) %>%
-    ungroup()
-  
   # add column that checks whether the max posterior is greater than threshold
   embryos <- embryos %>%
     mutate(high_prob = pmax(`0`, `1m`, `1p`, `2`, `3m`, `3p`) > min_prob)
-  # keep only chromosomes with sufficiently high probability cn calls
+  # keep only chromosomes with sufficiently high probability cn call
   embryos <- embryos[embryos$high_prob == TRUE,]
   
   return(embryos)
@@ -64,7 +66,6 @@ day5_only <- function(embryos, metadata) {
   # intersect embryo with metadata (few_cells = day 5)
   day5_embryos <- embryos[embryos$child %in% metadata[metadata$sample_scale == 
                                                         "few_cells", ]$array,]
-  
   return(day5_embryos)
 }
 
@@ -94,6 +95,18 @@ count_ploidy_by_parent <- function(embryos, parent, phenotype,
                                    max_meiotic = 3,
                                    min_ploidy = 15) {
   
+  # confirm that max_meiotic is numeric and positive
+  if (!is.numeric(max_meiotic) || max_meiotic <= 0) {
+    stop("Invalid 'max_meiotic' argument. 
+    	     It should be a positive numeric value.")
+  }
+  
+  # confirm that min_ploidy is numeric and positive
+  if (!is.numeric(min_ploidy) || min_ploidy <= 0) {
+    stop("Invalid 'min_ploidy' argument. 
+    	     It should be a positive numeric value.")
+  }
+  
   # choose relevant aneuploidies based on phenotype 
   if (phenotype == "maternal_triploidy") {
     cn <- "3m"
@@ -111,17 +124,40 @@ count_ploidy_by_parent <- function(embryos, parent, phenotype,
     stop("Invalid 'phenotype' argument.")
   }
   
+  # add that complex aneu includes at least two unique types of aneu 
+  # Count ploidies based on phenotype definition 
+  result <- embryos_filtered %>%
+    group_by({{parent}}, child) %>%
+    summarise(num_affected = sum(bf_max_cat %in% cn),
+              unique_bf_max_cat = n_distinct(bf_max_cat[bf_max_cat %in% cn])) %>%
+    mutate(
+      is_ploidy = case_when(
+        phenotype == "maternal_meiotic" ~ ifelse(
+          num_affected > 0 & num_affected < max_meiotic,
+          "aneu_true", "aneu_false"),
+        phenotype == "complex_aneuploidy" ~ ifelse(
+          num_affected > 0  & unique_bf_max_cat >= 2, 
+          "aneu_true", "aneu_false"),
+        TRUE ~ ifelse(num_affected > min_ploidy, "aneu_true", "aneu_false")
+      )
+    ) %>%
+    count(is_ploidy) %>%
+    pivot_wider(names_from = is_ploidy, values_from = n, values_fill = 0)
+
+  
+    
   # Count ploidies based on phenotype definition 
   result <- embryos_filtered %>%
     group_by({{parent}}, child) %>%
     summarise(num_affected = sum(bf_max_cat %in% cn)) %>%
     mutate(
       is_ploidy = case_when(
-        phenotype == "maternal_meiotic" ~ ifelse(num_affected > 0 & 
-                                                   num_affected < max_meiotic, 
-                                                 "aneu_true", "aneu_false"),
-        phenotype == "complex_aneuploidy" ~ ifelse(num_affected > 0, 
-                                                   "aneu_true", "aneu_false"),
+        phenotype == "maternal_meiotic" ~ ifelse(
+          num_affected > 0 & num_affected < max_meiotic,
+          "aneu_true", "aneu_false"),
+        phenotype == "complex_aneuploidy" ~ ifelse(
+          num_affected > 0  & length(unique(bf_max_cat)) >= 2, 
+          "aneu_true", "aneu_false"),
         TRUE ~ ifelse(num_affected > min_ploidy, "aneu_true", "aneu_false")
       )
     ) %>%
