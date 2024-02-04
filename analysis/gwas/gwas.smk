@@ -123,36 +123,26 @@ rule vcf2bed:
         "plink2 --vcf {input.vcf_input} --keep-allele-order --double-id --make-bed --threads {threads} --out {params.outfix}"
 
 
-rule generate_phenotypes:
-    """Make file for each phenotype"""
+rule generate_aneuploidy_phenotypes:
+    """Make file for each aneuploidy phenotype"""
     input:
-        rscript="scripts/phenotypes/{phenotype}.R",
+        rscript="scripts/phenotypes/aneuploidy_phenotypes.R",
         ploidy_calls=ploidy_calls,
         metadata=metadata,
     output:
         phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
     wildcard_constraints:
-        phenotype="maternal_meiotic|haploidy|triploidy|embryo_count",
-        parent="mother|father",
+        parent=parents,
+        phenotype="maternal_meiotic|haploidy|triploidy",
     params:
+    	filter_day_5="TRUE",
         bayes_factor_cutoff=2,
         nullisomy_threshold=5,
         min_prob=0.9,
-        whole_genome_cutoff=5,
-        whole_genome_threshold=15,
-    run:
-        command = "Rscript --vanilla {input.rscript} {output.phenotype_file} {wildcards.parent} {input.ploidy_calls} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {input.metadata} {wildcards.phenotype} {input.min_prob}"
-
-        if wildcards.phenotype == "maternal_meiotic":
-            command += " {params.whole_genome_cutoff} "
-        elif wildcards.phenotype in ["haploidy", "triploidy"]:
-            command += (
-                " {params.whole_genome_threshold}"
-            )
-        # elif wildcards.phenotype == "embryo_count":
-        #     command += " {input.metadata}"
-
-        shell(command)
+        max_meiotic=3,
+        min_ploidy=15,
+    shell:
+    	"Rscript --vanilla {input.rscript} {input.ploidy_calls} {wildcards.parent} {input.metadata} {wildcards.phenotype} {params.filter_day_5} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {params.min_prob} {params.max_meiotic} {params.min_ploidy} {output.phenotype_file}"  
 
 
 rule run_gwas:
