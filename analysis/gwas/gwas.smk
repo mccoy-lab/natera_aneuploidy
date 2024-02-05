@@ -13,20 +13,20 @@ metadata = (
     "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 )
 pcs_out = "results/parental_genotypes_pcs/"
+ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.bph_sph_trisomy.full_annotation.112023.filter_bad_trios.tsv.gz"
 gwas_results = "results/gwas/"
 
 
 # Define the parameters that the pipeline will run on
-# chroms = range(1, 24)
+chroms = range(1, 24)
 phenotypes = [
     "embryo_count",
     "haploidy",
-    "maternal_meiotic_aneuploidy",
-    "triploidy",
-    "parental_triploidy",
-]
-parents = ["mother", "father"]
-dataset_type = ["discovery", "test"]
+    "maternal_meiotic",
+    "triploidy"
+    ]
+ parents = ["mother", "father"]
+ dataset_type = ["discovery", "test"]
 
 # shell.prefix("set -o pipefail; ")
 
@@ -36,9 +36,9 @@ rule all:
     input:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype="maternal_meiotic_aneuploidy",
-            parent="mother",
-            dataset_type="discovery",
+            phenotype=phenotypes,
+            parent=parents,
+            dataset_type=dataset_type,
         ),
 
 
@@ -123,41 +123,32 @@ rule vcf2bed:
         "plink2 --vcf {input.vcf_input} --keep-allele-order --double-id --make-bed --threads {threads} --out {params.outfix}"
 
 
-rule generate_phenotypes:
-    """Make file for each phenotype"""
+rule generate_aneuploidy_phenotypes:
+    """Make file for each aneuploidy phenotype"""
     input:
-        rscript="scripts/phenotypes/{phenotype}.R",
-        ploidy_calls="/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos_v2.karyohmm_v14.bph_sph_trisomy.071023.tsv.gz",
+        rscript="scripts/phenotypes/aneuploidy_phenotypes.R",
+        ploidy_calls=ploidy_calls,
         metadata=metadata,
     output:
         phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
     wildcard_constraints:
-        phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy|embryo_count|parental_triploidy",
-        parent="mother|father",
+        parent=parents,
+        phenotype="maternal_meiotic|haploidy|triploidy",
     params:
+    	filter_day_5="TRUE",
         bayes_factor_cutoff=2,
-        nullisomy_min=5,
-        ploidy_max=11,
-        ploidy_min=12,
-    run:
-        command = "Rscript --vanilla {input.rscript} {output.phenotype_file} {wildcards.parent}"
-
-        if wildcards.phenotype == "maternal_meiotic_aneuploidy":
-            command += " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.nullisomy_min} {params.ploidy_max}"
-        elif wildcards.phenotype in ["maternal_haploidy", "maternal_triploidy", "paternal_haploidy", "paternal_triploidy"]:
-            command += (
-                " {input.ploidy_calls} {params.bayes_factor_cutoff} {params.ploidy_min} {params.phenotype}"
-            )
-        elif wildcards.phenotype == "embryo_count":
-            command += " {input.metadata}"
-
-        shell(command)
+        nullisomy_threshold=5,
+        min_prob=0.9,
+        max_meiotic=3,
+        min_ploidy=15,
+    shell:
+    	"Rscript --vanilla {input.rscript} {input.ploidy_calls} {wildcards.parent} {input.metadata} {wildcards.phenotype} {params.filter_day_5} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {params.min_prob} {params.max_meiotic} {params.min_ploidy} {output.phenotype_file}"  
 
 
 rule run_gwas:
     """Run GWAS for each set of parameters"""
     input:
-        gwas_rscript="scripts/gwas/gwas_all.R",
+        gwas_rscript="scripts/gwas/maternal_meiotic.R",
         metadata=metadata,
         bed=rules.vcf2bed.output.bedfile,
         discovery_test=general_outputs_fp + "discover_validate_split_{parent}.txt",
@@ -170,7 +161,7 @@ rule run_gwas:
     threads: 32
     wildcard_constraints:
         dataset_type="discovery|test",
-        phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
+        phenotype="maternal_meiotic|triploidy|haploidy|embryo_count|parental_triploidy",
         parent="mother|father",
     shell:
         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
