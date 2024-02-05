@@ -33,7 +33,9 @@ We also have a post-processing workflow (`aneuploidy_post`) of the posterior tra
 
 ### GWAS
 
-The `gwas.smk` file here creates background files (discovery-test split, parental PCA), phenotype files (including a range of aneuploidy types), and GWAS summary statistic files. The `scripts/phenotypes` directory within includes a script to create each phenotype (e.g., number of embryos affected by maternal triploidy per mother). The `scripts/gwas` file includes the script to run a GWAS for a given phenotype intersected with the genotypes of a given parent. 
+This directory creates files necessary to run genome-wide association studies (GWAS) for aneuploidy phenotypes. The `gwas.smk` file here creates background files (discovery-test split, parental PCA), phenotype files (including a range of aneuploidy types), and GWAS summary statistic files. 
+
+Specifically, the `scripts/phenotypes` directory within includes a script to create a table for each aneuploidy phenotype, sorted by each parent (e.g., number of embryos affected by maternal triploidy per mother). The `scripts/gwas` file includes a script to run a GWAS for a given phenotype intersected with the genotypes of each parent. 
 
 ### Sex embryo 
 
