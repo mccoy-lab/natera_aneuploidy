@@ -174,6 +174,7 @@ rule preprocess_baf_data_sex_chrom:
     output:
         baf_pkl="results/natera_inference/{mother_id}+{father_id}/{child_id}.sex_chroms.bafs.pkl.gz",
     resources:
+        partition="parallel",
         time="1:00:00",
         mem_mb="5G",
     wildcard_constraints:
@@ -191,6 +192,7 @@ rule assign_sex_chrom_copy:
     output:
         karyo_tsv="results/natera_inference/{mother_id}+{father_id}/{child_id}.sex_chroms.total_ploidy.tsv",
     resources:
+        partition="parallel",
         time="0:30:00",
         mem_mb="4G",
     params:
@@ -199,4 +201,4 @@ rule assign_sex_chrom_copy:
         child_id=lambda wildcards: f"{wildcards.child_id}",
         chroms=chroms,
     script:
-        "scripts/sex_chrom_copy.py"
+        "scripts/sex_chrom_hmm.py"

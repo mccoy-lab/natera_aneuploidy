@@ -13,7 +13,6 @@ from io import StringIO
 metadata_file = "../../data/spectrum_metadata_merged.csv"
 centromeres_file = "../../data/gaps/centromeres_grch38.bed"
 aneuploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.102523.tsv.gz"
-aneuploidy_bph_sph_calls_merged = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.bph_sph_trisomy.102523.tsv.gz"
 results_dir = "../aneuploidy/results/natera_inference"
 
 
@@ -22,44 +21,43 @@ localrules:
     all,
 
 
-def expand_bph_sph(fp="results/bph_sph/valid_trisomies.tsv"):
+def expand_bph_sph(fp="results/bph_sph/valid_trisomies.txt"):
     """Expand the BPH vs. SPH results to aggregate."""
-    trisomy_df = pd.read_csv(fp, sep="\t")
-    res_files = []
-    for m, p, c, chrom in zip(
-        trisomy_df.mother.values,
-        trisomy_df.father.values,
-        trisomy_df.child.values,
-        trisomy_df.chrom.values,
-    ):
-        res_files.append(f"results/bph_sph/inferred/{m}+{p}+{c}.{chrom}.tsv")
-    return res_files
+    if Path(fp).is_file():
+        trisomy_df = pd.read_csv(fp, sep="\t")
+        res_files = []
+        for m, p, c, chrom in zip(
+            trisomy_df.mother.values,
+            trisomy_df.father.values,
+            trisomy_df.child.values,
+            trisomy_df.chrom.values,
+        ):
+            res_files.append(f"results/bph_sph/inferred/{m}+{p}+{c}.{chrom}.tsv")
+        return res_files
+    else:
+        return []
 
 
-def expand_mosaic_est(fp="results/mosaic_est/valid_mosaics.tsv"):
-    mosaic_df = pd.read_csv(fp, sep="\t")
-    res_files = []
-    for m, p, c, chrom in zip(
-        trisomy_df.mother.values,
-        trisomy_df.father.values,
-        trisomy_df.child.values,
-        trisomy_df.chrom.values,
-    ):
-        res_files.append(f"results/mosaic_est/inferred/{m}+{p}+{c}.{chrom}.tsv")
-    return res_files
-
-
-# ---- Target definition ---- #
-# TARGETS = ["results/bph_sph/valid_trisomies.tsv"]
-# if Path("results/bph_sph/valid_trisomies.tsv").is_file():
-# TARGETS.append(expand_bph_sph())
-
-# if Path(aneuploidy_bph_sph_calls_merged).is_file():
-# TARGETS.append("results/filt_aneuploidy.tsv.gz")
+def expand_mosaic_est(fp="results/mosaic_est/valid_mosaics.txt"):
+    if Path(fp).is_file():
+        mosaic_df = pd.read_csv(fp, sep="\t")
+        res_files = []
+        for m, p, c, chrom in zip(
+            trisomy_df.mother.values,
+            trisomy_df.father.values,
+            trisomy_df.child.values,
+            trisomy_df.chrom.values,
+        ):
+            res_files.append(f"results/mosaic_est/inferred/{m}+{p}+{c}.{chrom}.tsv")
+        return res_files
+    else:
+        return []
 
 
 rule all:
     input:
+        "results/mosaic_est/natera.total.mosaic_est.tsv.gz",
+        "results/bph_sph/natera.total.bph_sph.tsv.gz",
         "results/filt_aneuploidy.tsv.gz",
 
 
@@ -68,7 +66,7 @@ rule isolate_trisomies:
     input:
         aneuploidy_calls=aneuploidy_calls,
     output:
-        trisomy_tsv="results/bph_sph/valid_trisomies.tsv",
+        trisomy_tsv="results/bph_sph/valid_trisomies.txt",
     params:
         postThreshold=0.90,
     run:
@@ -93,7 +91,7 @@ rule trisomy_bph_sph:
         baf_pkl=lambda wildcards: f"{results_dir}/{wildcards.mother}+{wildcards.father}/{wildcards.child}.bafs.pkl.gz",
         hmm_traceback=lambda wildcards: f"{results_dir}/{wildcards.mother}+{wildcards.father}/{wildcards.child}.hmm_model.pkl.gz",
         centromere_bed=centromeres_file,
-        trisomy_tsv="results/bph_sph/valid_trisomies.tsv",
+        trisomy_tsv="results/bph_sph/valid_trisomies.txt",
     output:
         bph_tsv="results/bph_sph/inferred/{mother}+{father}+{child}.{chrom}.tsv",
     resources:
@@ -108,7 +106,7 @@ rule trisomy_bph_sph:
 rule aggregate_bph_sph:
     """Aggregate the BPH vs. SPH signature."""
     input:
-        trisomy_tsv="results/bph_sph/valid_trisomies.tsv",
+        trisomy_tsv="results/bph_sph/valid_trisomies.txt",
         bph_sph_results=expand_bph_sph(),
     output:
         aggregate_bph_sph="results/bph_sph/natera.total.bph_sph.tsv.gz",
@@ -121,7 +119,7 @@ rule isolate_putative_mosaics:
     input:
         aneuploidy_calls=aneuploidy_calls,
     output:
-        mosaic_tsv="results/mosaic_est/valid_mosaics.tsv",
+        mosaic_tsv="results/mosaic_est/valid_mosaics.txt",
     params:
         postThreshold=0.90,
     run:
@@ -149,9 +147,9 @@ rule mosaic_est:
     """Estimate Mosaic Cell Fraction."""
     input:
         baf_pkl=lambda wildcards: f"{results_dir}/{wildcards.mother}+{wildcards.father}/{wildcards.child}.bafs.pkl.gz",
-        mosaic_tsv="results/mosaic_est/valid_mosaics.tsv",
+        mosaic_tsv="results/mosaic_est/valid_mosaics.txt",
     output:
-        mosaic_tsv="results/mosaic_est/{mother}+{father}+{child}.{chrom}.tsv",
+        mosaic_tsv="results/mosaic_est/inferred/{mother}+{father}+{child}.{chrom}.tsv",
     resources:
         time="0:10:00",
         mem_mb="5G",
@@ -171,13 +169,28 @@ rule aggregate_mosaic_est:
 
 
 # ----------- 2a. Merging aneuploidy calls + BPH SPH + Mosaic Estimates -------- #
+rule merge_aneuploidy_bph_sph_mosaic:
+    input:
+        aneuploidy_tsv=aneuploidy_calls,
+        aggregate_mosaic="results/mosaic_est/natera.total.mosaic_est.tsv.gz",
+        aggregate_bph_sph="results/bph_sph/natera.total.bph_sph.tsv.gz",
+    output:
+        annot_aneuploidy_tsv="results/natera.aneuploidy_calls.annot.tsv.gz",
+    run:
+        aneuploidy_df = pd.read_csv(input.aneuploidy_tsv, sep="\t")
+        mosaic_df = pd.read_csv(input.aggregate_mosaic, sep="\t")
+        bph_sph_df = pd.read_csv(input.aggregate_bph_sph, sep="\t")
+        tot_df = aneuploidy_df.join(
+            bph_sph_df, on=["mother", "father", "child", "chrom"], how="left"
+        ).join(mosaic_df, on=["mother", "father", "child", "chrom"], how="left")
+        tot_df.to_csv(output.annot_aneuploidy_tsv, sep="\t", index=None)
 
 
 # ----------- 3. Aneuploidy full filtering mechanism ----------- #
 rule run_aneuploidy_filtering:
     """Run the script to generate a filtered set of calls to be used in downstream analyses."""
     input:
-        aneuploidy_tsv=aneuploidy_bph_sph_calls_merged,
+        aneuploidy_tsv="results/natera.aneuploidy_calls.annot.tsv.gz",
         meta_csv=metadata_file,
     output:
         filt_aneuploidy_tsv="results/filt_aneuploidy.tsv.gz",
