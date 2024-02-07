@@ -1,0 +1,104 @@
+import numpy as np
+import pickle
+import gzip as gz
+import click
+import pandas as pd
+from karyohmm import MosaicEst
+
+
+def est_gain_loss(df, mother, father, child, chrom):
+    """Determine if this is likely a mosaic gain or loss."""
+    assert "mother" in df.columns
+    assert "father" in df.columns
+    assert "child" in df.columns
+    assert "chrom" in df.columns
+    assert "3m" in df.columns
+    assert "3p" in df.columns
+    assert "1m" in df.columns
+    assert "1p" in df.columns
+    assert "2" in df.columns
+    assert "0" in df.columns
+    aneu_cats = ["0", "1m", "1p", "2", "3m", "3p"]
+    aneu_cat_posterior = df[
+        (df.mother == mother)
+        & (df.father == father)
+        & (df.child == child)
+        & (df.chrom == chrom)
+    ][aneu_cats].values
+    assert np.isclose(np.sum(aneu_cat_posterior), 1.0)
+    # NOTE: to determine gain vs. loss we look at the relative order
+    idx = np.argsort(aneu_cat_posterior)[::-1]
+    sort_aneu = np.array(aneu_cats)[idx]
+    gain = None
+    if sort_aneu[0] == "2":
+        if (sort_aneu[1] == "1m") or (sort_aneu[1] == "1p"):
+            gain = False
+        elif (sort_aneu[0] == "3m") or (sort_aneu[0] == "3p"):
+            gain = True
+    if (sort_aneu[0] == "1m") or (sort_aneu[0] == "1p"):
+        if sort_aneu[1] == "2":
+            gain = False
+    if (sort_aneu[0] == "3m") or (sort_aneu[0] == "3p"):
+        if sort_aneu[1] == "2":
+            gain = True
+    return gain
+
+
+if __name__ == "__main__":
+    # 1. Read in the mosaic dataframe
+    mother = snakemake.wildcards["mother"]
+    father = snakemake.wildcards["father"]
+    child = snakemake.wildcards["child"]
+    chrom = snakemake.wildcards["chrom"]
+    mosaic_df = pd.read_csv(snakemake.input["mosaic_tsv"], sep="\t")
+    gain = est_gain_loss(
+        mosaic_df, mother=mother, father=father, child=child, chrom=chrom
+    )
+    if gain is not None:
+        # 2. Read in the BAF data
+        data = pickle.load(gz.open(snakemake.input["baf_pkl"], "r"))
+        pos = data[chrom]["pos"]
+        mat_haps = data[chrom]["mat_haps"]
+        pat_haps = data[chrom]["pat_haps"]
+        baf_embryo = data[chrom]["baf_embryo"]
+        m_est = MosaicEst(
+            mat_haps=mat_haps, pat_haps=pat_haps, bafs=baf_embryo, pos=pos
+        )
+        # 2a. Use the default parameter settings for mosaic estimation
+        m_est.viterbi_hets()
+        m_est.create_transition_matrix()
+        ci_theta = m_est.ci_mle_theta()
+        lrt_theta = m_est.lrt_theta()
+        ci_cf = [
+            m_est.est_cf(theta=ci_theta[0], gain=gain),
+            m_est.est_cf(theta=ci_theta[1], gain=gain),
+            m_est.est_cf(theta=ci_theta[2], gain=gain),
+        ]
+        res_dict = {
+            "mother": mother,
+            "father": father,
+            "child": child,
+            "chrom": chrom,
+            "gain": gain,
+            "mle_theta": ci_theta[1],
+            "lrt_theta": lrt_theta,
+            "cellfrac_lower95": ci_cf[0],
+            "cellfrac_mean": ci_cf[1],
+            "cellfrac_upper95": ci_cf[2],
+        }
+    else:
+        res_dict = {
+            "mother": mother,
+            "father": father,
+            "child": child,
+            "chrom": chrom,
+            "gain": np.nan,
+            "mle_theta": np.nan,
+            "lrt_theta": np.nan,
+            "cellfrac_lower95": np.nan,
+            "cellfrac_mean": np.nan,
+            "cellfrac_upper95": np.nan,
+        }
+    # Convert to a pandas DataFrame
+    res_df = pd.DataFrame(res_dict, index=[0])
+    res_df.to_csv(snakemake.output["mosaic_tsv"], sep="\t", index=None)
