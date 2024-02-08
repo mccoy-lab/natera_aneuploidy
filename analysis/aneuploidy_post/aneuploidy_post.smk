@@ -12,7 +12,7 @@ from io import StringIO
 # ---- Parameters for post whole-chromosome aneuploidy inference in Natera Data ---- #
 metadata_file = "../../data/spectrum_metadata_merged.csv"
 centromeres_file = "../../data/gaps/centromeres_grch38.bed"
-aneuploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.102523.tsv.gz"
+aneuploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v20.020724.tsv.gz"
 results_dir = "../aneuploidy/results/natera_inference"
 
 
@@ -43,10 +43,10 @@ def expand_mosaic_est(fp="results/mosaic_est/valid_mosaics.txt"):
         mosaic_df = pd.read_csv(fp, sep="\t")
         res_files = []
         for m, p, c, chrom in zip(
-            trisomy_df.mother.values,
-            trisomy_df.father.values,
-            trisomy_df.child.values,
-            trisomy_df.chrom.values,
+            mosaic_df.mother.values,
+            mosaic_df.father.values,
+            mosaic_df.child.values,
+            mosaic_df.chrom.values,
         ):
             res_files.append(f"results/mosaic_est/inferred/{m}+{p}+{c}.{chrom}.tsv")
         return res_files
@@ -95,8 +95,9 @@ rule trisomy_bph_sph:
     output:
         bph_tsv="results/bph_sph/inferred/{mother}+{father}+{child}.{chrom}.tsv",
     resources:
+        partition="parallel",
         time="0:10:00",
-        mem_mb="5G",
+        mem_mb="3G",
     params:
         bp_padding=10e6,
     script:
@@ -138,7 +139,7 @@ rule isolate_putative_mosaics:
         assert "0" in aneuploidy_df.columns
         aneu_cats = ["0", "1m", "1p", "2", "3m", "3p"]
         mosaic_df = aneuploidy_df[
-            np.max(aneuploidy_df[aneu_cats].values, axis=0) <= ppThresh
+            np.max(aneuploidy_df[aneu_cats].values, axis=1) <= ppThresh
         ][["mother", "father", "child", "chrom"]]
         mosaic_df.to_csv(output.mosaic_tsv, sep="\t", index=None)
 
@@ -151,8 +152,9 @@ rule mosaic_est:
     output:
         mosaic_tsv="results/mosaic_est/inferred/{mother}+{father}+{child}.{chrom}.tsv",
     resources:
+        partition="parallel",
         time="0:10:00",
-        mem_mb="5G",
+        mem_mb="3G",
     script:
         "scripts/mosaic_est.py"
 
@@ -160,7 +162,7 @@ rule mosaic_est:
 rule aggregate_mosaic_est:
     """Aggregate the Mosaic estimation signature."""
     input:
-        mosaic_tsv="results/mosaic_est/valid_mosaics.tsv",
+        mosaic_tsv="results/mosaic_est/valid_mosaics.txt",
         bph_sph_results=expand_mosaic_est(),
     output:
         aggregate_mosaic="results/mosaic_est/natera.total.mosaic_est.tsv.gz",
