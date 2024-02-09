@@ -18,22 +18,23 @@ def est_gain_loss(df, mother, father, child, chrom):
     assert "1p" in df.columns
     assert "2" in df.columns
     assert "0" in df.columns
+    assert "sigma_baf" in df.columns
     aneu_cats = ["0", "1m", "1p", "2", "3m", "3p"]
     aneu_cat_posterior = df[
         (df.mother == mother)
         & (df.father == father)
         & (df.child == child)
         & (df.chrom == chrom)
-    ][aneu_cats].values
+    ][aneu_cats].values[0]
     assert np.isclose(np.sum(aneu_cat_posterior), 1.0)
     # NOTE: to determine gain vs. loss we look at the relative order
-    idx = np.argsort(aneu_cat_posterior)[::-1]
-    sort_aneu = np.array(aneu_cats)[idx]
+    idx = np.argsort(aneu_cat_posterior)
+    sort_aneu = np.array(aneu_cats, dtype=str)[idx[::-1]]
     gain = None
     if sort_aneu[0] == "2":
         if (sort_aneu[1] == "1m") or (sort_aneu[1] == "1p"):
             gain = False
-        elif (sort_aneu[0] == "3m") or (sort_aneu[0] == "3p"):
+        if (sort_aneu[1] == "3m") or (sort_aneu[1] == "3p"):
             gain = True
     if (sort_aneu[0] == "1m") or (sort_aneu[0] == "1p"):
         if sort_aneu[1] == "2":
@@ -65,22 +66,30 @@ if __name__ == "__main__":
             mat_haps=mat_haps, pat_haps=pat_haps, bafs=baf_embryo, pos=pos
         )
         # 2a. Use the default parameter settings for mosaic estimation
-        m_est.viterbi_hets()
+        m_est.baf_hets()
+        sigma_est = np.std(m_est.het_bafs)
+        m_est.viterbi_hets(std_dev=sigma_est)
         m_est.create_transition_matrix()
-        ci_theta = m_est.ci_mle_theta()
-        lrt_theta = m_est.lrt_theta()
-        ci_cf = [
-            m_est.est_cf(theta=ci_theta[0], gain=gain),
-            m_est.est_cf(theta=ci_theta[1], gain=gain),
-            m_est.est_cf(theta=ci_theta[2], gain=gain),
-        ]
+        m_est.est_mle_theta(std_dev=sigma_est)
+        if np.isnan(m_est.mle_theta):
+            lrt_theta = np.nan
+            ci_cf = [np.nan, np.nan, np.nan]
+        else:
+            ci_theta = m_est.ci_mle_theta(std_dev=sigma_est)
+            lrt_theta = m_est.lrt_theta(std_dev=sigma_est)
+            ci_cf = [
+                m_est.est_cf(theta=ci_theta[0], gain=gain),
+                m_est.est_cf(theta=ci_theta[1], gain=gain),
+                m_est.est_cf(theta=ci_theta[2], gain=gain),
+            ]
         res_dict = {
             "mother": mother,
             "father": father,
             "child": child,
             "chrom": chrom,
             "gain": gain,
-            "mle_theta": ci_theta[1],
+            "mosaic_sigma": sigma_est,
+            "mle_theta": m_est.mle_theta,
             "lrt_theta": lrt_theta,
             "cellfrac_lower95": ci_cf[0],
             "cellfrac_mean": ci_cf[1],
@@ -93,6 +102,7 @@ if __name__ == "__main__":
             "child": child,
             "chrom": chrom,
             "gain": np.nan,
+            "mosaic_sigma": np.nan,
             "mle_theta": np.nan,
             "lrt_theta": np.nan,
             "cellfrac_lower95": np.nan,

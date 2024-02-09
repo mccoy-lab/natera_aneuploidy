@@ -140,7 +140,7 @@ rule isolate_putative_mosaics:
         aneu_cats = ["0", "1m", "1p", "2", "3m", "3p"]
         mosaic_df = aneuploidy_df[
             np.max(aneuploidy_df[aneu_cats].values, axis=1) <= ppThresh
-        ][["mother", "father", "child", "chrom"]]
+        ]
         mosaic_df.to_csv(output.mosaic_tsv, sep="\t", index=None)
 
 
@@ -163,7 +163,7 @@ rule aggregate_mosaic_est:
     """Aggregate the Mosaic estimation signature."""
     input:
         mosaic_tsv="results/mosaic_est/valid_mosaics.txt",
-        bph_sph_results=expand_mosaic_est(),
+        mosaic_results=expand_mosaic_est(),
     output:
         aggregate_mosaic="results/mosaic_est/natera.total.mosaic_est.tsv.gz",
     shell:
