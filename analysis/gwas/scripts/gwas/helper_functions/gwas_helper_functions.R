@@ -71,11 +71,13 @@ make_model <- function(parent, phenotype_name, gt) {
   } else if (phenotype_name == "maternal_age") {
     response_variable <- "weighted_age"
     family <- "gaussian"
+  } else if (phenotype_name == "sex_ratio") {
+    response_variable <- "cbind(XY, XX)"
+    family <- "quasibinomial"
   } else {
     stop("Invalid 'phenotype_name' argument.")
   }
-  
-  
+    
   
   # Set formula string to include age column and response variable
   formula_string <- paste0(response_variable, " ~ PC1 + PC2 + ",
