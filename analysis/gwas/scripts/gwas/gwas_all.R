@@ -15,7 +15,7 @@ library(purrr)
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/haploidy_by_mother.csv" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/opticall_concat_21.norm.b38.bim" \
 # "discovery" \ # dataset type 
-# "haploidy" \ # phentype 
+# "haploidy" \ # phenotype 
 # "mother" \ # parent 
 # 16 \ # number of threads 
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/gwas_haploidy_by_mother_discovery_9.tsv"

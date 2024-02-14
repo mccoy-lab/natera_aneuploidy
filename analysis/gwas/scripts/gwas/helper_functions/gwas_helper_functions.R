@@ -42,6 +42,9 @@ get_gt <- function(pcs, phenotype, bim, bed, bed_dataset_indices, snp_index, met
     merge(pcs, by = "array") %>%
     .[!duplicated(array)]
   
+  # Get whether each mother is an egg donor 
+  gt$egg_donor_factor <- factor(gt$egg_donor, levels = c("", "yes"))
+  
   return(gt)
 }
 
@@ -72,10 +75,12 @@ make_model <- function(parent, phenotype_name, gt) {
     stop("Invalid 'phenotype_name' argument.")
   }
   
+  
+  
   # Set formula string to include age column and response variable
   formula_string <- paste0(response_variable, " ~ PC1 + PC2 + ",
                            "PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + ", 
-                           age_column, " + alt_count", collapse = "")
+                           age_column, " + alt_count + egg_donor_factor", collapse = "")
   
   # Create a model using the glm 
   m1 <- glm(formula_string, family = family, data = gt) %>% 
@@ -88,7 +93,7 @@ make_model <- function(parent, phenotype_name, gt) {
 
 
 # Calculate GWAS at each genomic site
-gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype, bed_dataset_indices, metadata, subject_indices, parent) {
+gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype, bed_dataset_indices, metadata, parent, phenotype_name) {
   
   # Get characteristics for each site
   snp_name <- colnames(bed)[snp_index]
@@ -99,7 +104,7 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype, bed_dataset_indic
   gt <- get_gt(pcs, phenotype, bim, bed, bed_dataset_indices, snp_index, metadata)
   
   # Make GWAS model 
-  m1 <- make_model(parent, phenotype, gt)
+  m1 <- make_model(parent, phenotype_name, gt)
   
   # Get info for GWAS output 
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
@@ -122,7 +127,7 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype, bed_dataset_indic
 
 
 # Run GWAS across dataset
-run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs, phenotype, parent, threads = 32) {
+run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs, phenotype, parent, phenotype_name, threads = 32) {
   
   # Subset bed file corresponding to correct dataset type 
   bed_dataset <- discovery_test_split(dataset_type, discovery_test, metadata, bed)
@@ -132,7 +137,7 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs, phen
   
   # Calculate GWAS across each site
   gwas_results <- pbmclapply(1:ncol(bed_dataset),
-                             function(x) gwas_per_site(snp_index, bed, bim, pcs, phenotype, bed_dataset_indices, metadata, subject_indices, parent),
+                             function(x) gwas_per_site(x, bed_dataset, bim, pcs, phenotype, bed_dataset_indices, metadata, parent, phenotype_name),
                              mc.cores = threads)
   
   # Bind output across all sites 
