@@ -174,17 +174,15 @@ rule aggregate_mosaic_est:
 rule merge_aneuploidy_bph_sph_mosaic:
     input:
         aneuploidy_tsv=aneuploidy_calls,
-        aggregate_mosaic="results/mosaic_est/natera.total.mosaic_est.tsv.gz",
         aggregate_bph_sph="results/bph_sph/natera.total.bph_sph.tsv.gz",
     output:
         annot_aneuploidy_tsv="results/natera.aneuploidy_calls.annot.tsv.gz",
     run:
         aneuploidy_df = pd.read_csv(input.aneuploidy_tsv, sep="\t")
-        mosaic_df = pd.read_csv(input.aggregate_mosaic, sep="\t")
         bph_sph_df = pd.read_csv(input.aggregate_bph_sph, sep="\t")
-        tot_df = aneuploidy_df.join(
+        tot_df = aneuploidy_df.merge(
             bph_sph_df, on=["mother", "father", "child", "chrom"], how="left"
-        ).join(mosaic_df, on=["mother", "father", "child", "chrom"], how="left")
+        )
         tot_df.to_csv(output.annot_aneuploidy_tsv, sep="\t", index=None)
 
 

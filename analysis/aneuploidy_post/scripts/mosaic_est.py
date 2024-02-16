@@ -55,47 +55,62 @@ if __name__ == "__main__":
     gain = est_gain_loss(
         mosaic_df, mother=mother, father=father, child=child, chrom=chrom
     )
-    if gain is not None:
-        # 2. Read in the BAF data
-        data = pickle.load(gz.open(snakemake.input["baf_pkl"], "r"))
-        pos = data[chrom]["pos"]
-        mat_haps = data[chrom]["mat_haps"]
-        pat_haps = data[chrom]["pat_haps"]
-        baf_embryo = data[chrom]["baf_embryo"]
-        m_est = MosaicEst(
-            mat_haps=mat_haps, pat_haps=pat_haps, bafs=baf_embryo, pos=pos
-        )
-        # 2a. Use the default parameter settings for mosaic estimation
-        m_est.baf_hets()
-        sigma_est = np.std(m_est.het_bafs)
-        m_est.viterbi_hets(std_dev=sigma_est)
-        m_est.create_transition_matrix()
-        m_est.est_mle_theta(std_dev=sigma_est)
-        if np.isnan(m_est.mle_theta):
-            lrt_theta = np.nan
-            ci_cf = [np.nan, np.nan, np.nan]
+    try:
+        if gain is not None:
+            # 2. Read in the BAF data
+            data = pickle.load(gz.open(snakemake.input["baf_pkl"], "r"))
+            pos = data[chrom]["pos"]
+            mat_haps = data[chrom]["mat_haps"]
+            pat_haps = data[chrom]["pat_haps"]
+            baf_embryo = data[chrom]["baf_embryo"]
+            m_est = MosaicEst(
+                mat_haps=mat_haps, pat_haps=pat_haps, bafs=baf_embryo, pos=pos
+            )
+            # 2a. Use the default parameter settings for mosaic estimation
+            m_est.baf_hets()
+            sigma_est = np.std(m_est.het_bafs)
+            m_est.viterbi_hets(std_dev=sigma_est)
+            m_est.create_transition_matrix()
+            m_est.est_mle_theta(std_dev=sigma_est)
+            if np.isnan(m_est.mle_theta):
+                lrt_theta = np.nan
+                ci_cf = [np.nan, np.nan, np.nan]
+            else:
+                ci_theta = m_est.ci_mle_theta(std_dev=sigma_est)
+                lrt_theta = m_est.lrt_theta(std_dev=sigma_est)
+                ci_cf = [
+                    m_est.est_cf(theta=ci_theta[0], gain=gain),
+                    m_est.est_cf(theta=ci_theta[1], gain=gain),
+                    m_est.est_cf(theta=ci_theta[2], gain=gain),
+                ]
+            res_dict = {
+                "mother": mother,
+                "father": father,
+                "child": child,
+                "chrom": chrom,
+                "gain": gain,
+                "mosaic_sigma": sigma_est,
+                "mle_theta": m_est.mle_theta,
+                "lrt_theta": lrt_theta,
+                "cellfrac_lower95": ci_cf[0],
+                "cellfrac_mean": ci_cf[1],
+                "cellfrac_upper95": ci_cf[2],
+            }
         else:
-            ci_theta = m_est.ci_mle_theta(std_dev=sigma_est)
-            lrt_theta = m_est.lrt_theta(std_dev=sigma_est)
-            ci_cf = [
-                m_est.est_cf(theta=ci_theta[0], gain=gain),
-                m_est.est_cf(theta=ci_theta[1], gain=gain),
-                m_est.est_cf(theta=ci_theta[2], gain=gain),
-            ]
-        res_dict = {
-            "mother": mother,
-            "father": father,
-            "child": child,
-            "chrom": chrom,
-            "gain": gain,
-            "mosaic_sigma": sigma_est,
-            "mle_theta": m_est.mle_theta,
-            "lrt_theta": lrt_theta,
-            "cellfrac_lower95": ci_cf[0],
-            "cellfrac_mean": ci_cf[1],
-            "cellfrac_upper95": ci_cf[2],
-        }
-    else:
+            res_dict = {
+                "mother": mother,
+                "father": father,
+                "child": child,
+                "chrom": chrom,
+                "gain": np.nan,
+                "mosaic_sigma": np.nan,
+                "mle_theta": np.nan,
+                "lrt_theta": np.nan,
+                "cellfrac_lower95": np.nan,
+                "cellfrac_mean": np.nan,
+                "cellfrac_upper95": np.nan,
+            }
+    except ValueError:
         res_dict = {
             "mother": mother,
             "father": father,

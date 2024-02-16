@@ -35,8 +35,12 @@ if __name__ == "__main__":
                 mat_haps=baf_data["mat_haps"][:, ::5],
                 pat_haps=baf_data["pat_haps"][:, ::5],
                 pos=baf_data["pos"][::5],
+                algo="Powell",
                 unphased=snakemake.params["unphased"],
             )
+            # This generally indicates a nullisomy ...
+            if pi0_est <= 5e-2:
+                pi0_est = 0.5
             print("Finished meta HMM parameter estimation ...", file=sys.stderr)
             print("Starting meta HMM forward-backward algorithm", file=sys.stderr)
             gammas, states, karyotypes = hmm.forward_backward(
