@@ -33,11 +33,12 @@ if __name__ == "__main__":
             mat_haps = baf_data["mat_haps"]
             pat_haps = baf_data["pat_haps"]
         pi0_est, sigma_est = hmm.est_sigma_pi0(
-            bafs=baf_data["baf_embryo"],
-            pos=baf_data["pos"],
-            mat_haps=mat_haps,
-            pat_haps=pat_haps,
-            algo="Powell",
+            bafs=baf_data["baf_embryo"][::2],
+            pos=baf_data["pos"][::2],
+            mat_haps=mat_haps[:,::2],
+            pat_haps=pat_haps[:,::2],
+            r=1e-4,
+            a=1e-6,
             unphased=snakemake.params["unphased"],
         )
         # this is how a nullisomy would behave ...
@@ -52,6 +53,8 @@ if __name__ == "__main__":
             pat_haps=pat_haps,
             pi0=pi0_est,
             std_dev=sigma_est,
+            r=1e-4,
+            a=1e-6,
             unphased=snakemake.params["unphased"],
         )
         print(

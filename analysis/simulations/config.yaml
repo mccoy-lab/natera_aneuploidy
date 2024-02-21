@@ -1,7 +1,7 @@
 afs: "utils/HumanCytoSNP-12v2-1_NS550_A1.hg38.annotated.autosomes.total.1kg_af.txt.gz"
 hmm_sims:
   model_comp: true
-  mixed_ploidy: false 
+  mixed_ploidy: true 
   fpr: false 
   simple_sims:
     reps: 20
@@ -41,7 +41,6 @@ hmm_sims:
     m:
       - 1200
     std_dev:
-      - 5
       - 10
       - 20
       - 30

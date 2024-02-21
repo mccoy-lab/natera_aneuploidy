@@ -31,11 +31,12 @@ if __name__ == "__main__":
         else:
             hmm = MetaHMM()
             pi0_est, sigma_est = hmm.est_sigma_pi0(
-                bafs=baf_data["baf_embryo"][::5],
-                mat_haps=baf_data["mat_haps"][:, ::5],
-                pat_haps=baf_data["pat_haps"][:, ::5],
-                pos=baf_data["pos"][::5],
-                algo="Powell",
+                bafs=baf_data["baf_embryo"][::2],
+                mat_haps=baf_data["mat_haps"][:, ::2],
+                pat_haps=baf_data["pat_haps"][:, ::2],
+                pos=baf_data["pos"][::2],
+                r=1e-4,
+                a=1e-6,
                 unphased=snakemake.params["unphased"],
             )
             # This generally indicates a nullisomy ...
@@ -50,6 +51,8 @@ if __name__ == "__main__":
                 pos=baf_data["pos"],
                 pi0=pi0_est,
                 std_dev=sigma_est,
+                r=1e-4,
+                a=1e-6,
                 unphased=snakemake.params["unphased"],
             )
             print(
