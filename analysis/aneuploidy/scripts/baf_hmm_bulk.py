@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import pickle
 import gzip as gz
-from karyohmm import MetaHMM
+from karyohmm import MetaHMM, MosaicEst
 
 if __name__ == "__main__":
     # Read in the input data and params ...
@@ -30,6 +30,17 @@ if __name__ == "__main__":
             }
         else:
             hmm = MetaHMM()
+            m_est = MosaicEst(
+                mat_haps=baf_data["mat_haps"],
+                pat_haps=baf_data["pat_haps"],
+                bafs=baf_data["baf_embryo"],
+                pos=baf_data["pos"],
+            )
+            m_est.baf_hets()
+            prop01_exp_het = (
+                np.sum((m_est.het_bafs > 0.99) | (m_est.het_bafs < 0.01))
+                / m_est.het_bafs.size
+            )
             pi0_est, sigma_est = hmm.est_sigma_pi0(
                 bafs=baf_data["baf_embryo"][::2],
                 mat_haps=baf_data["mat_haps"][:, ::2],
@@ -69,6 +80,7 @@ if __name__ == "__main__":
                 [hmm.get_state_str(s) for s in states], dtype=str
             )
             res_dict["pos"] = baf_data["pos"]
+            res_dict["prop01_exp_het"] = prop01_exp_het
         try:
             res_dict["mother_id"] = snakemake.params["mother_id"]
             res_dict["father_id"] = snakemake.params["father_id"]
