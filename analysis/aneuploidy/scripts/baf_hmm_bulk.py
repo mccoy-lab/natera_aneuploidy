@@ -36,18 +36,21 @@ if __name__ == "__main__":
                 bafs=baf_data["baf_embryo"],
                 pos=baf_data["pos"],
             )
-            m_est.baf_hets()
-            prop01_exp_het = (
-                np.sum((m_est.het_bafs > 0.99) | (m_est.het_bafs < 0.01))
-                / m_est.het_bafs.size
-            )
+            try:
+                m_est.baf_hets()
+                prop01_exp_het = (
+                    np.sum((m_est.het_bafs > 0.99) | (m_est.het_bafs < 0.01))
+                    / m_est.het_bafs.size
+                )
+            except ValueError:
+                prop01_exp_het = np.nan
             pi0_est, sigma_est = hmm.est_sigma_pi0(
                 bafs=baf_data["baf_embryo"][::2],
                 mat_haps=baf_data["mat_haps"][:, ::2],
                 pat_haps=baf_data["pat_haps"][:, ::2],
                 pos=baf_data["pos"][::2],
-                r=1e-4,
-                a=1e-6,
+                r=1e-8,
+                a=1e-2,
                 unphased=snakemake.params["unphased"],
             )
             # This generally indicates a nullisomy ...
@@ -62,8 +65,8 @@ if __name__ == "__main__":
                 pos=baf_data["pos"],
                 pi0=pi0_est,
                 std_dev=sigma_est,
-                r=1e-4,
-                a=1e-6,
+                r=1e-8,
+                a=1e-2,
                 unphased=snakemake.params["unphased"],
             )
             print(
