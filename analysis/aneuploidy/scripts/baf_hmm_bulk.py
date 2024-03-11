@@ -24,6 +24,7 @@ if __name__ == "__main__":
                 "2": np.nan,
                 "3m": np.nan,
                 "3p": np.nan,
+                "prop01_exp_het": np.nan,
                 "sigma_baf": np.nan,
                 "pi0_baf": np.nan,
                 "aploid": baf_data["aploid"],
@@ -36,6 +37,8 @@ if __name__ == "__main__":
                 bafs=baf_data["baf_embryo"],
                 pos=baf_data["pos"],
             )
+
+            prop01_exp_het = np.nan
             try:
                 m_est.baf_hets()
                 prop01_exp_het = (
@@ -43,7 +46,7 @@ if __name__ == "__main__":
                     / m_est.het_bafs.size
                 )
             except ValueError:
-                prop01_exp_het = np.nan
+                pass
             pi0_est, sigma_est = hmm.est_sigma_pi0(
                 bafs=baf_data["baf_embryo"][::2],
                 mat_haps=baf_data["mat_haps"][:, ::2],
