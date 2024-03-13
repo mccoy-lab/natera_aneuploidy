@@ -68,26 +68,6 @@ day5_only <- function(ploidy_calls, metadata) {
   return(ploidy_calls)
 }
 
-# function to identify and remove embryos with whole genome gain/loss 
-# remove_wholegenome_gainloss <- function(ploidy_calls, parent, 
-#                                         max_meiotic = 3) {
-  
-#   # count number of single-chr aneuploidies in each embryo
-#   count_aneuploidies <- ploidy_calls %>% 
-#     group_by({{parent}}, child) %>% 
-#     summarise(num_aneuploidies = sum(bf_max_cat == "3m" | 
-#                                        bf_max_cat == "3p" |
-#                                        bf_max_cat == "1m" |
-#                                        bf_max_cat == "1p"))
-#   # keep only embryos with number of aneuploidies below the threshold 
-#   non_ploid <- count_aneuploidies[count_aneuploidies$num_aneuploidies 
-#                                    < max_meiotic,]              
-  
-#   # remove embryos affected by multiple aneuploidies 
-#   ploidy_calls <- ploidy_calls[ploidy_calls$child %in% non_ploid$child,]
-  
-#   return(ploidy_calls)
-# }
 
 # count number of embryos per parent affected by each phenotype 
 count_ploidy_by_parent <- function(ploidy_calls, parent, phenotype, 
@@ -123,11 +103,11 @@ count_ploidy_by_parent <- function(ploidy_calls, parent, phenotype,
     stop("Invalid 'phenotype' argument.")
   }
   
-  # add that complex aneu includes at least two unique types of aneu 
   # Count ploidies based on phenotype definition 
   result <- ploidy_calls %>%
     group_by({{parent}}, child) %>%
-    summarise(num_affected = sum(bf_max_cat %in% cn), unique_bf_max_cat = 
+    summarise(num_affected = sum(bf_max_cat %in% cn), 
+              unique_bf_max_cat = 
                 n_distinct(bf_max_cat[bf_max_cat %in% cn])) %>% 
     mutate(
       is_ploidy = case_when(
@@ -151,7 +131,7 @@ count_ploidy_by_parent <- function(ploidy_calls, parent, phenotype,
 }
 
 
-# generate the phenotype of choice 
+# generate the phenotype of interest 
 run_phenotype <- function(ploidy_calls, parent, metadata, phenotype,
                           filter_day_5 = TRUE, bayes_factor_cutoff = 2, 
                           nullisomy_threshold = 5, min_prob = 0.9,
