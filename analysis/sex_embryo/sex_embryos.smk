@@ -193,8 +193,8 @@ rule assign_sex_chrom_copy:
         karyo_tsv="results/natera_inference/{mother_id}+{father_id}/{child_id}.sex_chroms.total_ploidy.tsv",
     resources:
         partition="parallel",
-        time="0:30:00",
-        mem_mb="4G",
+        time="0:10:00",
+        mem_mb="2G",
     params:
         mother_id=lambda wildcards: f"{wildcards.mother_id}",
         father_id=lambda wildcards: f"{wildcards.father_id}",

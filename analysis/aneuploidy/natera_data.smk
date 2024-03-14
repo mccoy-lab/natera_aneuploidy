@@ -178,7 +178,6 @@ rule preprocess_baf_data:
     output:
         baf_pkl="results/natera_inference/{mother_id}+{father_id}/{child_id}.bafs.pkl.gz",
     resources:
-        partition="parallel",
         time="1:00:00",
         mem_mb="5G",
     wildcard_constraints:
@@ -196,7 +195,6 @@ rule hmm_model_comparison:
     output:
         hmm_pkl="results/natera_inference/{mother_id}+{father_id}/{child_id}.hmm_model.pkl.gz",
     resources:
-        partition="parallel",
         time="1:00:00",
         mem_mb="4G",
     params:
