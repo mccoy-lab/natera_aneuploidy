@@ -208,6 +208,15 @@ rule run_gwas_subset:
 #     shell:
 #         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
 
+rule merge_subsets: 
+    """Create single file for GWAS for each chromosome, merging all subsets"""
+    input:
+        expand()
+    output: 
+        gwas_output=gwas_results
+            + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
+    shell: 
+
 
 rule merge_chroms:
     """Create single file for each phenotype, merging all chromosomes"""
