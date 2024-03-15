@@ -123,6 +123,28 @@ rule vcf2bed:
         "plink2 --vcf {input.vcf_input} --keep-allele-order --double-id --make-bed --threads {threads} --out {params.outfix}"
 
 
+rule subset_vcf:
+    """Split each vcf into bcf subsets. Produce plink files for use in downstream GWAS """
+    input:
+        vcf_input=vcf_fp + "opticall_concat_{chrom}.norm.b38.vcf.gz",
+    output: 
+        tempdir=gwas_results + "/subset{chrom}"
+        mapfile=temp(gwas_results + "/subset_{chrom}/{}.txt")
+        bcffile=temp(gwas_results + "/subset_{chrom}/{}.bcf")
+        bedfile=gwas_results + "/subset_{chrom}/{}.bed"
+        bimfile=gwas_results + "/subset_{chrom}/{}.bim"
+        famfile=gwas_results + "/subset_{chrom}/{}.fam"
+        logfile=gwas_results + "/subset_{chrom}/{}.log"
+        nosexfile=gwas_results + "/subset_{chrom}/{}.nosex"
+    params: 
+    threads: 24
+    shell: 
+        """
+        mkdir -p {output.tempdir}
+        sbatch vcf_subsets.sh vcf_input {output.tempdir}
+        """
+
+
 rule generate_aneuploidy_phenotypes:
     """Make file for each aneuploidy phenotype"""
     input:
