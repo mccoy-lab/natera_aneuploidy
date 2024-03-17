@@ -126,22 +126,23 @@ rule vcf2bed:
 rule subset_vcf:
     """Split each vcf into bcf subsets. Produce plink files for use in downstream GWAS """
     input:
-        vcf_input=vcf_fp + "opticall_concat_{chrom}.norm.b38.vcf.gz",
+        vcf_subsets="scripts/vcf_subsets.sh",
+        vcf=vcf_fp + "opticall_concat_{chrom}.norm.b38.vcf.gz",
     output: 
-        tempdir=gwas_results + "/subset{chrom}"
-        mapfile=temp(gwas_results + "/subset_{chrom}/{}.txt")
-        bcffile=temp(gwas_results + "/subset_{chrom}/{}.bcf")
-        bedfile=gwas_results + "/subset_{chrom}/{}.bed"
-        bimfile=gwas_results + "/subset_{chrom}/{}.bim"
-        famfile=gwas_results + "/subset_{chrom}/{}.fam"
-        logfile=gwas_results + "/subset_{chrom}/{}.log"
-        nosexfile=gwas_results + "/subset_{chrom}/{}.nosex"
+        subset_dir=directory(gwas_results + "/subset_{chrom}"),
+        mapfile=temp(dynamic(subset_dir + "subset_{index}.txt")),
+        bcffile=temp(dynamic(subset_dir + "subset_{index}.bcf")),
+        bedfile=dynamic(subset_dir + "/subset_{index}.bed"),
+        bimfile=dynamic(subset_dir + "/subset_{index}.bim"),
+        famfile=dynamic(subset_dir + "/subset_{index}.fam"),
+        logfile=dynamic(subset_dir + "/subset_{index}.log"),
+        nosexfile=dynamic(subset_dir + "/subset_{index}.nosex")
     params: 
     threads: 24
     shell: 
         """
         mkdir -p {output.tempdir}
-        sbatch vcf_subsets.sh vcf_input {output.tempdir}
+        sbatch {input.vcf_subsets} {input.vcf} {output.tempdir}
         """
 
 
@@ -174,18 +175,20 @@ rule run_gwas_subset:
         bed=rules.subset_vcf.output.bedfile,
         discovery_test=general_outputs_fp + "discover_validate_split_{parent}.txt",
         parental_pcs=rules.run_plink_pca.output.eigenvec,
-        pheno=rules.generate_phenotypes.output.phenotype_file,
+        phenotype_file=rules.generate_phenotypes.output.phenotype_file,
         bim=rules.subset_vcf.output.bimfile,
     output:
         gwas_output=gwas_results
-        + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
+        + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{index}.tsv",
     threads: 32
     wildcard_constraints:
         dataset_type="discovery|test",
         phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
         parent="mother|father",
+    params:
+    	index=lambda wildcards, input: input.bed.split('/')[-1].split('.')[0] # get subset number from input bed
     shell:
-        "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
+        "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
 
 # rule run_gwas:
 #     """Run GWAS for each set of parameters"""
@@ -211,11 +214,18 @@ rule run_gwas_subset:
 rule merge_subsets: 
     """Create single file for GWAS for each chromosome, merging all subsets"""
     input:
-        expand()
+        expand(
+            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{index}.tsv",
+            phenotype=phenotypes,
+            parent=parents,
+            dataset_type=dataset_type,
+            index='*',
+        )
     output: 
         gwas_output=gwas_results
             + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
     shell: 
+    	"cat {input} > {output.gwas_output}"
 
 
 rule merge_chroms:
