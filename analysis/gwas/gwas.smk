@@ -180,7 +180,7 @@ rule run_gwas_subset:
     output:
         temp(gwas_output=gwas_results
         + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{index}.tsv"),
-    threads: 32
+    threads: 16
     wildcard_constraints:
         dataset_type="discovery|test",
         phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
