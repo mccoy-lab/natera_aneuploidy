@@ -29,7 +29,7 @@ discovery_test_split <- function(dataset_type, discovery_test, metadata, bed) {
 
 
 # Function to pre-process genotype info for each site 
-get_gt <- function(pcs, phenotype, bim, bed, bed_dataset_indices, snp_index, metadata) {
+get_gt <- function(bed, bed_dataset_indices, snp_index, metadata, phenotype, pcs) {
   
   # Make genotype file 
   gt <- data.table(names(bed[bed_dataset_indices, snp_index]), 
@@ -100,7 +100,7 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype, bed_dataset_indic
   snp_pos <- bim[snp_index]$pos
   
   # Get genotype info for each site 
-  gt <- get_gt(pcs, phenotype, bim, bed, bed_dataset_indices, snp_index, metadata)
+  gt <- get_gt(bed, bed_dataset_indices, snp_index, metadata, phenotype, pcs)
   
   # Make GWAS model 
   model <- make_model(parent, phenotype_name)
