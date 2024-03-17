@@ -25,8 +25,8 @@ phenotypes = [
     "maternal_meiotic_aneuploidy",
     "triploidy"
     ]
- parents = ["mother", "father"]
- dataset_type = ["discovery", "test"]
+parents = ["mother", "father"]
+dataset_type = ["discovery", "test"]
 
 # shell.prefix("set -o pipefail; ")
 
@@ -43,6 +43,28 @@ rule all:
 
 
 # -------- Functions to determine run GWAS on maternal and paternal for each phenotype -------- #
+rule generate_aneuploidy_phenotypes:
+    """Make file for each aneuploidy phenotype"""
+    input:
+        rscript="scripts/phenotypes/aneuploidy_phenotypes.R",
+        ploidy_calls=ploidy_calls,
+        metadata=metadata,
+    output:
+        phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
+    wildcard_constraints:
+        parent=parents,
+        phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy",
+    params:
+        filter_day_5="TRUE",
+        bayes_factor_cutoff=2,
+        nullisomy_threshold=5,
+        min_prob=0.9,
+        max_meiotic=3,
+        min_ploidy=15,
+    shell:
+        "Rscript --vanilla {input.rscript} {input.ploidy_calls} {wildcards.parent} {input.metadata} {wildcards.phenotype} {params.filter_day_5} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {params.min_prob} {params.max_meiotic} {params.min_ploidy} {output.phenotype_file}"  
+
+
 rule run_king:
     """Reformat parental genotypes vcf and run king to identify related individuals"""
     input:
@@ -129,43 +151,21 @@ rule subset_vcf:
         vcf_subsets="scripts/vcf_subsets.sh",
         vcf=vcf_fp + "opticall_concat_{chrom}.norm.b38.vcf.gz",
     output: 
-        subset_dir=directory(gwas_results + "/subset_{chrom}"),
-        mapfile=temp(dynamic(subset_dir + "subset_{index}.txt")),
-        bcffile=temp(dynamic(subset_dir + "subset_{index}.bcf")),
-        bedfile=dynamic(subset_dir + "/subset_{index}.bed"),
-        bimfile=dynamic(subset_dir + "/subset_{index}.bim"),
-        famfile=dynamic(subset_dir + "/subset_{index}.fam"),
-        logfile=dynamic(subset_dir + "/subset_{index}.log"),
-        nosexfile=dynamic(subset_dir + "/subset_{index}.nosex")
-    params: 
+        mapfile=temp(dynamic(gwas_results + "subset_{chrom}/subset_{index}.txt")),
+        bcffile=temp(dynamic(gwas_results + "subset_{chrom}/subset_{index}.bcf")),
+        bedfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.bed"),
+        bimfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.bim"),
+        famfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.fam"),
+        logfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.log"),
+        nosexfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.nosex")
     threads: 24
     shell: 
         """
-        mkdir -p {output.tempdir}
-        sbatch {input.vcf_subsets} {input.vcf} {output.tempdir}
+        subset_dir={output[0]}.dirname
+        mkdir -p {subset_dir}
+        sbatch {input.vcf_subsets} {input.vcf} {subset_dir}
         """
 
-
-rule generate_aneuploidy_phenotypes:
-    """Make file for each aneuploidy phenotype"""
-    input:
-        rscript="scripts/phenotypes/aneuploidy_phenotypes.R",
-        ploidy_calls=ploidy_calls,
-        metadata=metadata,
-    output:
-        phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
-    wildcard_constraints:
-        parent=parents,
-        phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy",
-    params:
-    	filter_day_5="TRUE",
-        bayes_factor_cutoff=2,
-        nullisomy_threshold=5,
-        min_prob=0.9,
-        max_meiotic=3,
-        min_ploidy=15,
-    shell:
-    	"Rscript --vanilla {input.rscript} {input.ploidy_calls} {wildcards.parent} {input.metadata} {wildcards.phenotype} {params.filter_day_5} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {params.min_prob} {params.max_meiotic} {params.min_ploidy} {output.phenotype_file}"  
 
 rule run_gwas_subset:
     """Run GWAS for each set of parameters, using the subsetted bed files"""
@@ -175,11 +175,11 @@ rule run_gwas_subset:
         bed=rules.subset_vcf.output.bedfile,
         discovery_test=general_outputs_fp + "discover_validate_split_{parent}.txt",
         parental_pcs=rules.run_plink_pca.output.eigenvec,
-        phenotype_file=rules.generate_phenotypes.output.phenotype_file,
+        phenotype_file=rules.generate_aneuploidy_phenotypes.output.phenotype_file,
         bim=rules.subset_vcf.output.bimfile,
     output:
-        gwas_output=gwas_results
-        + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{index}.tsv",
+        temp(gwas_output=gwas_results
+        + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{index}.tsv"),
     threads: 32
     wildcard_constraints:
         dataset_type="discovery|test",
@@ -189,6 +189,7 @@ rule run_gwas_subset:
     	index=lambda wildcards, input: input.bed.split('/')[-1].split('.')[0] # get subset number from input bed
     shell:
         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
+
 
 # rule run_gwas:
 #     """Run GWAS for each set of parameters"""
@@ -211,6 +212,7 @@ rule run_gwas_subset:
 #     shell:
 #         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
 
+
 rule merge_subsets: 
     """Create single file for GWAS for each chromosome, merging all subsets"""
     input:
@@ -219,13 +221,15 @@ rule merge_subsets:
             phenotype=phenotypes,
             parent=parents,
             dataset_type=dataset_type,
-            index='*',
+            chrom=range(1,23),
+            index=lambda wildcards: wildcards.index,
         )
     output: 
         gwas_output=gwas_results
             + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
     shell: 
     	"cat {input} > {output.gwas_output}"
+
 
 
 rule merge_chroms:
