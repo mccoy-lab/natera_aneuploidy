@@ -239,6 +239,6 @@ rule merge_chroms:
             chrom=range(1, 23),
         ),
     output:
-        merged_file=gwas_results + "gwas_{phenotype}_{parent}_total.tsv.gz",
+        merged_file=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
     shell:
         "cat {input} | gzip > {output.merged_file}"
