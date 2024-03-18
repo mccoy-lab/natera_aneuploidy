@@ -15,7 +15,7 @@ metadata = (
 pcs_out = "results/parental_genotypes_pcs/"
 ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.bph_sph_trisomy.full_annotation.112023.filter_bad_trios.tsv.gz"
 gwas_results = "results/gwas/"
-
+imputed_vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra"
 
 # Define the parameters that the pipeline will run on
 chroms = range(1, 24)
@@ -145,12 +145,33 @@ rule vcf2bed:
         "plink2 --vcf {input.vcf_input} --keep-allele-order --double-id --make-bed --threads {threads} --out {params.outfix}"
 
 
-rule subset_vcf:
-    """Split each vcf into bcf subsets. Produce plink files for use in downstream GWAS """
+rule make_vcf_maps:
     input:
-        vcf_subsets="scripts/vcf_subsets.sh",
-        vcf=vcf_fp + "opticall_concat_{chrom}.norm.b38.vcf.gz",
-    output: 
+        input_vcf=imputed_vcf_fp + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
+        outdir=gwas_results + "subset_{chrom}",
+    output:
+        map_files=expand("{outdir}/{prefix}.txt", prefix="{prefix}"),
+        maplist_file="{outdir}/mapfiles_{prefix}.txt"
+    resources:
+        mem_mb=1000
+    params:
+    	lines_per_map=5000
+    threads: 1
+    run:
+        prefix = basename(input.input_vcf).split(".vcf.gz")[0]
+    shell:
+    	"""
+    	bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} | split -l {params.lines_per_map} -d --additional-suffix=".txt" - {input.outdir}/{prefix}
+    	ls "{input.outdir}/{prefix}"*".txt" > {output.maplist_file}
+    	"""
+
+
+rule bed_split_vcf:
+    input:
+        map_file=lambda wc: "output_files/mapfiles_{}.txt".format(wc.map_files[0].split('/')[-1].split('_')[1]),
+        input_vcf=imputed_vcf_fp + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
+        outdir=gwas_results + "subset_{chrom}"
+    output:
         mapfile=temp(dynamic(gwas_results + "subset_{chrom}/subset_{index}.txt")),
         bcffile=temp(dynamic(gwas_results + "subset_{chrom}/subset_{index}.bcf")),
         bedfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.bed"),
@@ -158,13 +179,16 @@ rule subset_vcf:
         famfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.fam"),
         logfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.log"),
         nosexfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.nosex")
-    threads: 24
-    shell: 
-        """
-        subset_dir={output[0]}.dirname
-        mkdir -p {subset_dir}
-        sbatch {input.vcf_subsets} {input.vcf} {subset_dir}
-        """
+    resources:
+        mem_mb=1000
+        tasks=len(input.map_files)
+    threads: 1
+    shell:
+    	"""
+    	n=$(wc -l < "${outdir}/mapfiles_${prefix}.txt")
+    	bcftools view -T $map_name -Ob $input_vcf > "${outdir}/${prefix}.bcf"
+    	plink --bcf "${outdir}/${prefix}.bcf" --double-id --allow-extra-chr --make-bed --out "${outdir}/${prefix}"
+    	"""
 
 
 rule run_gwas_subset:
