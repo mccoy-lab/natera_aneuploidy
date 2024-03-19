@@ -12,7 +12,7 @@ from io import StringIO
 # ---- Parameters for post whole-chromosome aneuploidy inference in Natera Data ---- #
 metadata_file = "../../data/spectrum_metadata_merged.csv"
 centromeres_file = "../../data/gaps/centromeres_grch38.bed"
-aneuploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v20.020724.tsv.gz"
+aneuploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.031624.tsv.gz"
 results_dir = "../aneuploidy/results/natera_inference"
 
 
