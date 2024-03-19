@@ -211,11 +211,9 @@ rule bed_split_vcf:
         nosexfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.nosex")
     resources:
         mem_mb=1000
-        tasks=len(input.map_files)
     threads: 1
     shell:
     	"""
-    	n=$(wc -l < "${outdir}/mapfiles_${prefix}.txt")
     	bcftools view -T $map_name -Ob $input_vcf > "${outdir}/${prefix}.bcf"
     	plink --bcf "${outdir}/${prefix}.bcf" --double-id --allow-extra-chr --make-bed --out "${outdir}/${prefix}"
     	"""
