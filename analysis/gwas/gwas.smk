@@ -17,6 +17,34 @@ ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/
 gwas_results = "results/gwas/"
 imputed_vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra"
 
+
+# Dictionary of number of files to chunk each vcf into in `split`
+chunks_dict = {
+    "chr1": 20,
+    "chr2": 20,
+    "chr3": 20,
+    "chr4": 20,
+    "chr5": 20,
+    "chr6": 20,
+    "chr7": 20,
+    "chr8": 20,
+    "chr9": 5,
+    "chr10": 20,
+    "chr11": 20,
+    "chr12": 20,
+    "chr13": 20,
+    "chr14": 20,
+    "chr15": 20,
+    "chr16": 20,
+    "chr17": 20,
+    "chr18": 20,
+    "chr19": 20,
+    "chr20": 20,
+    "chr21": 20,
+    "chr22": 20,
+    "chr23": 20,
+}
+
 # Define the parameters that the pipeline will run on
 chroms = range(1, 24)
 phenotypes = [
@@ -150,18 +178,20 @@ rule make_vcf_maps:
         input_vcf=imputed_vcf_fp + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
         outdir=gwas_results + "subset_{chrom}",
     output:
+        overall_map=temp("{outdir}/mapfiles_{chrom}.txt")
         map_files=expand("{outdir}/{prefix}.txt", prefix="{prefix}"),
         maplist_file="{outdir}/mapfiles_{prefix}.txt"
     resources:
         mem_mb=1000
     params:
-    	lines_per_map=5000
+    	nchunks=lambda wildcards: chunks_dict[wildcards.chrom],
     threads: 1
     run:
         prefix = basename(input.input_vcf).split(".vcf.gz")[0]
     shell:
     	"""
-    	bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} | split -l {params.lines_per_map} -d --additional-suffix=".txt" - {input.outdir}/{prefix}
+    	bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.overall_map}
+    	split -n {params.nchunks} {output.overall_map} "{input.outdir}/{prefix}"*".txt" --additional-suffix=".txt"
     	ls "{input.outdir}/{prefix}"*".txt" > {output.maplist_file}
     	"""
 
