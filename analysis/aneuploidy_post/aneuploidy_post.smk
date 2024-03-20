@@ -19,6 +19,11 @@ results_dir = "../aneuploidy/results/natera_inference"
 # ------- Rules Section ------- #
 localrules:
     all,
+    isolate_trisomies,
+    isolate_putative_mosaics,
+    aggregate_bph_sph,
+    run_aneuploidy_filtering,
+    merge_aneuploidy_bph_sph_mosaic,
 
 
 def expand_bph_sph(fp="results/bph_sph/valid_trisomies.txt"):
@@ -56,7 +61,7 @@ def expand_mosaic_est(fp="results/mosaic_est/valid_mosaics.txt"):
 
 rule all:
     input:
-        "results/mosaic_est/natera.total.mosaic_est.tsv.gz",
+        # "results/mosaic_est/natera.total.mosaic_est.tsv.gz",
         "results/bph_sph/natera.total.bph_sph.tsv.gz",
         "results/filt_aneuploidy.tsv.gz",
 
@@ -95,7 +100,6 @@ rule trisomy_bph_sph:
     output:
         bph_tsv="results/bph_sph/inferred/{mother}+{father}+{child}.{chrom}.tsv",
     resources:
-        partition="parallel",
         time="0:10:00",
         mem_mb="3G",
     params:
@@ -152,7 +156,6 @@ rule mosaic_est:
     output:
         mosaic_tsv="results/mosaic_est/inferred/{mother}+{father}+{child}.{chrom}.tsv",
     resources:
-        partition="parallel",
         time="0:10:00",
         mem_mb="3G",
     script:
