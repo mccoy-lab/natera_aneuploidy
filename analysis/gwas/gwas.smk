@@ -177,24 +177,24 @@ rule vcf2bed:
 rule make_vcf_maps:
     input:
         input_vcf=imputed_vcf_fp + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
-        outdir=directory(gwas_results + "subset_{chrom}"),
     output:
-        overall_map=temp("{outdir}/mapfiles_{chrom}.txt")
-        map_files=expand("{outdir}/{prefix}_.txt", prefix="{prefix}"),
-        maplist_file="{outdir}/mapfiles_{prefix}.txt"
+    	outdir=directory(gwas_results + "subset_{chrom}"),
+        overall_map=temp("{output.outdir}/mapfiles_{chrom}.txt"),
+        maplist_file="{output.outdir}/mapfiles_{prefix}.txt"
     resources:
         mem_mb=1000
     params:
     	nchunks=lambda wildcards: chunks_dict[wildcards.chrom],
     threads: 1
     run:
-        prefix = basename(input.input_vcf).split(".vcf.gz")[0]
-    shell:
-    	"""
-    	bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.overall_map}
-    	split -n {params.nchunks} {output.overall_map} "{input.outdir}/{prefix}_"*".txt" --additional-suffix=".txt"
-    	ls "{input.outdir}/{prefix}_"*".txt" > {output.maplist_file}
-    	"""
+        prefix=basename(input.input_vcf).split(".vcf.gz")[0]
+        shell(
+            """
+            bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.overall_map}
+            split -n {params.nchunks} {output.overall_map} {output.outdir}_{prefix} --additional-suffix=".txt"
+            ls {map_files_pattern} > {maplist_file_path}
+            """
+        )
 
 
 rule bed_split_vcf:
