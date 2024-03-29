@@ -40,19 +40,19 @@ chunks_dict = {
     "chr17": 20,
     "chr18": 20,
     "chr19": 20,
-    "chr20": 20,
+    "chr20": 23,
     "chr21": 20,
     "chr22": 25,
     "chr23": 20,
 }
 
 # Define the parameters that the pipeline will run on
-chroms = range(1, 24)
+chroms = range(20, 23)
 phenotypes = [
     "embryo_count",
-    "haploidy",
-    "maternal_meiotic_aneuploidy",
-    "triploidy"
+    #"haploidy",
+    #"maternal_meiotic_aneuploidy",
+    #"triploidy"
     ]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
@@ -252,22 +252,31 @@ rule run_gwas_subset:
         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
 
 
-rule merge_subsets: 
-    """Create single file for GWAS for each chromosome, merging all subsets"""
-    input:
-        expand(
-            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
-            phenotype=phenotypes,
-            parent=parents,
-            dataset_type=dataset_type,
-            chrom=chroms,
-            chunk=lambda wildcards: range(1, chunks_dict.get(wildcards.chrom, 1) + 1),,
-        )
-    output: 
-        gwas_output=gwas_results
-            + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
-    shell: 
-    	"cat {input} > {output.gwas_output}"
+# rule merge_subsets: 
+#     """Create single file for GWAS for each chromosome, merging all subsets"""
+#     input:
+#         expand(
+#             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
+#             phenotype=phenotypes,
+#             parent=parents,
+#             dataset_type=dataset_type,
+#             chrom=chroms,
+#             chunk=lambda wildcards: range(1, chunks_dict.get(wildcards.chrom, 1) + 1)
+#         )
+#     output: 
+#         gwas_output=temp(gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv")
+#     shell: 
+#     	"cat {input} > {output.gwas_output}"
+
+# rule merge_subsets: 
+#     """Create single file for GWAS for each chromosome, merging all subsets"""
+#     input:
+#         gwas_input=rules.run_gwas_subset.output.gwas_output,
+#     output: 
+#         gwas_output=temp(gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv")
+#     shell: 
+#     	"cat {input} > {output.gwas_output}"
+
 
 
 rule merge_chroms:
@@ -278,11 +287,12 @@ rule merge_chroms:
             phenotype=phenotypes,
             parent=parents,
             dataset_type=dataset_type,
-            chrom=range(21,23),
+            chrom=range(20,23),
         ),
     output:
         merged_file=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
     shell:
         "cat {input} | gzip > {output.merged_file}"
+
 
 
