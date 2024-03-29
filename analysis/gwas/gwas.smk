@@ -257,11 +257,11 @@ rule merge_subsets:
     input:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
-            phenotype="maternal_meiotic_aneuploidy",
-            parent="mother",
-            dataset_type="discovery",
-            chrom=22,
-            chunk=range(4,7),
+            phenotype=phenotypes,
+            parent=parents,
+            dataset_type=dataset_type,
+            chrom=chroms,
+            chunk=lambda wildcards: range(1, chunks_dict.get(wildcards.chrom, 1) + 1),,
         )
     output: 
         gwas_output=gwas_results
