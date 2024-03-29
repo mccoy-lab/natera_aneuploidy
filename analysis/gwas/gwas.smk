@@ -252,29 +252,6 @@ rule run_gwas_subset:
         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
 
 
-
-# rule run_gwas:
-#     """Run GWAS for each set of parameters"""
-#     input:
-#         gwas_rscript="scripts/gwas/gwas_all.R",
-#         metadata=metadata,
-#         bed=rules.vcf2bed.output.bedfile,
-#         discovery_test=general_outputs_fp + "discover_validate_split_{parent}.txt",
-#         parental_pcs=rules.run_plink_pca.output.eigenvec,
-#         pheno=rules.generate_phenotypes.output.phenotype_file,
-#         bim=rules.vcf2bed.output.bimfile,
-#     output:
-#         gwas_output=gwas_results
-#         + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
-#     threads: 32
-#     wildcard_constraints:
-#         dataset_type="discovery|test",
-#         phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
-#         parent="mother|father",
-#     shell:
-#         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
-
-
 rule merge_subsets: 
     """Create single file for GWAS for each chromosome, merging all subsets"""
     input:
