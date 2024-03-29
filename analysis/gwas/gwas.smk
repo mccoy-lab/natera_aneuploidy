@@ -15,13 +15,13 @@ metadata = (
 pcs_out = "results/parental_genotypes_pcs/"
 ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.bph_sph_trisomy.full_annotation.112023.filter_bad_trios.tsv.gz"
 gwas_results = "results/gwas/"
-imputed_vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra"
+imputed_vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/"
 
 
 # Dictionary of number of files to chunk each vcf into in `split`
 # executed by /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/count_and_split.sh
 chunks_dict = {
-    "chr1": 20,
+    "chr1": 60,
     "chr2": 20,
     "chr3": 20,
     "chr4": 20,
@@ -42,7 +42,7 @@ chunks_dict = {
     "chr19": 20,
     "chr20": 20,
     "chr21": 20,
-    "chr22": 20,
+    "chr22": 25,
     "chr23": 20,
 }
 
@@ -67,7 +67,7 @@ rule all:
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
             phenotype=phenotypes,
             parent=parents,
-            dataset_type=dataset_type,
+            dataset_type=dataset_type
         ),
 
 
@@ -174,50 +174,59 @@ rule vcf2bed:
         "plink2 --vcf {input.vcf_input} --keep-allele-order --double-id --make-bed --threads {threads} --out {params.outfix}"
 
 
-rule make_vcf_maps:
+rule get_chrom_pos:
     input:
         input_vcf=imputed_vcf_fp + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
     output:
-    	outdir=directory(gwas_results + "subset_{chrom}"),
-        overall_map=temp("{output.outdir}/mapfiles_{chrom}.txt"),
-        maplist_file="{output.outdir}/mapfiles_{prefix}.txt"
-    resources:
-        mem_mb=1000
-    params:
-    	nchunks=lambda wildcards: chunks_dict[wildcards.chrom],
-    threads: 1
-    run:
-        prefix=basename(input.input_vcf).split(".vcf.gz")[0]
-        shell(
-            """
-            bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.overall_map}
-            split -n {params.nchunks} {output.overall_map} {output.outdir}_{prefix} --additional-suffix=".txt"
-            ls {map_files_pattern} > {maplist_file_path}
-            """
-        )
-
-
-rule bed_split_vcf:
-    input:
-        map_file=lambda wc: "output_files/mapfiles_{}.txt".format(wc.map_files[0].split('/')[-1].split('_')[1]),
-        input_vcf=imputed_vcf_fp + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
-        outdir = directory(gwas_results + "subset_{chrom}")
-    output:
-        mapfile=temp(dynamic(gwas_results + "subset_{chrom}/subset_{index}.txt")),
-        bcffile=temp(dynamic(gwas_results + "subset_{chrom}/subset_{index}.bcf")),
-        bedfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.bed"),
-        bimfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.bim"),
-        famfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.fam"),
-        logfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.log"),
-        nosexfile=dynamic(gwas_results + "subset_{chrom}/subset_{index}.nosex")
+        chrom_mapfile=gwas_results + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra.txt",
     resources:
         mem_mb=1000
     threads: 1
     shell:
+        """
+        bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.chrom_mapfile}
+        """
+
+
+rule make_vcf_maps:
+    input:
+        chrom_mapfile=rules.get_chrom_pos.output.chrom_mapfile,
+    output:
+        mapfile=gwas_results + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.txt"
+    resources:
+        mem_mb=1000
+    params:
+        nchunks=lambda wildcards: chunks_dict[f'chr{wildcards.chrom}'],
+    threads: 1
+    shell:
+        """
+        awk -v N={params.nchunks} -v chunk={wildcards.chunk} \'NR % N == chunk {{print $0}}\' {input.chrom_mapfile} > {output.mapfile}        
+        """
+
+
+rule bed_split_vcf:
+    input:
+        mapfile=rules.make_vcf_maps.output.mapfile, 
+        input_vcf=imputed_vcf_fp + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
+    output:
+        bcf=gwas_results+"subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bcf",
+        bed=gwas_results+"subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bed",
+        bim=gwas_results+"subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bim",
+        fam=gwas_results+"subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.fam",
+        log=gwas_results+"subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.log",
+        nosex=gwas_results+"subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.nosex"
+    resources:
+        mem_mb=1000
+    params:
+        nchunks=lambda wildcards: chunks_dict[f'chr{wildcards.chrom}'],
+        outfix=gwas_results + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}",
+    threads: 1
+    shell:
     	"""
-    	map_name=$(<"{input.map_file}")
-    	bcftools view -T $map_name -Ob $input_vcf > "${outdir}/${prefix}.bcf"
-    	plink --bcf "${outdir}/${prefix}.bcf" --double-id --allow-extra-chr --make-bed --out "${outdir}/${prefix}"
+    	input_filename=$(basename {input.mapfile})
+        prefix="${{input_filename%.txt}}"
+    	bcftools view -T {input.mapfile} -Ob {input.input_vcf} > {output.bcf}
+    	plink --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
     	"""
 
 
@@ -226,23 +235,22 @@ rule run_gwas_subset:
     input:
         gwas_rscript="scripts/gwas/gwas_all.R",
         metadata=metadata,
-        bed=rules.subset_vcf.output.bedfile,
+        bed=rules.bed_split_vcf.output.bed,
         discovery_test=general_outputs_fp + "discover_validate_split_{parent}.txt",
         parental_pcs=rules.run_plink_pca.output.eigenvec,
         phenotype_file=rules.generate_aneuploidy_phenotypes.output.phenotype_file,
-        bim=rules.subset_vcf.output.bimfile,
+        bim=rules.bed_split_vcf.output.bim,
     output:
-        temp(gwas_output=gwas_results
-        + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{index}.tsv"),
+        gwas_output=gwas_results
+        + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
     threads: 16
     wildcard_constraints:
         dataset_type="discovery|test",
         phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
         parent="mother|father",
-    params:
-    	index=lambda wildcards, input: input.bed.split('/')[-1].split('.')[0] # get subset number from input bed
     shell:
         "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
+
 
 
 # rule run_gwas:
@@ -271,12 +279,12 @@ rule merge_subsets:
     """Create single file for GWAS for each chromosome, merging all subsets"""
     input:
         expand(
-            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{index}.tsv",
-            phenotype=phenotypes,
-            parent=parents,
-            dataset_type=dataset_type,
-            chrom=range(1,23),
-            index=lambda wildcards: wildcards.index,
+            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
+            phenotype="maternal_meiotic_aneuploidy",
+            parent="mother",
+            dataset_type="discovery",
+            chrom=22,
+            chunk=range(4,7),
         )
     output: 
         gwas_output=gwas_results
@@ -285,18 +293,19 @@ rule merge_subsets:
     	"cat {input} > {output.gwas_output}"
 
 
-
 rule merge_chroms:
-    """Create single file for each phenotype, merging all chromosomes"""
+    """Create single file for each phenotype/parent/dataset, merging all chromosomes"""
     input:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
             phenotype=phenotypes,
             parent=parents,
             dataset_type=dataset_type,
-            chrom=range(1, 23),
+            chrom=range(21,23),
         ),
     output:
         merged_file=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
     shell:
         "cat {input} | gzip > {output.merged_file}"
+
+
