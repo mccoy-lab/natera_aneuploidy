@@ -40,24 +40,21 @@ chunks_dict = {
     "chr17": 20,
     "chr18": 20,
     "chr19": 20,
-    "chr20": 23,
+    "chr20": 20,
     "chr21": 20,
     "chr22": 25,
     "chr23": 20,
 }
 
 # Define the parameters that the pipeline will run on
-chroms = range(20, 23)
+chroms = range(1, 24)
 phenotypes = [
-    #"embryo_count",
-    #"haploidy",
+    "embryo_count",
+    "haploidy",
     "maternal_meiotic_aneuploidy",
-    #"triploidy"
+    "triploidy"
     ]
-parents = [
-    "mother", 
-    #"father"
-    ]
+parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
 
 # shell.prefix("set -o pipefail; ")
@@ -226,19 +223,11 @@ rule bed_split_vcf:
     threads: 1
     shell:
     	"""
-        input_filename=$(basename {input.mapfile})
+    	input_filename=$(basename {input.mapfile})
         prefix="${{input_filename%.txt}}"
     	bcftools view -T {input.mapfile} -Ob {input.input_vcf} > {output.bcf}
     	plink --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
     	"""
-
-rule make_gwas_dir:
-    output:
-        gwas_dir_path=directory(gwas_results + "dir_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}")
-    shell:
-        """
-        mkdir -p {output.gwas_dir_path}
-        """
 
 
 rule run_gwas_subset:
@@ -252,63 +241,48 @@ rule run_gwas_subset:
         phenotype_file=rules.generate_aneuploidy_phenotypes.output.phenotype_file,
         bim=rules.bed_split_vcf.output.bim,
     output:
-        #gwas_output=rules.make_gwas_dir.output.gwas_dir_path + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
-        gwas_output=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv"
+        gwas_output=gwas_results
+        + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
     threads: 16
     wildcard_constraints:
         dataset_type="discovery|test",
         phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
         parent="mother|father",
     shell:
-    	"""
-    	Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}
-    	"""
+        "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
 
-rule dummy:
+
+rule merge_subsets: 
+    """Create single file for GWAS for each chromosome, merging all subsets"""
     input:
-        lambda wildcards: expand(gwas_results
-            + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}/gwas_{phenotype}_by_{parent}_{dataset_type}_5.tsv", 
+        expand(
+            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
             phenotype="maternal_meiotic_aneuploidy",
             parent="mother",
             dataset_type="discovery",
-            chrom=range(21,23))
-
-# rule merge_gwas_chunks:
-#     input:
-#         gwas_dir_path=rules.make_gwas_dir.output.gwas_dir_path
-#     output:
-#         merged=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv"
-#     wildcard_constraints:
-#         dataset_type="discovery|test",
-#         phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
-#         parent="mother|father",
-#     shell:
-#         """
-#         cat {input.gwas_dir_path}/gwas_* > {output.merged}
-#         """
+            chrom=22,
+            chunk=range(4,7),
+        )
+    output: 
+        gwas_output=gwas_results
+            + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
+    shell: 
+    	"cat {input} > {output.gwas_output}"
 
 
-
-# # Rule to merge all files for a particular combination of variables
-# rule merge_all:
-#     input:
-#         expand(gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv", phenotype="{phenotype}", parent="{parent}", dataset_type="{dataset_type}", chrom=range(1,23))
-#     output:
-#         gwas_merged=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz"
-#     shell:
-#         "cat {input} | gzip > {output.gwas_merged}"
-
-# Rule to merge all files for a particular combination of variables
-rule merge_all:
+rule merge_chroms:
+    """Create single file for each phenotype/parent/dataset, merging all chromosomes"""
     input:
-        expand(gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv", 
-            phenotype="{phenotype}", 
-            parent="{parent}", 
-            dataset_type="{dataset_type}", 
-            chrom=range(20,23), 
-            chunk=lambda wildcards: range(1, chunks_dict[f"chr{wildcards.chrom}"] + 1)
-            )
+        expand(
+            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
+            phenotype=phenotypes,
+            parent=parents,
+            dataset_type=dataset_type,
+            chrom=range(21,23),
+        ),
     output:
-        gwas_merged=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz"
+        merged_file=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
     shell:
-        "cat {input} | gzip > {output.gwas_merged}"
+        "cat {input} | gzip > {output.merged_file}"
+
+
