@@ -30,8 +30,8 @@ if __name__ == "__main__":
     sim_cf = np.sum(data["ploidies"] != 2) / data["ploidies"].size
     sigma = data["std_dev"]
     ci_cf = [
-        m_est.est_cf(theta=ci_theta[0], gain=False),
-        m_est.est_cf(theta=ci_theta[1], gain=False),
+        m_est.est_cf(theta=ci_theta[0], gain=gain),
+        m_est.est_cf(theta=ci_theta[1], gain=gain),
         m_est.est_cf(theta=ci_theta[2], gain=gain),
     ]
     exp_het_results = [
@@ -54,8 +54,8 @@ if __name__ == "__main__":
     sim_cf = np.sum(data["ploidies"] != 2) / data["ploidies"].size
     sigma = data["std_dev"]
     ci_cf = [
-        m_est.est_cf(theta=ci_theta[0], gain=False),
-        m_est.est_cf(theta=ci_theta[1], gain=False),
+        m_est.est_cf(theta=ci_theta[0], gain=gain),
+        m_est.est_cf(theta=ci_theta[1], gain=gain),
         m_est.est_cf(theta=ci_theta[2], gain=gain),
     ]
     exp_het_results_default = [
@@ -83,8 +83,8 @@ if __name__ == "__main__":
     sim_cf = np.sum(data["ploidies"] != 2) / data["ploidies"].size
     sigma = data["std_dev"]
     ci_cf = [
-        m_est.est_cf(theta=ci_theta[0], gain=False),
-        m_est.est_cf(theta=ci_theta[1], gain=False),
+        m_est.est_cf(theta=ci_theta[0], gain=gain),
+        m_est.est_cf(theta=ci_theta[1], gain=gain),
         m_est.est_cf(theta=ci_theta[2], gain=gain),
     ]
     viterbi_het_results = [
@@ -107,8 +107,8 @@ if __name__ == "__main__":
     sim_cf = np.sum(data["ploidies"] != 2) / data["ploidies"].size
     sigma = data["std_dev"]
     ci_cf = [
-        m_est.est_cf(theta=ci_theta[0], gain=False),
-        m_est.est_cf(theta=ci_theta[1], gain=False),
+        m_est.est_cf(theta=ci_theta[0], gain=gain),
+        m_est.est_cf(theta=ci_theta[1], gain=gain),
         m_est.est_cf(theta=ci_theta[2], gain=gain),
     ]
     viterbi_het_results_default = [

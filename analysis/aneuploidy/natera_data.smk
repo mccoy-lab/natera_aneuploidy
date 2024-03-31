@@ -105,6 +105,7 @@ if Path("results/natera_inference/valid_trios.txt").is_file():
 localrules:
     all,
     hmm_model_chromosomes,
+    generate_posterior_table,
 
 
 rule all:
@@ -235,7 +236,7 @@ rule hmm_model_chromosomes:
         with open(output.ploidy, "w") as out:
             full_hmm_output = pickle.load(gzip.open(input.hmm_models, "r"))
             out.write(
-                "mother\tfather\tchild\tchrom\tsigma_baf\tpi0_baf\t0\t1m\t1p\t2\t3m\t3p\tbf_max\tbf_max_cat\n"
+                "mother\tfather\tchild\tchrom\tsigma_baf\tpi0_baf\t0\t1m\t1p\t2\t3m\t3p\tbf_max\tbf_max_cat\tprop01_exp_het\n"
             )
             cats = np.array(["0", "1m", "1p", "2", "3m", "3p"])
             for c in chroms:
@@ -245,7 +246,7 @@ rule hmm_model_chromosomes:
                 max_bf = np.max(bayes_factor_chrom)
                 max_cat = cats[np.argmax(bayes_factor_chrom)]
                 out.write(
-                    f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{c}\t{data['sigma_baf']}\t{data['pi0_baf']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\t{max_bf}\t{max_cat}\n"
+                    f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{c}\t{data['sigma_baf']}\t{data['pi0_baf']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\t{max_bf}\t{max_cat}\t{data['prop01_exp_het']}\n"
                 )
 
 

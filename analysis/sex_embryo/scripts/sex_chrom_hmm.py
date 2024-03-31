@@ -13,11 +13,11 @@ chrX_states = [
     (0, -1, 0, -1),
     (1, -1, 0, -1),
     (0, 0, -1, -1),
-    (1, 1, -1, -1),
     (0, 1, -1, -1),
+    (1, 1, -1, -1),
     (0, 0, 0, -1),
-    (1, 1, 0, -1),
     (0, 1, 0, -1),
+    (1, 1, 0, -1),
 ]
 chrX_state_names = [
     "x0",
@@ -57,13 +57,14 @@ def bayes_factor(posteriors, priors=None):
     return bfs
 
 
-def posterior_chrX_karyotype(bafs, mat_haps, pat_haps, **kwargs):
+def posterior_chrX_karyotype(bafs, pos, mat_haps, pat_haps, **kwargs):
     """Compute the posterior karyotype"""
     assert bafs.ndim == 1
     assert mat_haps.ndim == 2
     assert pat_haps.ndim == 2
     assert bafs.size == mat_haps.shape[1]
     assert bafs.size == pat_haps.shape[1]
+    assert bafs.size == pos.size
     # Check for heterozygotes in the male X
     if np.any(np.sum(pat_haps, axis=0) == 1):
         warnings.warn(
@@ -75,10 +76,13 @@ def posterior_chrX_karyotype(bafs, mat_haps, pat_haps, **kwargs):
     hmm.states = chrX_states
     hmm.karyotypes = np.array(chrX_state_names, dtype=str)
     # 2: first estimate the HMM parameters
-    pi0_est, sigma_est = hmm.est_sigma_pi0(bafs, mat_haps, pat_haps, r=1e-4)
+    pi0_est, sigma_est = hmm.est_sigma_pi0(
+        bafs=bafs, pos=pos, mat_haps=mat_haps, pat_haps=pat_haps
+    )
     # 3: run fwd-bwd decoding for the HMM
     gammas, states, karyotypes = hmm.forward_backward(
         bafs=bafs,
+        pos=pos,
         mat_haps=mat_haps,
         pat_haps=pat_haps,
         pi0=pi0_est,
@@ -96,7 +100,7 @@ def posterior_chrX_karyotype(bafs, mat_haps, pat_haps, **kwargs):
     return res_dict
 
 
-def posterior_chrY_karyotype(bafs, pat_haps, **kwargs):
+def posterior_chrY_karyotype(bafs, pos, pat_haps, **kwargs):
     """Compute the log-likelihood of the embryo BAF conditional on the number of Y-chromosome copies."""
     assert bafs.ndim == 1
     assert pat_haps.ndim == 2
@@ -112,11 +116,16 @@ def posterior_chrY_karyotype(bafs, pat_haps, **kwargs):
     hmm.states = chrY_states
     hmm.karyotypes = np.array(chrY_state_names, dtype=str)
     pi0_est, sigma_est = hmm.est_sigma_pi0(
-        bafs, mat_haps, pat_haps, sigma_bounds=(1e-2, 0.4), r=1e-4
+        bafs=bafs,
+        pos=pos,
+        mat_haps=mat_haps,
+        pat_haps=pat_haps,
+        sigma_bounds=(1e-2, 0.4),
     )
     # 2. run fwd-bwd decoding for the HMM for state probabilities
     gammas, states, karyotypes = hmm.forward_backward(
         bafs=bafs,
+        pos=pos,
         mat_haps=mat_haps,
         pat_haps=pat_haps,
         pi0=pi0_est,
@@ -161,6 +170,7 @@ if __name__ == "__main__":
     else:
         res_dict_chrX = posterior_chrX_karyotype(
             bafs=baf_chrX_data["baf_embryo"],
+            pos=baf_chrX_data["pos"],
             mat_haps=baf_chrX_data["mat_haps"],
             pat_haps=baf_chrX_data["pat_haps"],
         )
@@ -180,7 +190,9 @@ if __name__ == "__main__":
         res_dict_chrY["y_maxBF_cat"] = np.nan
     else:
         res_dict_chrY = posterior_chrY_karyotype(
-            bafs=baf_chrY_data["baf_embryo"], pat_haps=baf_chrY_data["pat_haps"]
+            bafs=baf_chrY_data["baf_embryo"],
+            pos=baf_chrY_data["pos"],
+            pat_haps=baf_chrY_data["pat_haps"],
         )
     # 4. Create the line for the primary output
     with open(snakemake.output["karyo_tsv"], "w+") as out:
