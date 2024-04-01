@@ -2,24 +2,50 @@
 
 # load libraries
 library(data.table)
-library(dplyr)
 library(tidyr)
+library(dplyr)
 
 # Usage: 
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/embryo_count.R \ 
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/embryo_count_by_mother.csv \
 # mother \
 # /data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv \
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/embryo_count_by_mother.csv \
 
 # accept args from snakemake
 args = commandArgs(trailingOnly = TRUE)
-out_fname <- args[1]
-parent <- args[2]
-metadata <- args[3]
+parent <- args[1]
+metadata <- args[2]
+out_fname <- args[3]
 
 # read in metadata 
 metadata <- fread(metadata)
 
+# source Rscript with functions `filter_data`, `day5_only`
+source("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/helper_functions/get_ploidy.R")
+
+# function to get number of aneuploid (anything other than cn=2 for all chromosomes)
+# and number of euploid embryos 
+count_embryos <- function(ploidy_calls, parent) {
+  
+  # Count number of chromosomes for which cn is not 2
+  cn <- c("0", "1m", "1p", "3m", "3p")
+  
+  # Count number of embryos for which each mother is aneuploid 
+  result <- ploidy_calls %>%
+    group_by({{parent}}, child) %>%
+    summarise(num_affected = sum(bf_max_cat %in% cn)) %>% 
+    mutate(is_ploidy = ifelse(num_affected > 0, "aneu_true", "aneu_false")) %>%
+    count(is_ploidy) %>%
+    pivot_wider(names_from = is_ploidy, values_from = n, values_fill = 0)
+  
+  # match column names with external data 
+  colnames(result)[1] <- "array"
+  
+  return(result)
+}
+
+
+# function to get weighted age and number of cycles per mother  
 create_merged_array_and_weighted_ages <- function(metadata, parent) {
     
     # create new column that tags every individual affiliated with each parent even if in different caseIDs

@@ -38,14 +38,13 @@ bayes_factor_cutoff <- as.numeric(args[6])
 # how many cn = 0 before it's failed amplification 
 nullisomy_threshold <- as.numeric(args[7])
 # min posterior probability of cn state 
-min_prob <- args[8]
+min_prob <- as.numeric(args[8])
 # max number of chr for maternal meiotic pheno
-max_meiotic <- args[9]
+max_meiotic <- as.numeric(args[9])
 # min number of chr for whole genome gain/loss 
-min_ploidy <- argsp[10]
+min_ploidy <- as.numeric(args[10])
 # output file name
 out_fname <- args[11]
-
 
 # source Rscript with functions `filter_data`, `day5_only`, 
 # `count_ploidy_by_parent`, and `run_phenotype`
@@ -58,7 +57,7 @@ metadata <- fread(metadata)
 # keep only high-quality embryos (remove noisy, high-bayes factor, and
 # potential failed amplification embryos) and day 5 embryos
 # count number of aneuploid and non-aneuploid embryos per parent 
-ploidy_counts_by_parent <- run_phenotype(ploidy_calls, !!as.name(parent), metadata, 
+ploidy_counts_by_parent <- run_phenotype(ploidy_calls, parent, metadata, 
                                          phenotype, filter_day_5, 
                                          bayes_factor_cutoff, 
                                          nullisomy_threshold, min_prob, 
