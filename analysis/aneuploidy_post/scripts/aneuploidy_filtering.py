@@ -57,7 +57,7 @@ def cluster_mosaics(
     sd_filter=3,
     k=3,
     q=5,
-    p_thresh=0.95,
+    p_thresh=0.90,
     means_init=[[1.0], [0.75], [0.5]],
     names=["meiotic", "low-mosaic", "high-mosaic"],
 ):

@@ -22,7 +22,7 @@ To concatenate the individual TSV files that are the defined output of the pipel
 
 ```
 cd results/natera_inference/; 
-find . -name "*.tsv" | while read line; do cat $line; done | awk '!visited[$0]++' | gzip > natera_embryos.karyohmm_v14.070623.tsv.gz &
+find . -name "*.tsv" | while read line; do cat $line; done | awk '!visited[$0]++' | gzip > natera_embryos.karyohmm_v20.021024.tsv.gz &
 ```
 
 ### Aneuploidy Post-Processing
@@ -30,6 +30,19 @@ find . -name "*.tsv" | while read line; do cat $line; done | awk '!visited[$0]++
 We also have a post-processing workflow (`aneuploidy_post`) of the posterior tracebacks for defining some additional downstream features. Some of these analyses include:
 
 * Dissection of SPH vs. BPH for trisomies in centromere-proximal and centromere-distal regions of chromosomes for determining trisomies originating at MI vs MII
+
+* Estimation of mosaic cell fraction for gains + losses that are putatively mitotic in nature (e.g. < 90% posterior probability of being an aneuploidy)
+
+* Estimation of embryo-specific noise parameters for downstream filtering
+
+To run this pipeline - which generates the final version of the autosomal aneuploidy calls: 
+
+```
+snakemake -s aneuploidy_post.smk -j 200  ...
+```
+
+NOTE: it will take a decent amount of time to build the full DAG for the pipeline. Make sure to have run the steps in the section above as well.  
+
 
 ### GWAS
 
@@ -40,6 +53,18 @@ Specifically, the `scripts/phenotypes` directory within includes a script to cre
 ### Sex embryo 
 
 This directory infers the sex chromosome status for each embryo in the Natera data. First, it preprocesses the BAF data for each trio (mother-father-embryo). It then applies the sex chromosome-ploidy HMM to this BAF data and outputs a TSV with likelihood of each sex chromosome state (XY, XX, X0, XXY, 0, XXX, XXY, Y). 
+
+To run the pipeline (we highly suggest running this on a computing cluster with SLURM): 
+
+```
+snakemake -s sex_embryos.smk -j 200 -p ... 
+```
+
+and run the following after the pipeline has finished in order to generate the table of sex-chromosome aneuploidy calls.
+```
+cd results/natera_inference/; 
+find . -name "*.tsv" | while read line; do cat $line; done | awk '!visited[$0]++' | gzip > natera_embryos.karyohmm_v20.sex_embryos.021024.tsv.gz &
+```
 
 ### Simulations
 
@@ -52,7 +77,7 @@ conda activate natera_aneuploidy_sims
 snakemake -s sims.smk -p -j20
 ```
 
-The primary results files will be deposited as `.tsv.gz` file under the `results` directory. 
+The primary results files are  deposited as `.tsv.gz` file under the `results` directory. 
 
 ### Misc
 
