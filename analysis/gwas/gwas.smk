@@ -47,12 +47,12 @@ chunks_dict = {
 }
 
 # Define the parameters that the pipeline will run on
-chroms = range(18, 20)
+chroms = range(21, 22)
 phenotypes = [
     #"embryo_count",
-    "haploidy",
-    #"maternal_meiotic_aneuploidy",
-    "triploidy"
+    #"haploidy",
+    "maternal_meiotic_aneuploidy",
+    #"triploidy"
     ]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
@@ -67,7 +67,7 @@ rule all:
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
             phenotype=phenotypes,
             parent="mother",
-            dataset_type=dataset_type
+            dataset_type="discovery"
         ),
 
 
@@ -83,6 +83,9 @@ rule generate_aneuploidy_phenotypes:
     wildcard_constraints:
         parent="mother|father",
         phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy",
+    resources:
+        time="0:30:00",
+        mem_mb="10G",
     params:
         filter_day_5="TRUE",
         bayes_factor_cutoff=2,
@@ -244,6 +247,9 @@ rule run_gwas_subset:
         gwas_output=gwas_results
         + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
     threads: 16
+    resources:
+        time="0:30:00",
+        mem_mb="10G",
     wildcard_constraints:
         dataset_type="discovery|test",
         phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
@@ -271,7 +277,7 @@ rule merge_chroms:
     input:
         expand(
             gwas_results + "gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
-            chrom=range(18,20),
+            chrom=range(21,22),
         ),
     output:
         merged_file=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
