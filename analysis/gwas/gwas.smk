@@ -255,14 +255,10 @@ rule run_gwas_subset:
 rule merge_subsets: 
     """Create single file for GWAS for each chromosome, merging all subsets"""
     input:
-        expand(
-            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
-            phenotype="maternal_meiotic_aneuploidy",
-            parent="mother",
-            dataset_type="discovery",
-            chrom=22,
-            chunk=range(4,7),
-        )
+        lambda wildcards: expand(
+           gwas_results + "gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{chrom}}_{chunk}.tsv",
+           chunk=range(chunks_dict[f'chr{wildcards.chrom}']),
+       )
     output: 
         gwas_output=gwas_results
             + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
@@ -274,10 +270,7 @@ rule merge_chroms:
     """Create single file for each phenotype/parent/dataset, merging all chromosomes"""
     input:
         expand(
-            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
-            phenotype=phenotypes,
-            parent=parents,
-            dataset_type=dataset_type,
+            gwas_results + "gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
             chrom=range(21,23),
         ),
     output:
