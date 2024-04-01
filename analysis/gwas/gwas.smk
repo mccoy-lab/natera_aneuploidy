@@ -39,19 +39,19 @@ chunks_dict = {
     "chr16": 20,
     "chr17": 20,
     "chr18": 20,
-    "chr19": 20,
-    "chr20": 20,
+    "chr19": 30,
+    "chr20": 25,
     "chr21": 20,
     "chr22": 25,
     "chr23": 20,
 }
 
 # Define the parameters that the pipeline will run on
-chroms = range(21, 24)
+chroms = range(18, 20)
 phenotypes = [
     #"embryo_count",
     "haploidy",
-    "maternal_meiotic_aneuploidy",
+    #"maternal_meiotic_aneuploidy",
     "triploidy"
     ]
 parents = ["mother", "father"]
@@ -81,7 +81,7 @@ rule generate_aneuploidy_phenotypes:
     output:
         phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
     wildcard_constraints:
-        parent=parents,
+        parent="mother|father",
         phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy",
     params:
         filter_day_5="TRUE",
@@ -271,7 +271,7 @@ rule merge_chroms:
     input:
         expand(
             gwas_results + "gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
-            chrom=range(21,23),
+            chrom=range(18,20),
         ),
     output:
         merged_file=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
