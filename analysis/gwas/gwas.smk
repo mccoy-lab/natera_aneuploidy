@@ -47,9 +47,9 @@ chunks_dict = {
 }
 
 # Define the parameters that the pipeline will run on
-chroms = range(1, 24)
+chroms = range(21, 24)
 phenotypes = [
-    "embryo_count",
+    #"embryo_count",
     "haploidy",
     "maternal_meiotic_aneuploidy",
     "triploidy"
@@ -66,7 +66,7 @@ rule all:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
             phenotype=phenotypes,
-            parent=parents,
+            parent="mother",
             dataset_type=dataset_type
         ),
 
