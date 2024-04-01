@@ -34,7 +34,7 @@ filter_data <- function(ploidy_calls, parent, bayes_factor_cutoff = 2,
   # remove embryos with failed amplification
   # count number of chromosomes called as nullisomies for each embryo 
   count_nullisomies <- ploidy_calls %>% 
-    group_by({{parent}}, child) %>% 
+    group_by(get(parent), child) %>% 
     summarise(num_nullisomies = sum(bf_max_cat == "0"))
   # identify embryos with fewer nullisomies than the threshold
   successful_amp <- count_nullisomies[count_nullisomies$num_nullisomies 
@@ -87,15 +87,15 @@ count_ploidy_by_parent <- function(ploidy_calls, parent, phenotype,
   }
   
   # choose relevant aneuploidies based on phenotype 
-  if (phenotype == "maternal_triploidy") {
+  if (phenotype == "triploidy" & parent == "mother") {
     cn <- "3m"
-  } else if (phenotype == "paternal_triploidy") {
+  } else if (phenotype == "triploidy" & parent == "father") {
     cn <- "3p"
-  } else if (phenotype == "maternal_haploidy") {
+  } else if (phenotype == "haploidy" & parent == "mother") {
     cn <- "1p"
-  } else if (phenotype == "paternal_haploidy") {
+  } else if (phenotype == "haploidy" & parent == "father") {
     cn <- "1m"
-  } else if (phenotype == "maternal_meiotic") {
+  } else if (phenotype == "maternal_meiotic_aneuploidy") {
     cn <- c("3m", "1p")
   } else if (phenotype == "complex_aneuploidy") {
     cn <- c("0", "1m", "1p", "3m", "3p")
@@ -105,13 +105,13 @@ count_ploidy_by_parent <- function(ploidy_calls, parent, phenotype,
   
   # Count ploidies based on phenotype definition 
   result <- ploidy_calls %>%
-    group_by({{parent}}, child) %>%
+    group_by(get(parent), child) %>%
     summarise(num_affected = sum(bf_max_cat %in% cn), 
               unique_bf_max_cat = 
                 n_distinct(bf_max_cat[bf_max_cat %in% cn])) %>% 
     mutate(
       is_ploidy = case_when(
-        phenotype == "maternal_meiotic" ~ ifelse(
+        phenotype == "maternal_meiotic_aneuploidy" ~ ifelse(
           num_affected > 0 & num_affected < max_meiotic,
           "aneu_true", "aneu_false"),
         phenotype == "complex_aneuploidy" ~ ifelse(
@@ -138,7 +138,7 @@ run_phenotype <- function(ploidy_calls, parent, metadata, phenotype,
                           max_meiotic = 3, min_ploidy = 15) {
   
   # filter embryo data 
-  ploidy_calls <- filter_data(ploidy_calls, !!as.name(parent),
+  ploidy_calls <- filter_data(ploidy_calls, parent,
                                   bayes_factor_cutoff, nullisomy_threshold,
                                   min_prob)
   
@@ -148,8 +148,8 @@ run_phenotype <- function(ploidy_calls, parent, metadata, phenotype,
   }
   
   # group ploidy by respective parent 
-  ploidy_counts_by_parent <- count_ploidy_by_parent(ploidy_calls,
-                                                    !!as.name(parent),
+  ploidy_counts_by_parent <- count_ploidy_by_parent(ploidy_calls, 
+                                                    parent,
                                                     phenotype, max_meiotic)
   
   return(ploidy_counts_by_parent)

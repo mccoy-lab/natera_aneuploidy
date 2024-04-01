@@ -7,10 +7,10 @@ library(dplyr)
 
 # Usage: 
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/aneuploidy_phenotypes.R \ 
-# /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.bph_sph_trisomy.full_annotation.112023.filter_bad_trios.tsv.gz \
+# /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz \
 # mother \ # parent to group phenotype by  
 # /data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv \
-# maternal_meiotic \ # phenotype name 
+# maternal_meiotic_aneuploidy \ # phenotype name 
 # TRUE 
 # 2 \ remove chr with bayes factor > bayes_factor_cutoff
 # 5 \ remove embryos that had more chr with cn = 0 for than nullisomy_threshold 
