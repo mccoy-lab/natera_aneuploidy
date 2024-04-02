@@ -48,12 +48,7 @@ chunks_dict = {
 }
 
 # Define the parameters that the pipeline will run on
-phenotypes = [
-    "embryo_count",
-    "haploidy",
-    "maternal_meiotic_aneuploidy",
-    "triploidy"
-    ]
+phenotypes = ["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy"]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
 
