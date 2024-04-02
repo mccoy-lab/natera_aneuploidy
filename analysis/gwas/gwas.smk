@@ -1,6 +1,7 @@
 #!python3
 
 # Usage: nohup snakemake -p --cores 48 --snakefile gwas.smk > nohup_date.out 2>&1 &
+# Usage on rockfish: nohup snakemake -p --snakefile gwas.smk -j 200 --profile ~/code/rockfish_smk_profile/ &
 # Optional: add -j 12 to submit as 12 jobs, etc.
 # Optional: add -n to do a dry run
 # Executed from /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
@@ -47,13 +48,12 @@ chunks_dict = {
 }
 
 # Define the parameters that the pipeline will run on
-chroms = range(17, 19)
 phenotypes = [
-    # "embryo_count",
-    # "haploidy",
+    "embryo_count",
+    "haploidy",
     "maternal_meiotic_aneuploidy",
-    # "triploidy"
-]
+    "triploidy"
+    ]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
 
@@ -298,7 +298,7 @@ rule merge_chroms:
         expand(
             gwas_results
             + "gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
-            chrom=range(17, 19),
+            chrom=range(1, 23),
         ),
     output:
         merged_file=gwas_results
