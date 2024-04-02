@@ -275,20 +275,6 @@ rule run_gwas_subset:
         """
 
 
-# rule merge_subsets:
-#     """Create single file for GWAS for each chromosome, merging all subsets"""
-#     input:
-#         lambda wildcards: expand(
-#            gwas_results + "gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{chrom}}_{chunk}.tsv",
-#            chunk=range(chunks_dict[f'chr{wildcards.chrom}']),
-#        )
-#     output:
-#         gwas_output=gwas_results
-#             + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
-#     shell:
-#     	"cat {input} > {output.gwas_output}"
-
-
 rule merge_subsets:
     """Create single file for GWAS for each chromosome, merging all subsets"""
     input:
