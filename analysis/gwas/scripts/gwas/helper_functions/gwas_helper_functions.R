@@ -29,7 +29,7 @@ discovery_test_split <- function(dataset_type, discovery_test, metadata, bed) {
 
 
 # Function to pre-process genotype info for each site 
-get_gt <- function(pcs, phenotype, bim, bed, bed_dataset_indices, snp_index, metadata) {
+get_gt <- function(bed, bed_dataset_indices, snp_index, metadata, phenotype, pcs) {
   
   # Make genotype file 
   gt <- data.table(names(bed[bed_dataset_indices, snp_index]), 
@@ -50,7 +50,7 @@ get_gt <- function(pcs, phenotype, bim, bed, bed_dataset_indices, snp_index, met
 
 
 # Function to make GWAS model based on phenotype and parent 
-make_model <- function(parent, phenotype_name, gt) {
+make_model <- function(parent, phenotype_name) {
   
   # Determine the age covariate column based on the "parent" argument
   if (parent == "mother") {
@@ -84,12 +84,9 @@ make_model <- function(parent, phenotype_name, gt) {
                            "PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + ", 
                            age_column, " + alt_count + egg_donor_factor", collapse = "")
   
-  # Create a model using the glm 
-  m1 <- glm(formula_string, family = family, data = gt) %>% 
-    summary()
   
   # Return model for use in GWAS 
-  return(m1)
+  return(list(formula_string = formula_string, family = family))
   
 }
 
@@ -103,13 +100,18 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype, bed_dataset_indic
   snp_pos <- bim[snp_index]$pos
   
   # Get genotype info for each site 
-  gt <- get_gt(pcs, phenotype, bim, bed, bed_dataset_indices, snp_index, metadata)
+  gt <- get_gt(bed, bed_dataset_indices, snp_index, metadata, phenotype, pcs)
   
   # Make GWAS model 
-  m1 <- make_model(parent, phenotype_name, gt)
+  model <- make_model(parent, phenotype_name)
+  formula_string <- model$formula_string
+  family <- model$family
+  m1 <- glm(formula_string, family = family, data = gt) %>% 
+    summary()
   
   # Get info for GWAS output 
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
+  
   # Calculate alternate allele frequency 
   gt_filtered  <- gt %>% filter(!is.na(alt_count))
   alt_af <- sum(gt_filtered$alt_count) / (2*nrow(gt_filtered))
@@ -137,7 +139,7 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs, phen
   # Get indices to execute function
   bed_dataset_indices <- 1:nrow(bed_dataset)
   
-  # Calculate GWAS across each site
+  #Calculate GWAS across each site
   gwas_results <- pbmclapply(1:ncol(bed_dataset),
                              function(x) gwas_per_site(x, bed_dataset, bim, pcs, phenotype, bed_dataset_indices, metadata, parent, phenotype_name),
                              mc.cores = threads)

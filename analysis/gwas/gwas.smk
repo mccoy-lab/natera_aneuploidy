@@ -1,6 +1,7 @@
 #!python3
 
 # Usage: nohup snakemake -p --cores 48 --snakefile gwas.smk > nohup_date.out 2>&1 &
+# Usage on rockfish: nohup snakemake -p --snakefile gwas.smk -j 200 --profile ~/code/rockfish_smk_profile/ &
 # Optional: add -j 12 to submit as 12 jobs, etc.
 # Optional: add -n to do a dry run
 # Executed from /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
@@ -13,20 +14,43 @@ metadata = (
     "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 )
 pcs_out = "results/parental_genotypes_pcs/"
-ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.bph_sph_trisomy.full_annotation.112023.filter_bad_trios.tsv.gz"
+ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz"
 gwas_results = "results/gwas/"
+imputed_vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/"
 
+
+# Dictionary of number of files to chunk each vcf into in `split`
+# executed by /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/count_and_split.sh
+chunks_dict = {
+    "chr1": 60,
+    "chr2": 60,
+    "chr3": 60,
+    "chr4": 60,
+    "chr5": 60,
+    "chr6": 60,
+    "chr7": 60,
+    "chr8": 60,
+    "chr9": 60,
+    "chr10": 60,
+    "chr11": 60,
+    "chr12": 60,
+    "chr13": 60,
+    "chr14": 60,
+    "chr15": 50,
+    "chr16": 40,
+    "chr17": 40,
+    "chr18": 40,
+    "chr19": 30,
+    "chr20": 30,
+    "chr21": 20,
+    "chr22": 20,
+    "chr23": 60,
+}
 
 # Define the parameters that the pipeline will run on
-chroms = range(1, 24)
-phenotypes = [
-    "embryo_count",
-    "haploidy",
-    "maternal_meiotic",
-    "triploidy"
-    ]
- parents = ["mother", "father"]
- dataset_type = ["discovery", "test"]
+phenotypes = ["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy"]
+parents = ["mother", "father"]
+dataset_type = ["discovery", "test"]
 
 # shell.prefix("set -o pipefail; ")
 
@@ -43,6 +67,34 @@ rule all:
 
 
 # -------- Functions to determine run GWAS on maternal and paternal for each phenotype -------- #
+rule generate_aneuploidy_phenotypes:
+    """Make file for each aneuploidy phenotype"""
+    input:
+        rscript="scripts/phenotypes/aneuploidy_phenotypes.R",
+        ploidy_calls=ploidy_calls,
+        metadata=metadata,
+    output:
+        phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
+    wildcard_constraints:
+        parent="mother|father",
+        phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy",
+    resources:
+        time="0:30:00",
+        mem_mb="10G",
+    params:
+        filter_day_5="TRUE",
+        bayes_factor_cutoff=2,
+        nullisomy_threshold=5,
+        min_prob=0.9,
+        max_meiotic=3,
+        min_ploidy=15,
+    shell:
+        """
+        ml gcc r/4.0.2
+        Rscript --vanilla {input.rscript} {input.ploidy_calls} {wildcards.parent} {input.metadata} {wildcards.phenotype} {params.filter_day_5} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {params.min_prob} {params.max_meiotic} {params.min_ploidy} {output.phenotype_file}
+        """
+
+
 rule run_king:
     """Reformat parental genotypes vcf and run king to identify related individuals"""
     input:
@@ -123,61 +175,128 @@ rule vcf2bed:
         "plink2 --vcf {input.vcf_input} --keep-allele-order --double-id --make-bed --threads {threads} --out {params.outfix}"
 
 
-rule generate_aneuploidy_phenotypes:
-    """Make file for each aneuploidy phenotype"""
+rule get_chrom_pos:
     input:
-        rscript="scripts/phenotypes/aneuploidy_phenotypes.R",
-        ploidy_calls=ploidy_calls,
-        metadata=metadata,
+        input_vcf=imputed_vcf_fp
+        + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
     output:
-        phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
-    wildcard_constraints:
-        parent=parents,
-        phenotype="maternal_meiotic|haploidy|triploidy",
-    params:
-    	filter_day_5="TRUE",
-        bayes_factor_cutoff=2,
-        nullisomy_threshold=5,
-        min_prob=0.9,
-        max_meiotic=3,
-        min_ploidy=15,
+        chrom_mapfile=gwas_results
+        + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra.txt",
+    resources:
+        mem_mb="2G",
+    threads: 1
     shell:
-    	"Rscript --vanilla {input.rscript} {input.ploidy_calls} {wildcards.parent} {input.metadata} {wildcards.phenotype} {params.filter_day_5} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {params.min_prob} {params.max_meiotic} {params.min_ploidy} {output.phenotype_file}"  
+        """
+        bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.chrom_mapfile}
+        """
 
 
-rule run_gwas:
-    """Run GWAS for each set of parameters"""
+rule make_vcf_maps:
     input:
-        gwas_rscript="scripts/gwas/maternal_meiotic.R",
+        chrom_mapfile=rules.get_chrom_pos.output.chrom_mapfile,
+    output:
+        mapfile=gwas_results
+        + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.txt",
+    resources:
+        mem_mb="2G",
+    params:
+        nchunks=lambda wildcards: chunks_dict[f"chr{wildcards.chrom}"],
+    threads: 1
+    shell:
+        """
+        awk -v N={params.nchunks} -v chunk={wildcards.chunk} \'NR % N == chunk {{print $0}}\' {input.chrom_mapfile} > {output.mapfile}        
+        """
+
+
+rule bed_split_vcf:
+    input:
+        mapfile=rules.make_vcf_maps.output.mapfile,
+        input_vcf=imputed_vcf_fp
+        + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
+    output:
+        bcf=gwas_results
+        + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bcf",
+        bed=gwas_results
+        + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bed",
+        bim=gwas_results
+        + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bim",
+        fam=gwas_results
+        + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.fam",
+        log=gwas_results
+        + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.log",
+        nosex=gwas_results
+        + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.nosex",
+    resources:
+        mem_mb="2G",
+    params:
+        nchunks=lambda wildcards: chunks_dict[f"chr{wildcards.chrom}"],
+        outfix=gwas_results
+        + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}",
+    threads: 1
+    shell:
+        """
+        bcftools view -T {input.mapfile} -Ob {input.input_vcf} > {output.bcf}
+        plink --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
+        """
+
+
+rule run_gwas_subset:
+    """Run GWAS for each set of parameters, using the subsetted bed files"""
+    input:
+        gwas_rscript="scripts/gwas/gwas_all.R",
         metadata=metadata,
-        bed=rules.vcf2bed.output.bedfile,
+        bed=rules.bed_split_vcf.output.bed,
         discovery_test=general_outputs_fp + "discover_validate_split_{parent}.txt",
         parental_pcs=rules.run_plink_pca.output.eigenvec,
-        pheno=rules.generate_phenotypes.output.phenotype_file,
-        bim=rules.vcf2bed.output.bimfile,
+        phenotype_file=rules.generate_aneuploidy_phenotypes.output.phenotype_file,
+        bim=rules.bed_split_vcf.output.bim,
+    output:
+        gwas_output=gwas_results
+        + "subset_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
+    threads: 16
+    resources:
+        time="0:30:00",
+        mem_mb="10G",
+    wildcard_constraints:
+        dataset_type="discovery|test",
+        phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
+        parent="mother|father",
+    shell:
+        """
+        ml gcc r/4.0.2
+        Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}
+        """
+
+
+rule merge_subsets:
+    """Create single file for GWAS for each chromosome, merging all subsets"""
+    input:
+        lambda wildcards: expand(
+            gwas_results
+            + "subset_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{chrom}}_{chunk}.tsv",
+            phenotype=wildcards.phenotype,
+            parent=wildcards.parent,
+            dataset_type=wildcards.dataset_type,
+            chrom=wildcards.chrom,
+            chunk=range(chunks_dict.get(f"chr{wildcards.chrom}", 0)),
+        ),
     output:
         gwas_output=gwas_results
         + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
-    threads: 32
-    wildcard_constraints:
-        dataset_type="discovery|test",
-        phenotype="maternal_meiotic|triploidy|haploidy|embryo_count|parental_triploidy",
-        parent="mother|father",
     shell:
-        "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.pheno} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
+        "cat {input} > {output.gwas_output}"
 
 
 rule merge_chroms:
-    """Create single file for each phenotype, merging all chromosomes"""
+    """Create single file for each phenotype/parent/dataset, merging all chromosomes"""
     input:
         expand(
-            gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
-            phenotype=phenotypes,
-            parent=parents,
-            dataset_type=dataset_type,
+            gwas_results
+            + "gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
             chrom=range(1, 23),
         ),
     output:
-        merged_file=gwas_results + "gwas_{phenotype}_{parent}_total.tsv.gz",
+        merged_file=gwas_results
+        + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
     shell:
         "cat {input} | gzip > {output.merged_file}"
