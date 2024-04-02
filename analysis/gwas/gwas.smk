@@ -240,8 +240,6 @@ rule bed_split_vcf:
     threads: 1
     shell:
         """
-        input_filename=$(basename {input.mapfile})
-        prefix="${{input_filename%.txt}}"
         bcftools view -T {input.mapfile} -Ob {input.input_vcf} > {output.bcf}
         plink --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
         """
