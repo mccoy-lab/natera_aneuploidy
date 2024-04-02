@@ -245,7 +245,7 @@ rule run_gwas_subset:
         bim=rules.bed_split_vcf.output.bim,
     output:
         gwas_output=gwas_results
-        + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
+        + "subset_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
     threads: 16
     resources:
         time="0:30:00",
@@ -255,16 +255,36 @@ rule run_gwas_subset:
         phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
         parent="mother|father",
     shell:
-        "Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}"
+        """
+        ml gcc r/4.0.2
+        Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}
+        """
 
+
+# rule merge_subsets: 
+#     """Create single file for GWAS for each chromosome, merging all subsets"""
+#     input:
+#         lambda wildcards: expand(
+#            gwas_results + "gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{chrom}}_{chunk}.tsv",
+#            chunk=range(chunks_dict[f'chr{wildcards.chrom}']),
+#        )
+#     output: 
+#         gwas_output=gwas_results
+#             + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
+#     shell: 
+#     	"cat {input} > {output.gwas_output}"
 
 rule merge_subsets: 
     """Create single file for GWAS for each chromosome, merging all subsets"""
     input:
-        lambda wildcards: expand(
-           gwas_results + "gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{chrom}}_{chunk}.tsv",
-           chunk=range(chunks_dict[f'chr{wildcards.chrom}']),
-       )
+    	lambda wildcards: expand(
+    		gwas_results + "subset_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{chrom}}_{chunk}.tsv",
+    		phenotype=wildcards.phenotype,
+    		parent=wildcards.parent,
+    		dataset_type=wildcards.dataset_type,
+    		chrom=wildcards.chrom,
+    		chunk=range(chunks_dict.get(f'chr{wildcards.chrom}', 0))
+    		)
     output: 
         gwas_output=gwas_results
             + "gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
