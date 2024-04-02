@@ -22,32 +22,32 @@ imputed_vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_10182
 # executed by /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/count_and_split.sh
 chunks_dict = {
     "chr1": 60,
-    "chr2": 20,
-    "chr3": 20,
-    "chr4": 20,
-    "chr5": 20,
-    "chr6": 20,
-    "chr7": 20,
-    "chr8": 20,
-    "chr9": 5,
-    "chr10": 20,
-    "chr11": 20,
-    "chr12": 20,
-    "chr13": 20,
-    "chr14": 20,
-    "chr15": 20,
-    "chr16": 20,
-    "chr17": 20,
-    "chr18": 20,
+    "chr2": 60,
+    "chr3": 60,
+    "chr4": 60,
+    "chr5": 60,
+    "chr6": 60,
+    "chr7": 60,
+    "chr8": 60,
+    "chr9": 60,
+    "chr10": 60,
+    "chr11": 60,
+    "chr12": 60,
+    "chr13": 60,
+    "chr14": 60,
+    "chr15": 50,
+    "chr16": 40,
+    "chr17": 40,
+    "chr18": 40,
     "chr19": 30,
-    "chr20": 25,
+    "chr20": 30,
     "chr21": 20,
-    "chr22": 25,
-    "chr23": 20,
+    "chr22": 20,
+    "chr23": 60,
 }
 
 # Define the parameters that the pipeline will run on
-chroms = range(21, 22)
+chroms = range(17,19)
 phenotypes = [
     #"embryo_count",
     #"haploidy",
@@ -66,8 +66,8 @@ rule all:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
             phenotype=phenotypes,
-            parent="mother",
-            dataset_type="discovery"
+            parent=parents,
+            dataset_type=dataset_type
         ),
 
 
@@ -300,7 +300,7 @@ rule merge_chroms:
     input:
         expand(
             gwas_results + "gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
-            chrom=range(21,22),
+            chrom=range(17,19),
         ),
     output:
         merged_file=gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
