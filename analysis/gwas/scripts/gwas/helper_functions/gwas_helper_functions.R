@@ -49,7 +49,7 @@ get_gt <- function(bed, bed_dataset_indices, snp_index, metadata, phenotype, pcs
 }
 
 
-# Function to make GWAS model based on phenotype and parent 
+# Function to make GWAS model based on parent and phenotype 
 make_model <- function(parent, phenotype_name) {
   
   # Determine the age covariate column based on the "parent" argument
