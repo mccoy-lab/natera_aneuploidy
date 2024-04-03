@@ -130,6 +130,55 @@ count_ploidy_by_parent <- function(ploidy_calls, parent, phenotype,
   return(result)
 }
 
+# get weighted maternal age across embryos, number of cycles, 
+# number of embryos, and number of euploid (all chr cn=2) and 
+# number of aneuploid (1 or more chr with other than cn=2)
+count_embryos_by_parent <- function(ploidy_calls, metadata, parent) {
+  
+  # Count number of chromosomes for which cn is not 2
+  cn <- c("0", "1m", "1p", "3m", "3p")
+  
+  # Count number of embryos for which each mother is aneuploid 
+  aneuploidy_counts <- ploidy_calls %>%
+    group_by(get(parent), child) %>%
+    summarise(num_affected = sum(bf_max_cat %in% cn)) %>% 
+    mutate(is_ploidy = ifelse(num_affected > 0, "aneu_true", "aneu_false")) %>%
+    count(is_ploidy) %>%
+    pivot_wider(names_from = is_ploidy, values_from = n, values_fill = 0) %>%
+    rename("aneuploid" := aneu_true, "euploid" := aneu_false)
+  
+  # match column names with external data 
+  colnames(aneuploidy_counts)[1] <- "array"
+  
+  # create new column that tags every individual affiliated with each parent even if in different caseIDs
+  metadata_merged_array <- metadata %>%
+    mutate(
+      array_id_merged = ifelse(family_position == parent, paste0(array, "_merged"), NA_character_)
+    ) %>%
+    group_by(casefile_id) %>%
+    fill(array_id_merged) %>%
+    ungroup()
+  
+  # create dataframe that calculates the weighted age, number of embryos, and number of visits
+  weighted_ages <- metadata_merged_array %>%
+    filter(family_position == "child") %>%
+    group_by(array_id_merged) %>%
+    summarise(
+      weighted_age = sum(patient_age) / n(),
+      num_embryos = n(),
+      num_visits = length(unique(patient_age))
+    ) %>%
+    as.data.frame()
+  
+  # Remove "_merged" from array column to allow easier downstream intersection
+  weighted_ages$array <- gsub('_merged', '', weighted_ages$array_id_merged)
+  
+  # Merge aneuploidy counts and weighted ages dataframes
+  merged_table <- merge(weighted_ages, aneuploidy_counts, by = "array", all.x = TRUE)
+  
+  return(merged_table)
+}
+
 
 # generate the phenotype of interest 
 run_phenotype <- function(ploidy_calls, parent, metadata, phenotype,
@@ -147,10 +196,15 @@ run_phenotype <- function(ploidy_calls, parent, metadata, phenotype,
     ploidy_calls <- day5_only(ploidy_calls, metadata)
   }
   
-  # group ploidy by respective parent 
-  ploidy_counts_by_parent <- count_ploidy_by_parent(ploidy_calls, 
-                                                    parent,
-                                                    phenotype, max_meiotic)
+  # if aneuploidy phenotype, group ploidy by respective parent 
+  # else if embryo count phenotype, count embryos (total, euploid, and aneu) 
+  # by respective parent 
+  if (grepl("ploidy", phenotype)) {
+    pheno_output <- count_ploidy_by_parent(ploidy_calls, parent, 
+                                           phenotype, max_meiotic)
+  } else {
+    pheno_output <- count_embryos_by_parent(ploidy_calls, metadata, parent)
+  }
   
-  return(ploidy_counts_by_parent)
+  return(pheno_output)
 }
