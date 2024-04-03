@@ -57,11 +57,11 @@ metadata <- fread(metadata)
 # keep only high-quality embryos (remove noisy, high-bayes factor, and
 # potential failed amplification embryos) and day 5 embryos
 # count number of aneuploid and non-aneuploid embryos per parent 
-ploidy_counts_by_parent <- run_phenotype(ploidy_calls, parent, metadata, 
+pheno_by_parent <- run_phenotype(ploidy_calls, parent, metadata, 
                                          phenotype, filter_day_5, 
                                          bayes_factor_cutoff, 
                                          nullisomy_threshold, min_prob, 
                                          max_meiotic, min_ploidy)
 
 # write to file 
-write.csv(ploidy_counts_by_parent, out_fname, row.names = FALSE)
+write.csv(pheno_by_parent, out_fname, row.names = FALSE)
