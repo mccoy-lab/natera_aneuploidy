@@ -61,12 +61,15 @@ make_model <- function(parent, phenotype_name) {
     stop("Invalid 'parent' argument.")
   }
   
-  # Choose phenotype columns and model family based on phenotype 
+  # Choose variable columns and model family based on phenotype name
   if (grepl("ploidy", phenotype_name)) {
     response_variable <- "cbind(aneu_true, aneu_false)"
     family <- "quasibinomial"
   } else if (phenotype_name == "embryo_count") {
     response_variable <- "num_embryos"
+    family <- "quasipoisson"
+  } else if (phenotype_name == "embryo_count_euploid") {
+    response_variable <- "euploid"
     family <- "quasipoisson"
   } else if (phenotype_name == "maternal_age") {
     response_variable <- "weighted_age"
@@ -139,7 +142,7 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs, phen
   # Get indices to execute function
   bed_dataset_indices <- 1:nrow(bed_dataset)
   
-  #Calculate GWAS across each site
+  # Calculate GWAS across each site
   gwas_results <- pbmclapply(1:ncol(bed_dataset),
                              function(x) gwas_per_site(x, bed_dataset, bim, pcs, phenotype, bed_dataset_indices, metadata, parent, phenotype_name),
                              mc.cores = threads)
