@@ -45,7 +45,7 @@ threads <- as.numeric(args[10])
 # output file name 
 out_fname <- args[11]
 
-# source Rscript with functions ``
+# source Rscript with helper functions
 source("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/helper_functions/gwas_helper_functions.R")
 
 # read in files 
@@ -59,7 +59,7 @@ bim <- fread(bim) %>%
   setnames(., c("chr", "snp_id", "drop", "pos", "ref", "alt"))
 
 
-# Conduct GWAS across all sites 
+# conduct GWAS across all sites 
 gwas_results_dt <- run_gwas(dataset_type, discovery_test, metadata, bed, bim, pcs, phenotype, parent, phenotype_name, threads) 
 
 # write to file
