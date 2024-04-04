@@ -48,7 +48,7 @@ chunks_dict = {
 }
 
 # Define the parameters that the pipeline will run on
-phenotypes = ["embryo_count", "haploidy", "maternal_meiotic_aneuploidy", "triploidy"]
+phenotypes = ["embryo_count", "embryo_count_euploid", "maternal_age", "maternal_meiotic_aneuploidy", "haploidy", "triploidy"]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
 
@@ -70,14 +70,14 @@ rule all:
 rule generate_aneuploidy_phenotypes:
     """Make file for each aneuploidy phenotype"""
     input:
-        rscript="scripts/phenotypes/aneuploidy_phenotypes.R",
+        rscript="scripts/phenotypes/generate_phenotype_files.R",
         ploidy_calls=ploidy_calls,
         metadata=metadata,
     output:
         phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
     wildcard_constraints:
         parent="mother|father",
-        phenotype="maternal_meiotic_aneuploidy|haploidy|triploidy",
+        phenotype="embryo_count|embryo_count_euploid|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
     resources:
         time="0:30:00",
         mem_mb="10G",
@@ -259,7 +259,7 @@ rule run_gwas_subset:
         mem_mb="10G",
     wildcard_constraints:
         dataset_type="discovery|test",
-        phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
+        phenotype="embryo_count|embryo_count_euploid|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
         parent="mother|father",
     shell:
         """
