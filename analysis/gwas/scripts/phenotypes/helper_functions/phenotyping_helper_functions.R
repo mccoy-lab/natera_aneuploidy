@@ -18,7 +18,7 @@ filter_data <- function(ploidy_calls, parent, bayes_factor_cutoff = 2,
   }
   
   # Confirm that min_prob is numeric and positive
-  if (!is.numeric(min_prob) || min_prob <= 0) {
+  if (!is.numeric(min_prob) || min_prob <= 0 || min_prob > 1) {
     stop("Invalid 'min_prob' argument. 
     	     It should be a positive numeric value.")
   }
