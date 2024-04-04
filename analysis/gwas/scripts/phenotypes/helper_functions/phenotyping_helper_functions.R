@@ -139,7 +139,7 @@ count_embryos_by_parent <- function(ploidy_calls, metadata, parent) {
   # Count number of chromosomes for which cn is not 2
   cn <- c("0", "1m", "1p", "3m", "3p")
   
-  # Count number of embryos for which each mother is aneuploid 
+  # Count number of aneuploid embryos for each mother
   aneuploidy_counts <- ploidy_calls %>%
     group_by(get(parent), child) %>%
     summarise(num_affected = sum(bf_max_cat %in% cn)) %>% 
