@@ -259,7 +259,7 @@ rule run_gwas_subset:
         mem_mb="10G",
     wildcard_constraints:
         dataset_type="discovery|test",
-        phenotype="maternal_meiotic_aneuploidy|triploidy|haploidy|embryo_count|parental_triploidy",
+        phenotype="embryo_count|embryo_count_euploid|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
         parent="mother|father",
     shell:
         """
