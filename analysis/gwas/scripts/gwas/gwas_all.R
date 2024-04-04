@@ -46,7 +46,7 @@ threads <- as.numeric(args[10])
 out_fname <- args[11]
 
 # source Rscript with helper functions
-source("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/helper_functions/gwas_helper_functions.R")
+source("helper_functions/gwas_helper_functions.R")
 
 # read in files 
 metadata <- fread(metadata)

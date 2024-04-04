@@ -48,7 +48,7 @@ out_fname <- args[11]
 
 # source Rscript with functions `filter_data`, `day5_only`, 
 # `count_ploidy_by_parent`, and `run_phenotype`
-source("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/helper_functions/phenotyping_helper_functions.R")
+source("helper_functions/phenotyping_helper_functions.R")
 
 # read in embryos and metadata 
 ploidy_calls <- fread(ploidy_calls)
