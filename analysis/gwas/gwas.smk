@@ -48,9 +48,13 @@ chunks_dict = {
 }
 
 # Define the parameters that the pipeline will run on
-phenotypes = ["embryo_count", "embryo_count_euploid", "maternal_age", "maternal_meiotic_aneuploidy", "haploidy", "triploidy"]
-parents = ["mother", "father"]
-dataset_type = ["discovery", "test"]
+#phenotypes = ["embryo_count", "embryo_count_euploid", "maternal_age", "maternal_meiotic_aneuploidy", "haploidy", "triploidy"]
+#parents = ["mother", "father"]
+#dataset_type = ["discovery", "test"]
+phenotypes = "embryo_count"
+parents = "mother"
+dataset_type = "discovery"
+
 
 # shell.prefix("set -o pipefail; ")
 
@@ -181,7 +185,7 @@ rule get_chrom_pos:
         + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
     output:
         chrom_mapfile=gwas_results
-        + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra.txt",
+        + "subsets/spectrum_imputed_chr{chrom}_chrom_pos.txt",
     resources:
         mem_mb="2G",
     threads: 1
@@ -191,12 +195,13 @@ rule get_chrom_pos:
         """
 
 
-rule make_vcf_maps:
+rule make_vcf_regions:
     input:
         chrom_mapfile=rules.get_chrom_pos.output.chrom_mapfile,
+        get_regions="scripts/gwas/get_regions.py",
     output:
-        mapfile=gwas_results
-        + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.txt",
+        regions_file=gwas_results
+        + "subsets/spectrum_imputed_chr{chrom}_regions.txt",
     resources:
         mem_mb="2G",
     params:
@@ -204,13 +209,13 @@ rule make_vcf_maps:
     threads: 1
     shell:
         """
-        awk -v N={params.nchunks} -v chunk={wildcards.chunk} \'NR % N == chunk {{print $0}}\' {input.chrom_mapfile} > {output.mapfile}        
+        python {input.get_regions} {params.nchunks} {input.chrom_mapfile} {output.regions_file}
         """
 
 
 rule bed_split_vcf:
     input:
-        mapfile=rules.make_vcf_maps.output.mapfile,
+        regions_file=rules.make_vcf_regions.output.regions_file,
         input_vcf=imputed_vcf_fp
         + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
     output:
@@ -227,18 +232,18 @@ rule bed_split_vcf:
         nosex=gwas_results
         + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.nosex",
     resources:
-        mem_mb="2G",
+        mem_mb="6G",
     params:
         nchunks=lambda wildcards: chunks_dict[f"chr{wildcards.chrom}"],
         outfix=gwas_results
         + "subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}",
-    threads: 1
+    threads: 16
     shell:
         """
-        bcftools view -T {input.mapfile} -Ob {input.input_vcf} > {output.bcf}
+        region=$(awk -v n={wildcards.chunk} "NR==n {{print}}" {input.regions_file})
+        bcftools view -r $region -Ob {input.input_vcf} > {output.bcf}
         plink --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
         """
-
 
 rule run_gwas_subset:
     """Run GWAS for each set of parameters, using the subsetted bed files"""
