@@ -49,11 +49,11 @@ chunks_dict = {
 
 # Define the parameters that the pipeline will run on
 #phenotypes = ["embryo_count", "embryo_count_euploid", "maternal_age", "maternal_meiotic_aneuploidy", "haploidy", "triploidy"]
-#parents = ["mother", "father"]
-#dataset_type = ["discovery", "test"]
-phenotypes = "embryo_count"
-parents = "mother"
-dataset_type = "discovery"
+parents = ["mother", "father"]
+dataset_type = ["discovery", "test"]
+phenotypes = ["embryo_count_euploid", "maternal_meiotic_aneuploidy"]
+
+
 
 
 # shell.prefix("set -o pipefail; ")
@@ -240,7 +240,7 @@ rule bed_split_vcf:
     threads: 16
     shell:
         """
-        region=$(awk -v n={wildcards.chunk} "NR==n {{print}}" {input.regions_file})
+        region=$(awk -v n={wildcards.chunk} "NR==n+1 {{print}}" {input.regions_file})
         bcftools view -r $region -Ob {input.input_vcf} > {output.bcf}
         plink --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
         """
