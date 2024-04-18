@@ -8,6 +8,13 @@ library(ggplot2)
 # load data 
 ploidy_calls <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz")
 
+bad_trios <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/invalid_trios.010324.txt", header = FALSE)
+
+ploidy_calls_no_bad_trios <- ploidy_calls[!(ploidy_calls$child %in% bad_trios$V3),]
+
+ploidy_calls_v18 <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.bph_sph_trisomy.full_annotation.112023.filter_bad_trios.tsv.gz")
+ploidy_calls_v14 <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos_v2.karyohmm_v14.070923.tsv.gz")
+
 # filter data as per phenotyping 
 source("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/phenotypes/generate_phenotypes.R")
 

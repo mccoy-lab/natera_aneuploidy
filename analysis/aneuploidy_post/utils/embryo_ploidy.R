@@ -10,7 +10,7 @@ library(ggplot2)
 ploidy_calls <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz")
 
 # filter data as per phenotyping 
-source("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/phenotypes/generate_phenotypes.R")
+source("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/helper_functions/phenotyping_helper_functions.R")
 
 # filter data (using functions from phenotyping and pasted below) 
 parent <- "mother"
