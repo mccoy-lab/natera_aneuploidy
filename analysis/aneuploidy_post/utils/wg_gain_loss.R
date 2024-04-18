@@ -1,28 +1,43 @@
-# Whole genome gain or loss by parent 
+# Count and identify genome gains or losss by parent 
 
 # load libraries
 library(data.table)
 library(dplyr)
 library(ggplot2) 
 
-# load data 
-ploidy_calls <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz")
+# Usage: /aneuploidy_post/utils/wg_gain_loss.R \ 
+# "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz" \
+# "mother"
+# "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv" 
+# 15 # threshold number of chr to count as whole-genome 
+# "/utils/results/whole_genome_mother.txt"
+# "/utils/results/affected_trios_mother.txt"
 
-bad_trios <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/invalid_trios.010324.txt", header = FALSE)
+# get command line arguments 
+args <- commandArgs(trailingOnly = TRUE)
+# ploidy calls 
+ploidy_calls <- args[1]
+# parent to get gain/loss by 
+parent <- args[2]
+# metadata to remove day3 embryos 
+metadata <- args[3]
+# threshold number of affected chr for whole genome ploidy 
+ploidy_threshold <- args[4]
+# outfile for whole genome gain/loss counts 
+out_whole_genome <- args[5]
+# outfile for affected trios 
+out_affected_trios <- args[6]
 
-ploidy_calls_no_bad_trios <- ploidy_calls[!(ploidy_calls$child %in% bad_trios$V3),]
+# read in data 
+ploidy_calls <- fread(ploidy_calls)
+metadata <- fread(metadata)
 
-ploidy_calls_v18 <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v18.bph_sph_trisomy.full_annotation.112023.filter_bad_trios.tsv.gz")
-ploidy_calls_v14 <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos_v2.karyohmm_v14.070923.tsv.gz")
-
-# filter data as per phenotyping 
+# get functions `filter_data` and `day5_only`
 source("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/helper_functions/phenotyping_helper_functions.R")
 
-
-# filter data 
-parent <- "mother"
-metadata <- fread("/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv")
-ploidy_calls_filtered <- filter_data(ploidy_calls, parent, bayes_factor_cutoff = 2,
+# filter ploidy calls to keep only high quality data and day5 embryos 
+ploidy_calls_filtered <- filter_data(ploidy_calls, parent, 
+                                     bayes_factor_cutoff = 2,
                                      nullisomy_threshold = 5, min_prob = 0.9) 
 ploidy_calls_filtered <- day5_only(ploidy_calls_filtered, metadata)
 
@@ -55,33 +70,36 @@ whole_genome <- function(ploidy_calls_filtered, parent, ploidy_threshold = 15) {
   return(output)
 }
 
-maternal <- whole_genome(ploidy_calls_filtered, "mother")
-paternal <- whole_genome(ploidy_calls_filtered, "father")
+whole_genome_gain_loss <- whole_genome(ploidy_calls_filtered, parent, 
+                                       ploidy_threshold)
 
-# get affected trios - paternal 
-affected_trios_pat_trip <- ploidy_calls[ploidy_calls$child %in% paternal[1][[1]]$child,] %>%
-  select(mother, father, child) %>% 
-  distinct()
-affected_trios_pat_hap <- ploidy_calls[ploidy_calls$child %in% paternal[2][[1]]$child,] %>%
-  select(mother, father, child) %>% 
-  distinct()
-
-# affected paternal trios 
-affected_paternal_trios <- rbind(affected_trios_pat_trip, affected_trios_pat_hap)
-write.csv(affected_paternal_trios, "/scratch16/rmccoy22/scarios1/sandbox/paternal_wholegenome.csv", row.names = FALSE, quote = FALSE)
+write.csv(whole_genome_gain_loss, out_whole_genome, 
+          row.names = FALSE, quote = FALSE)
 
 
-# get affected trios - maternal
-affected_trios_mat_trip <- ploidy_calls[ploidy_calls$child %in% maternal[1][[1]]$child,] %>%
-  select(mother, father, child) %>% 
-  distinct()
-affected_trios_mat_hap <- ploidy_calls[ploidy_calls$child %in% maternal[2][[1]]$child,] %>%
-  select(mother, father, child) %>% 
-  distinct()
 
-# affected maternal trios 
-affected_maternal_trios <- rbind(affected_trios_mat_trip, affected_trios_mat_hap)
-write.csv(affected_maternal_trios, "/scratch16/rmccoy22/scarios1/sandbox/maternal_wholegenome.csv", row.names = FALSE, quote = FALSE)
+# find affected trios 
+affected_trios <- function(ploidy_calls_filtered, whole_genome_gain_loss, 
+                           parent) {
+  triploidies <- ploidy_calls_filtered[ploidy_calls_filtered$child %in% 
+                                         whole_genome_gain_loss[1][[1]]$child,] %>%
+    select(mother, father, child) %>% 
+    distinct() %>% 
+    mutate(ploidy = "triploidy") %>% 
+    mutate(parent = parent)
+  
+  haploidies <- ploidy_calls_filtered[ploidy_calls_filtered$child %in% 
+                                         whole_genome_gain_loss[2][[1]]$child,] %>%
+    select(mother, father, child) %>% 
+    distinct() %>% 
+    mutate(ploidy = "haploidy") %>% 
+    mutate(parent = parent)
+  
+  ploidies <- rbind(triploidies, haploidies)
+  
+}
 
-
+# compute affected trios and write to file 
+affected_trios_output <- affected_trios(ploidy_calls_filtered, whole_genome_gain_loss, parent)
+write.csv(affected_trios_output, out_affected_trios, row.names = FALSE, quote = FALSE)
 
