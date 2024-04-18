@@ -16,7 +16,7 @@ ploidy_calls_v18 <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compi
 ploidy_calls_v14 <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos_v2.karyohmm_v14.070923.tsv.gz")
 
 # filter data as per phenotyping 
-source("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/phenotypes/generate_phenotypes.R")
+source("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/helper_functions/phenotyping_helper_functions.R")
 
 
 # filter data 
