@@ -33,7 +33,8 @@ ploidy_calls <- fread(ploidy_calls)
 metadata <- fread(metadata)
 
 # get functions `filter_data` and `day5_only`
-source("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/helper_functions/phenotyping_helper_functions.R")
+setwd(".")
+source("../../gwas/scripts/phenotypes/helper_functions/phenotyping_helper_functions.R")
 
 # filter ploidy calls to keep only high quality data and day5 embryos 
 ploidy_calls_filtered <- filter_data(ploidy_calls, parent, 
