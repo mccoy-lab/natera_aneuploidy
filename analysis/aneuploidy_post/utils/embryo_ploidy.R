@@ -35,7 +35,7 @@ metadata <- fread(metadata)
 setwd(".")
 source("../../gwas/scripts/phenotypes/helper_functions/phenotyping_helper_functions.R")
 
-# filter data (using functions from phenotyping and pasted below) 
+# filter data 
 ploidy_calls_filtered <- filter_data(ploidy_calls, parent, 
                                      bayes_factor_cutoff = 2, 
                                      nullisomy_threshold = 5, min_prob = 0.9) 
