@@ -68,10 +68,10 @@ p3 <- ggplot(embryo_count_by_mother, aes(x = weighted_age, y = aneuploid_euploid
   theme_minimal()
 
 # plot proportion of aneuploid embryos by maternal age with logistic regression - no olds 
-p4 <- ggplot(embryo_count_by_mother[embryo_count_by_mother$weighted_age <= 60], aes(x = weighted_age, y = aneuploid_euploid_ratio)) +
+p4 <- ggplot(embryo_count_by_mother[embryo_count_by_mother$weighted_age <= 55], aes(x = weighted_age, y = aneuploid_euploid_ratio)) +
   geom_point() +  
-  geom_smooth(method = "glm", method.args = list(family = binomial), se = FALSE) +  # Logistic regression line
-  labs(title = "Proportion of Aneuploid Embryos by Maternal Age <= 60",
+  #geom_smooth(method = "loess") +  # Logistic regression line
+  labs(title = "Proportion of Aneuploid Embryos by Maternal Age",
        x = "Maternal Age",
        y = "Proportion of Aneuploid Embryos") + 
   theme_minimal()
