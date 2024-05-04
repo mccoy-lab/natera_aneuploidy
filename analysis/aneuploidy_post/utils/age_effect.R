@@ -83,6 +83,7 @@ weighted_ages <- metadata_merged_array %>%
   summarise(
     weighted_age = sum(patient_age) / n(),
     num_embryos = n(),
+    partner_age_weighted = sum(partner_age) / n(),
     num_visits = length(unique(patient_age))
   ) %>%
   as.data.frame()
@@ -107,6 +108,7 @@ merged_table <- merged_table[!(merged_table$array %in%
 
 # Round maternal ages for plotting
 merged_table$rounded_age <- round(merged_table$weighted_age)
+merged_table$rounded_partner_age <- round(merged_table$partner_age_weighted)
 
 # Calculate proportion aneuploid 
 merged_table$mat_error_ratio <- 
@@ -121,78 +123,99 @@ merged_table$pat_error_ratio <-
 # Remove any rows that are entirely NA 
 merged_table <- merged_table[complete.cases(merged_table$mat_error_ratio),]
 
-# Remove any mother for which no ratio could be calculated 
-# (removed entirely during embryo filtering for phenotypes) 
-# calculate average proportion aneu for each age 
-average_proportions <- merged_table %>%
-  group_by(rounded_age) %>%
-  summarise(avg_mat_error_ratio = mean(mat_error_ratio), 
-            avg_pat_error_ratio = mean(pat_error_ratio), 
-            embryo_count = mean(num_embryos))
-
 # keep only ages with at least x individuals in the dataset 
 # count number of occurrences of each rounded age
 frequency_counts <- merged_table %>%
   count(rounded_age)
 # keep only ages with at least x individuals in the dataset 
-average_proportions_filtered <- average_proportions %>% 
+merged_table <- merged_table %>% 
   filter(rounded_age %in% 
            frequency_counts$rounded_age[frequency_counts$n >= min_age_count])
-# remove individuals with NA for rounded age 
-# (due to NAs for patient or child in metadata)
-average_proportions_filtered <- 
-  average_proportions_filtered[
-    !is.na(average_proportions_filtered$rounded_age),]
 
 
-# rename for plotting 
-errors_by_age <- average_proportions_filtered
+# get se for each parent  
+avg_mat_error <- merged_table %>%
+  group_by(rounded_age) %>%
+  summarise(avg_mat_error = mean(mat_error_ratio),
+            se_mat = sd(mat_error_ratio) / sqrt(n()),
+            avg_pat_error = mean(pat_error_ratio),
+            se_pat = sd(pat_error_ratio) / sqrt(n()))
+frequency_counts_paternal <- merged_table %>%
+  count(rounded_partner_age)
+avg_pat_error <- merged_table %>%
+  filter(rounded_partner_age %in% frequency_counts_paternal$rounded_partner_age[frequency_counts_paternal$n >= min_age_count]) %>%
+  group_by(rounded_partner_age) %>%
+  summarise(avg_pat_error = mean(pat_error_ratio),
+            se_pat = sd(pat_error_ratio) / sqrt(n()))
 
-# maternal and paternal error
-ggplot(errors_by_age, aes(x = rounded_age)) +
-  geom_line(aes(y = avg_mat_error_ratio, color = "Maternal Error")) +
-  geom_point(aes(y = avg_mat_error_ratio, color = "Maternal Error")) +
-  geom_line(aes(y = avg_pat_error_ratio, color = "Paternal Error")) +
-  geom_point(aes(y = avg_pat_error_ratio, color = "Paternal Error")) +
-  labs(x = "Maternal Age", y = "Aneuploidy Ratio by Mother", 
-       color = "Error Type") +
-  ggtitle("Maternal and Paternal Errors by Maternal Age") +
-  scale_color_manual(values = c("Maternal Error" = "red", 
-                                "Paternal Error" = "blue")) +
-  theme_minimal()
 
-# just maternal error 
-ggplot(errors_by_age, aes(x = rounded_age)) +
-  geom_line(aes(y = avg_mat_error_ratio, color = "Maternal Error")) +
-  geom_point(aes(y = avg_mat_error_ratio, color = "Maternal Error")) +
-  #geom_line(aes(y = avg_pat_error_ratio, color = "Paternal Error")) +
-  #geom_point(aes(y = avg_pat_error_ratio, color = "Paternal Error")) +
-  labs(x = "Maternal Age", y = "Aneuploidy Ratio by Mother", 
-       color = "Error Type") +
-  ggtitle("Maternal and Paternal Errors by Maternal Age") +
-  scale_color_manual(values = c("Maternal Error" = "red", 
-                                "Paternal Error" = "blue")) +
-  theme_minimal()
 
-# maternal and paternal error, and number of embryos 
-ggplot(errors_by_age, aes(x = rounded_age)) +
-  geom_line(aes(y = avg_mat_error_ratio, color = "Maternal Error")) +
-  geom_point(aes(y = avg_mat_error_ratio, color = "Maternal Error")) +
-  geom_line(aes(y = avg_pat_error_ratio, color = "Paternal Error")) +
-  geom_point(aes(y = avg_pat_error_ratio, color = "Paternal Error")) +
-  geom_point(aes(y = embryo_count * 1/10, color = "Number of Embryos")) +
-  scale_y_continuous(
-    name = "Aneuploidy Rate",
-    limits = c(0, 1),
-    breaks = seq(0, 1, 0.2),
-    sec.axis = sec_axis(~.*10, name = "Number of Embryos")
-  ) +
-  labs(x = "Maternal Age") + 
-  ggtitle("Errors and embryo count by age (all mothers)") + 
-  labs(color = "Legend") +
-  theme_minimal() +
-  theme(
-    legend.position = "right"
-  )
+# Make glm data for maternal 
+merged_table$not_maternal_error <- merged_table$paternal_error + merged_table$euploid
 
+m0 <- glm(data = merged_table, formula = cbind(maternal_error, not_maternal_error) ~ weighted_age, family = "quasibinomial")
+m1 <- glm(data = merged_table, formula = cbind(maternal_error, not_maternal_error) ~ poly(weighted_age, 2), family = "quasibinomial")
+anova(m1, m0, test = "Chisq")
+
+predicted_data <- data.table(weighted_age = 26:45)
+predicted_data[, avg_mat_error := predict(m1, newdata = predicted_data, type = "response")]
+predicted_data[, rounded_age := weighted_age]
+
+
+# Plot maternal points 
+ggplot(avg_mat_error, aes(x = rounded_age)) +
+  geom_point(aes(y = avg_mat_error), color = "#CC79A7") +
+  theme_minimal() + 
+  theme(axis.title.x = element_blank(), 
+        axis.title.y = element_blank()) + 
+  ylim(0, 1)
   
+# Plot maternal points with glm 
+ggplot(avg_mat_error, aes(x = rounded_age)) +
+  geom_point(aes(y = avg_mat_error), color = "#CC79A7") +
+  geom_line(data = predicted_data, aes(y = avg_mat_error)) +
+  theme_minimal() + 
+  theme(axis.title.x = element_blank(), 
+        axis.title.y = element_blank()) + 
+  ylim(0, 1)
+
+# Plot maternal points with glm and paternal points 
+ggplot(avg_mat_error, aes(x = rounded_age)) +
+  geom_point(aes(y = avg_mat_error), color = "#CC79A7") +
+  geom_line(data = predicted_data, aes(y = avg_mat_error)) +
+  geom_point(aes(y = avg_pat_error), color = "#0072B2") +
+  theme_minimal() + 
+  theme(axis.title.x = element_blank(), 
+        axis.title.y = element_blank()) + 
+  ylim(0, 1)
+
+
+
+# Make glm data for paternal 
+merged_table_pat <- merged_table[!is.na(merged_table$partner_age_weighted),]
+merged_table_pat$not_paternal_error <- merged_table_pat$maternal_error + merged_table_pat$euploid
+
+m2 <- glm(data = merged_table_pat, formula = cbind(paternal_error, not_paternal_error) ~ partner_age_weighted, family = "quasibinomial")
+m3 <- glm(data = merged_table_pat, formula = cbind(paternal_error, not_paternal_error) ~ poly(partner_age_weighted, 2), family = "quasibinomial")
+anova(m2, m3, test = "Chisq")
+
+predicted_data_pat <- data.table(partner_age_weighted = 28:53)
+predicted_data_pat[, avg_pat_error := predict(m2, newdata = predicted_data_pat, type = "response")]
+predicted_data_pat[, rounded_partner_age := partner_age_weighted]
+
+# Plot paternal points 
+ggplot(avg_pat_error, aes(x = rounded_partner_age)) +
+  geom_point(aes(y = avg_pat_error), color = "#0072B2") +
+  theme_minimal() + 
+  theme(axis.title.x = element_blank(), 
+        axis.title.y = element_blank()) + 
+  ylim(0, 1)
+
+# Plot paternal points with glm 
+ggplot(avg_pat_error, aes(x = rounded_partner_age)) +
+  geom_point(aes(y = avg_pat_error), color = "#0072B2") +
+  geom_line(data = predicted_data_pat, aes(y = avg_pat_error)) +
+  theme_minimal() + 
+  theme(axis.title.x = element_blank(), 
+        axis.title.y = element_blank()) + 
+  ylim(0, 1)
