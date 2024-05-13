@@ -50,17 +50,17 @@ copy_numbers <- ploidy_calls_filtered %>%
 
 # get number of genes per chromosome 
 gencode <- readGFF("/data/rmccoy22/resources/GENCODE/v38/gencode.v38.annotation.sorted.gtf")
-genes_by_chr <- gencode[gencode$type == "gene",] %>%
+genes_by_chr <- gencode[gencode$type == "gene" & gencode$gene_type == "protein_coding",] %>%
   # keep just genes and remove pseudogenes
   filter(!grepl("pseudogene", gene_type, ignore.case = TRUE)) %>% 
   group_by(seqid) %>%
-  count() %>% 
-  rename(num_genes = n) %>% 
-  rename(chrom = seqid)
+  count() 
+colnames(genes_by_chr) <- c("chrom", "num_genes")
+
 
 # get size of each chromosome 
 # https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&chromInfoPage=&pix=1752
-chrom_sizes <- fread("hg38.chrom.sizes.txt") 
+chrom_sizes <- fread("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/aneuploidy_post/utils/hg38.chrom.sizes.txt") 
 colnames(chrom_sizes) <- c("chrom", "bp")
 
 
@@ -114,37 +114,95 @@ ggplot(ploidy_chr, aes(x = aneuploidies / nrow(ploidy_calls_filtered)/22,
 
 # ratio of monosomies vs. number of genes (uncorrected for chr length)
 ggplot(ploidy_chr, aes(x = num_genes, 
-                         y = monosomies / aneuploidies, label = chrom)) +
-  geom_point() +
-  geom_text(size = 3, vjust = -0.5, hjust = 1) +  
-  labs(
-    x = "Number of Genes",
-    y = "Proportion of Monosomies",
-    title = "Monosomies by Number of Genes",
-  ) +
-  theme_minimal()
+                       y = monosomies / aneuploidies, label = chrom)) +
+  geom_point(size = 3) +
+  geom_text(size = 4, vjust = -1, hjust = 1) +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(size = 13), 
+        axis.text.y = element_text(size = 13), 
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank()) + 
+  ylim(0.1, 0.5) + 
+  xlim(200, 2100)
 
 # ratio of monosomies vs. number of genes (corrected for chr length)
-ggplot(ploidy_chr, aes(x = num_genes / bp, 
+ggplot(ploidy_chr, aes(x = num_genes / (bp/1000), 
                          y = monosomies / aneuploidies, label = chrom)) +
-  geom_point() +
-  geom_text(size = 3, vjust = -0.5, hjust = 1) +  
-  labs(
-    x = "Number of Genes / Size of Chr",
-    y = expression(paste(n[monosomy], "/", n[aneuploidy])),
-    #title = "Enrichment for Monosomies",
-  ) +
-  theme_minimal()
+  geom_point(size = 3) +
+  geom_text(size = 4, vjust = -1, hjust = 1) +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(size = 13), 
+        axis.text.y = element_text(size = 13), 
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank()) + 
+  ylim(0.1, 0.5) + 
+  xlim(0.002, 0.0255)
 
 # ratio of monosomies vs. size of chromosome 
-ggplot(ploidy_chr, aes(x = bp, 
+ggplot(ploidy_chr, aes(x = bp / 1000, 
                        y = monosomies / aneuploidies, label = chrom)) +
-  geom_point() +
-  geom_text(size = 3, vjust = -0.5, hjust = 1) +  
+  geom_point(size = 3) + 
+  geom_text(size = 4, vjust = -1, hjust = 1) + 
   labs(
-    x = "Size of Chromosome (bp)",
-    y = expression(paste(n[monosomy], "/", n[aneuploidy])),
-    title = "Proportion of Monosomies by Chromosome Size",
+    x = "Size of Chromosome (kbp)",
+    y = expression(paste(n[monosomy], "/", n[monosomy] + n[trisomy])),
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 13), 
+        axis.text.y = element_text(size = 13), 
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank()) + 
+  ylim(0.1, 0.5) + 
+  xlim(45000, 260000)
+
+
+# reorganize data to get ratio of monosomy to trisomy by chromosome 
+chroms <- ploidy_chr$chrom
+monosomy_ratios <- (ploidy_chr$monosomies / (ploidy_chr$monosomies + ploidy_chr$trisomies))
+monosomy_type <- rep("monosomy", times = 22)
+trisomy_ratios <- (ploidy_chr$trisomies / (ploidy_chr$monosomies + ploidy_chr$trisomies))
+trisomy_type <- rep("trisomy", times = 22)
+mono <- data.frame(chroms, monosomy_ratios, monosomy_type)
+colnames(mono) <- c("chromosomes", "ratio", "type")
+tri <- data.frame(chroms, trisomy_ratios, trisomy_type)
+colnames(tri) <- c("chromosomes", "ratio", "type")
+mono_tri_ratios <- rbind(mono, tri)
+mono_tri_ratios$chromosomes <- gsub("chr", "", mono_tri_ratios$chromosomes)
+mono_tri_ratios$chromosomes <- factor(mono_tri_ratios$chromosomes, levels = as.character(1:22))
+  
+
+# color bar for plotting 
+colors_mono_tri <- c("trisomy" = "#E69F00", "monosomy" = "#0072B2")
+# adjust order for plotting 
+mono_tri_ratios$type <- factor(mono_tri_ratios$type, levels = c("monosomy", "trisomy"))
+
+# plot actual rates of monosomy and trisomy 
+ggplot(mono_tri_ratios, aes(x = factor(chromosomes), y = ratio, fill = type)) +
+  geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
+  geom_hline(yintercept = 0.5, linetype = "dotted") + 
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "none") +
+  scale_fill_manual(values = colors_mono_tri)
+
+
+# Simulate equal ratio of maternal monosomy to trisomy 
+# Create a sample dataframe
+chromosomes <- rep(1:22, each = 2)  
+type <- rep(c("monosomy", "trisomy"), times = 22)  # Equal proportions of "monosomy" and "trisomy"
+ratio <- c(rep(0.5, 44))  # 50% for each type
+sim_mono_tri <- data.frame(chromosomes, types, ratio)
+
+# plot simulation of equal rates of monosomy and trisomy 
+ggplot(sim_mono_tri, aes(x = factor(chromosomes), y = ratio, fill = type)) +
+  geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "none") +
+  scale_fill_manual(values = colors_mono_tri)
+
 

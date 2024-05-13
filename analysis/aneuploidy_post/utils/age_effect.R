@@ -173,7 +173,7 @@ ggplot(avg_mat_error, aes(x = rounded_age)) +
 # Plot maternal points with glm 
 ggplot(avg_mat_error, aes(x = rounded_age)) +
   geom_point(aes(y = avg_mat_error), color = "#CC79A7") +
-  geom_line(data = predicted_data, aes(y = avg_mat_error)) +
+  geom_line(data = predicted_data, aes(y = avg_mat_error), color = "#CC79A7") +
   theme_minimal() + 
   theme(axis.title.x = element_blank(), 
         axis.title.y = element_blank()) + 
@@ -182,7 +182,7 @@ ggplot(avg_mat_error, aes(x = rounded_age)) +
 # Plot maternal points with glm and paternal points 
 ggplot(avg_mat_error, aes(x = rounded_age)) +
   geom_point(aes(y = avg_mat_error), color = "#CC79A7") +
-  geom_line(data = predicted_data, aes(y = avg_mat_error)) +
+  geom_line(data = predicted_data, aes(y = avg_mat_error), color = "#CC79A7") +
   geom_point(aes(y = avg_pat_error), color = "#0072B2") +
   theme_minimal() + 
   theme(axis.title.x = element_blank(), 
@@ -214,7 +214,7 @@ ggplot(avg_pat_error, aes(x = rounded_partner_age)) +
 # Plot paternal points with glm 
 ggplot(avg_pat_error, aes(x = rounded_partner_age)) +
   geom_point(aes(y = avg_pat_error), color = "#0072B2") +
-  geom_line(data = predicted_data_pat, aes(y = avg_pat_error)) +
+  geom_line(data = predicted_data_pat, aes(y = avg_pat_error), color = "#0072B2") +
   theme_minimal() + 
   theme(axis.title.x = element_blank(), 
         axis.title.y = element_blank()) + 
