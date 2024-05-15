@@ -48,13 +48,9 @@ chunks_dict = {
 }
 
 # Define the parameters that the pipeline will run on
-#phenotypes = ["embryo_count", "embryo_count_euploid", "maternal_age", "maternal_meiotic_aneuploidy", "haploidy", "triploidy"]
+phenotypes = ["embryo_count", "embryo_count_euploid", "maternal_age", "maternal_meiotic_aneuploidy", "haploidy", "triploidy"]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
-phenotypes = ["embryo_count_euploid", "maternal_meiotic_aneuploidy"]
-
-
-
 
 # shell.prefix("set -o pipefail; ")
 
