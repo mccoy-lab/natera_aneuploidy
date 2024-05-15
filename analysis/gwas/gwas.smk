@@ -3,11 +3,11 @@
 # Usage: nohup snakemake -p --cores 48 --snakefile gwas.smk > nohup_date.out 2>&1 &
 # Usage on rockfish: nohup snakemake -p --snakefile gwas.smk -j 200 --profile ~/code/rockfish_smk_profile/ &
 # Optional: add -j 12 to submit as 12 jobs, etc.
-# Optional: add -n to do a dry run
+# Optional: add -n for a dry run
 # Executed from /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
 
-# -------- Setting variables and paths for pre-GWAS processing steps and GWAS outputs ------- #
-king_exec = "~/code/king"
+# -------- Variables and filepaths for GWAS ------- #
+#king_exec = "~/code/king"
 general_outputs_fp = "results/"
 vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
 metadata = (
@@ -47,7 +47,7 @@ chunks_dict = {
     "chr23": 60,
 }
 
-# Define the parameters that the pipeline will run on
+# Parameters pipeline will run on 
 phenotypes = ["embryo_count", "embryo_count_euploid", "maternal_age", "maternal_meiotic_aneuploidy", "haploidy", "triploidy"]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
@@ -55,7 +55,7 @@ dataset_type = ["discovery", "test"]
 # shell.prefix("set -o pipefail; ")
 
 
-# -------- Rule all to run whole pipeline -------- #
+# -------- Rules section -------- #
 rule all:
     input:
         expand(
