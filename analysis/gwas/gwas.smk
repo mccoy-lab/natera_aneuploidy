@@ -131,23 +131,6 @@ rule discovery_validate_split:
 
 
 # -------- 1. Subset Genetic Data -------- #
-rule vcf2bed:
-    """Take vcf for each chromosome, convert to bed as a temp file for use in the GWAS"""
-    input:
-        vcf_input=vcf_fp + "opticall_concat_{chrom}.norm.b38.vcf.gz",
-    output:
-        bedfile=temp(gwas_results + "opticall_concat_{chrom}.norm.b38.bed"),
-        bimfile=temp(gwas_results + "opticall_concat_{chrom}.norm.b38.bim"),
-        famfile=temp(gwas_results + "opticall_concat_{chrom}.norm.b38.fam"),
-        logfile=temp(gwas_results + "opticall_concat_{chrom}.norm.b38.log"),
-    params:
-        outfix=lambda wildcards: gwas_results
-        + f"opticall_concat_{wildcards.chrom}.norm.b38",
-    threads: 24
-    shell:
-        "plink2 --vcf {input.vcf_input} --keep-allele-order --double-id --make-bed --threads {threads} --out {params.outfix}"
-
-
 rule get_chrom_pos:
     input:
         input_vcf=imputed_vcf_fp
