@@ -66,35 +66,7 @@ rule all:
         ),
 
 
-# -------- Functions to determine run GWAS on maternal and paternal for each phenotype -------- #
-rule generate_aneuploidy_phenotypes:
-    """Make file for each aneuploidy phenotype"""
-    input:
-        rscript="scripts/phenotypes/generate_phenotype_files.R",
-        ploidy_calls=ploidy_calls,
-        metadata=metadata,
-    output:
-        phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
-    wildcard_constraints:
-        parent="mother|father",
-        phenotype="embryo_count|embryo_count_euploid|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
-    resources:
-        time="0:30:00",
-        mem_mb="10G",
-    params:
-        filter_day_5="TRUE",
-        bayes_factor_cutoff=2,
-        nullisomy_threshold=5,
-        min_prob=0.9,
-        max_meiotic=3,
-        min_ploidy=15,
-    shell:
-        """
-        ml gcc r/4.0.2
-        Rscript --vanilla {input.rscript} {input.ploidy_calls} {wildcards.parent} {input.metadata} {wildcards.phenotype} {params.filter_day_5} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {params.min_prob} {params.max_meiotic} {params.min_ploidy} {output.phenotype_file}
-        """
-
-
+# -------- 0. Preprocess Genetic Data -------- #
 rule run_king:
     """Reformat parental genotypes vcf and run king to identify related individuals"""
     input:
@@ -122,22 +94,6 @@ rule run_king:
         """
 
 
-rule discovery_validate_split:
-    """Split families into discovery/validation sets for use in GWAS"""
-    input:
-        discovery_validate_R="scripts/discovery_test_split.R",
-        metadata=metadata,
-        fam_file="/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam",
-        king_to_remove=general_outputs_fp + "unrelated_toberemoved.txt",
-    output:
-        discovery_validate_maternal=general_outputs_fp
-        + "discover_validate_split_mother.txt",
-        discovery_validate_paternal=general_outputs_fp
-        + "discover_validate_split_father.txt",
-    shell:
-        "Rscript --vanilla {input.discovery_validate_R} {input.metadata} {input.fam_file} {input.king_to_remove} {output.discovery_validate_maternal} {output.discovery_validate_paternal}"
-
-
 rule run_plink_pca:
     """Run plink to get principal components for parental genotypes"""
     input:
@@ -158,6 +114,23 @@ rule run_plink_pca:
         "plink2 --vcf {input.concat_vcf} --pca {params.pcs} approx --threads {threads} --out {params.outfix}"
 
 
+rule discovery_validate_split:
+    """Split families into discovery/validation sets for use in GWAS"""
+    input:
+        discovery_validate_R="scripts/discovery_test_split.R",
+        metadata=metadata,
+        fam_file="/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam",
+        king_to_remove=general_outputs_fp + "unrelated_toberemoved.txt",
+    output:
+        discovery_validate_maternal=general_outputs_fp
+        + "discover_validate_split_mother.txt",
+        discovery_validate_paternal=general_outputs_fp
+        + "discover_validate_split_father.txt",
+    shell:
+        "Rscript --vanilla {input.discovery_validate_R} {input.metadata} {input.fam_file} {input.king_to_remove} {output.discovery_validate_maternal} {output.discovery_validate_paternal}"
+
+
+# -------- 1. Subset Genetic Data -------- #
 rule vcf2bed:
     """Take vcf for each chromosome, convert to bed as a temp file for use in the GWAS"""
     input:
@@ -241,6 +214,36 @@ rule bed_split_vcf:
         plink --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
         """
 
+# -------- 2. Create aneuploidy phenotypes -------- #
+rule generate_aneuploidy_phenotypes:
+    """Make file for each aneuploidy phenotype"""
+    input:
+        rscript="scripts/phenotypes/generate_phenotype_files.R",
+        ploidy_calls=ploidy_calls,
+        metadata=metadata,
+    output:
+        phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
+    wildcard_constraints:
+        parent="mother|father",
+        phenotype="embryo_count|embryo_count_euploid|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
+    resources:
+        time="0:30:00",
+        mem_mb="10G",
+    params:
+        filter_day_5="TRUE",
+        bayes_factor_cutoff=2,
+        nullisomy_threshold=5,
+        min_prob=0.9,
+        max_meiotic=3,
+        min_ploidy=15,
+    shell:
+        """
+        ml gcc r/4.0.2
+        Rscript --vanilla {input.rscript} {input.ploidy_calls} {wildcards.parent} {input.metadata} {wildcards.phenotype} {params.filter_day_5} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {params.min_prob} {params.max_meiotic} {params.min_ploidy} {output.phenotype_file}
+        """
+
+
+# -------- 3. Execute GWAS and concatenate files -------- #
 rule run_gwas_subset:
     """Run GWAS for each set of parameters, using the subsetted bed files"""
     input:
