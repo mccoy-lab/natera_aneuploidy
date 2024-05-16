@@ -67,6 +67,20 @@ rule all:
 
 
 # -------- 0. Preprocess Genetic Data -------- #
+rule concat_chromosomes: 
+    """Make one merged vcf for all chromosomes"""
+    input: 
+        expand(imputed_vcf_fp + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
+            chrom=range(1,23)),
+    output: 
+        merged_vcf=gwas_results + "spectrum_imputed_autosomes_rehead_filter_cpra.vcf.gz",
+        merged_tbi=gwas_results + "spectrum_imputed_autosomes_rehead_filter_cpra.vcf.gz.tbi",
+    params:
+        regions=",".join([f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY"]),
+    threads: 48
+    shell: 
+        "bcftools concat -a --threads {threads} -r {params.regions} {input} | bcftools sort | bgzip -@{threads} > {output.merged_vcf}; tabix {output.merged_vcf}"
+
 rule run_king:
     """Reformat parental genotypes vcf and run king to identify related individuals"""
     input:
