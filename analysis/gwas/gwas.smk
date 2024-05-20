@@ -51,6 +51,7 @@ chunks_dict = {
 phenotypes = ["embryo_count", "embryo_count_euploid", "maternal_age", "maternal_meiotic_aneuploidy", "haploidy", "triploidy"]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
+#chroms = range(1, 23) # autosomes
 
 # shell.prefix("set -o pipefail; ")
 
@@ -80,6 +81,24 @@ rule vcf2pgen:
 		outfix=lambda wildcards: gwas_results + f"spectrum_imputed_chr{wildcards.chrom}",
 	shell:
 		"plink2 --vcf {input.input_vcf} dosage=DS --double-id --maf 0.005 --threads {threads} --make-pgen --out {params.outfix}"
+
+
+rule merge_full_pgen: 
+	"""Merge pgen files from each chromosome into a consolidated PGEN file"""
+	output:
+		tmp_merge_file=temp("results/gwas/merged_pgen.txt"),
+		pgen="results/gwas/merged_imputed.pgen",
+		psam="results/gwas/merged_imputed.psam",
+		pvar="results/gwas/merged_imputed.pvar",
+	resources:
+		time="1:00:00",
+		mem_mb="5G",
+	threads: 24
+	shell:
+		"""
+		for i in $(seq 1 22); do echo \"results/gwas/spectrum_imputed_chr${{i}}\" ; done > {output.tmp_merge_file}
+		plink2 --pmerge-list {output.tmp_merge_file} --maf 0.005 --threads {threads} --make-pgen --out merged_imputed
+		"""
 
 
 rule run_king:
