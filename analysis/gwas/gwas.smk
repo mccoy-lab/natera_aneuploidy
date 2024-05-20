@@ -87,9 +87,9 @@ rule merge_full_pgen:
 	"""Merge pgen files from each chromosome into a consolidated PGEN file"""
 	output:
 		tmp_merge_file=temp("results/gwas/merged_pgen.txt"),
-		pgen="results/gwas/merged_imputed.pgen",
-		psam="results/gwas/merged_imputed.psam",
-		pvar="results/gwas/merged_imputed.pvar",
+		pgen="merged_imputed.pgen",
+		psam="merged_imputed.psam",
+		pvar="merged_imputed.pvar",
 	resources:
 		time="1:00:00",
 		mem_mb="5G",
@@ -99,6 +99,31 @@ rule merge_full_pgen:
 		for i in $(seq 1 22); do echo \"results/gwas/spectrum_imputed_chr${{i}}\" ; done > {output.tmp_merge_file}
 		plink2 --pmerge-list {output.tmp_merge_file} --maf 0.005 --threads {threads} --make-pgen --out merged_imputed
 		"""
+
+
+rule compute_pcs:
+	"""Compute PCA using genotype data"""
+	input:
+		pgen="merged_imputed.pgen",
+		psam="merged_imputed.psam",
+		pvar="merged_imputed.pvar",
+	output:
+		keep_variants="merged_imputed.prune.in",
+		remove_variants=temp("merged_imputed.prune.out"),
+		evecs="merged_imputed.eigenvec",
+		evals="merged_imputed.eigenval",
+	resources:
+		time="1:00:00",
+		mem_mb="10G",
+	params:
+		npcs=20,
+	threads: 24
+	shell:
+		"""
+		plink2 --pgen {input.pgen} --psam {input.psam} --pvar {input.pvar} --threads {threads} --maf 0.01 --indep-pairwise 200 25 0.4 --out merged_imputed
+        plink2 --pgen {input.pgen} --psam {input.psam} --pvar {input.pvar} --extract {output.keep_variants} --pca {params.npcs} approx --threads {threads} --out merged_imputed
+		"""
+
 
 
 rule run_king:
