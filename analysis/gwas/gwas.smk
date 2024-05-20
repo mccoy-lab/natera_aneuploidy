@@ -67,19 +67,20 @@ rule all:
 
 
 # -------- 0. Preprocess Genetic Data -------- #
-rule concat_chromosomes: 
-    """Make one merged vcf for all chromosomes"""
-    input: 
-        expand(imputed_vcf_fp + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
-            chrom=range(1,23)),
-    output: 
-        merged_vcf=gwas_results + "spectrum_imputed_autosomes_rehead_filter_cpra.vcf.gz",
-        merged_tbi=gwas_results + "spectrum_imputed_autosomes_rehead_filter_cpra.vcf.gz.tbi",
-    params:
-        regions=",".join([f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY"]),
-    threads: 48
-    shell: 
-        "bcftools concat -a --threads {threads} -r {params.regions} {input} | bcftools sort | bgzip -@{threads} > {output.merged_vcf}; tabix {output.merged_vcf}"
+rule vcf2pgen: 
+	"""Convert imputed VCF files to PGEN format for use in KING and PCA"""
+	input: 
+		input_vcf=imputed_vcf_fp + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
+	output: 
+		pgen=temp("results/gwas/spectrum_imputed_chr{chrom}.pgen"),
+		psam=temp("results/gwas/spectrum_imputed_chr{chrom}.psam"),
+		pvar=temp("results/gwas/spectrum_imputed_chr{chrom}.pvar"),
+	threads: 24
+	params:
+		outfix=lambda wildcards: gwas_results + f"spectrum_imputed_chr{wildcards.chrom}",
+	shell:
+		"plink2 --vcf {input.input_vcf} dosage=DS --double-id --maf 0.005 --threads {threads} --make-pgen --out {params.outfix}"
+
 
 rule run_king:
     """Reformat parental genotypes vcf and run king to identify related individuals"""
