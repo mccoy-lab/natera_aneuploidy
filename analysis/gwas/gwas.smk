@@ -125,52 +125,23 @@ rule compute_pcs:
 		"""
 
 
-
-rule run_king:
-    """Reformat parental genotypes vcf and run king to identify related individuals"""
-    input:
-        vcf_input=vcf_fp + "opticall_concat_total.norm.b38.vcf.gz",
-    output:
-        king_bed=temp(
-            general_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.bed"
-        ),
-        king_bim=temp(
-            general_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.bim"
-        ),
-        king_fam=temp(
-            general_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.fam"
-        ),
-        king_log=temp(
-            general_outputs_fp + "opticall_concat_total.norm.b38.alleleorder.log"
-        ),
-    params:
-        plink_outfix=general_outputs_fp + "opticall_concat_total.norm.b38.alleleorder",
-        king_outfix=general_outputs_fp,
-    shell:
-        """
-        plink --vcf {input.vcf_input} --double-id --allow-extra-chr --make-bed --out {params.plink_outfix} 
-        {king_exec} -b {output.king_bed} --unrelated --degree 2 --prefix {params.king_outfix}
-        """
-
-
-rule run_plink_pca:
-    """Run plink to get principal components for parental genotypes"""
-    input:
-        concat_vcf=vcf_fp + "opticall_concat_total.norm.b38.vcf.gz",
-        concat_vcf_tbi=vcf_fp + "opticall_concat_total.norm.b38.vcf.gz.tbi",
-    output:
-        eigenvec=pcs_out + "parental_genotypes.eigenvec",
-        eigenval=pcs_out + "parental_genotypes.eigenval",
-        log=pcs_out + "parental_genotypes.log",
-    resources:
-        time="1:00:00",
-        mem_mb="4G",
-    params:
-        outfix=pcs_out + "parental_genotypes",
-        pcs=20,
-    threads: 24
-    shell:
-        "plink2 --vcf {input.concat_vcf} --pca {params.pcs} approx --threads {threads} --out {params.outfix}"
+rule king_related_individuals:
+	"""Isolate related individuals (up to second degreE) to remove from GWAS"""
+	input:
+		pgen="merged_imputed.pgen",
+		psam="merged_imputed.psam",
+		pvar="merged_imputed.pvar",
+	output:
+		king_include=temp("results/king_result.king.cutoff.in.id"),
+		king_exclude="results/king_result.king.cutoff.out.id",
+	resources:
+		time="1:00:00",
+		mem_mb="1G",
+	threads: 24
+	params: 
+		king_thresh=0.125,
+	shell:
+		"plink2 --pgen {input.pgen} --psam {input.psam} --pvar {input.pvar} --threads {threads} --maf 0.01 --king-cutoff {params.king_thresh} --out king_result"
 
 
 rule discovery_validate_split:
