@@ -264,7 +264,7 @@ rule run_gwas_subset:
         metadata=metadata,
         bed=rules.bed_split_vcf.output.bed,
         discovery_test=general_outputs_fp + "discover_validate_split_{parent}.txt",
-        parental_pcs=rules.run_plink_pca.output.eigenvec,
+        parental_pcs=rules.compute_pcs.output.evecs,
         phenotype_file=rules.generate_aneuploidy_phenotypes.output.phenotype_file,
         bim=rules.bed_split_vcf.output.bim,
     output:
