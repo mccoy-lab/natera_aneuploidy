@@ -1,16 +1,16 @@
 library(data.table)
-library(ggplot2)
 library(dplyr)
 library(tidyr)
+library(ggplot2)
 #library(ggpubr)
 
 # Usage: 
 # ./discovery_test_split.R \
 # "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv" \
 # "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam" \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/unrelated_toberemoved.txt" \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_mother.txt" \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_father.txt" 
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/king_result.king.cutoff.out.id" \ 
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_test_split_mother.txt" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_test_split_father.txt" 
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
@@ -49,8 +49,10 @@ metadata_merged_array_ages[, is_genotyped := array %in% fam$V1] %>%
 # keep only individuals who are genotyped 
 metadata_merged_array_ages <- metadata_merged_array_ages[is_genotyped == TRUE]
 
+# remove duplicates 
+
 # remove all families affected by a related individual 
-related_metadata <- merge(metadata_merged_array_ages, king_related_arrays, by.x = "array", by.y = "V1")
+related_metadata <- merge(metadata_merged_array_ages, king_related_arrays, by.x = "array", by.y = "IID")
 # keep families that did not contain a related individual 
 metadata_merged_array_ages[, related_samples_to_drop := casefile_id %in% related_metadata$casefile_id]
 metadata_merged_array_ages <- metadata_merged_array_ages[related_samples_to_drop == FALSE]
