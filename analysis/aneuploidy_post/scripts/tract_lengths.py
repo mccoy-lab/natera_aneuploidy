@@ -37,22 +37,29 @@ if __name__ == "__main__":
     mean_chunk_size = []
     for c in chroms:
         # NOTE: gammas are assumed to be in log-space here
-        X, karyo = hmm.marginal_posterior_karyotypes(
-            hmm_traceback[c]["gammas"], hmm_traceback[c]["karyotypes"]
-        )
-        n_snps.append(X.shape[1])
-        _, chunk_dict = get_tract_dist(X, karyo)
-        cur_chunks = []
-        cur_mean_chunk_size = []
-        for k in karyo:
-            if k in chunk_dict:
-                cur_chunks.append(len(chunk_dict[k]))
-                cur_mean_chunk_size.append(np.mean(chunk_dict[k]))
-            else:
-                cur_chunks.append(np.nan)
-                cur_mean_chunk_size.append(np.nan)
-        n_chunks.append(cur_chunks)
-        mean_chunk_size.append(cur_mean_chunk_size)
+        try:
+            X, karyo = hmm.marginal_posterior_karyotypes(
+                hmm_traceback[c]["gammas"], hmm_traceback[c]["karyotypes"]
+            )
+            n_snps.append(X.shape[1])
+            _, chunk_dict = get_tract_dist(X, karyo)
+            cur_chunks = []
+            cur_mean_chunk_size = []
+            for k in karyo:
+                if k in chunk_dict:
+                    cur_chunks.append(len(chunk_dict[k]))
+                    cur_mean_chunk_size.append(np.mean(chunk_dict[k]))
+                else:
+                    cur_chunks.append(np.nan)
+                    cur_mean_chunk_size.append(np.nan)
+            n_chunks.append(cur_chunks)
+            mean_chunk_size.append(cur_mean_chunk_size)
+        except KeyError:
+            # NOTE: this is ok for now when there are just 5 states
+            n_snps.append(0)
+            karyo = ["0", "1m", "1p", "2", "3m", "3p"]
+            n_chunks.append([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+            mean_chunk_size.append([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
     # Creating the full dictionary for this set of parents
     res_dict = {
         "mother": np.repeat(snakemake.wildcards["mother"], len(chroms)),
