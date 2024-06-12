@@ -7,7 +7,7 @@ library(ggplot2)
 # Usage: 
 # ./discovery_test_split.R \
 # "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv" \
-# "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam" \
+# "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_total.norm.b38.fam" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/king_result.king.cutoff.out.id" \ 
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_test_split_mother.txt" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_test_split_father.txt" 
@@ -25,40 +25,63 @@ metadata <- fread(metadata)
 fam <- fread(fam) 
 king_related_arrays <- fread(king_related_arrays, header = FALSE)
 
-# assign all individuals to the same mother across casefile IDs 
+# Aggregate Across Families
+# remove duplicate individuals  
+metadata <- metadata %>%
+  distinct(array, .keep_all = TRUE)
+
+# apply same array ID to all individuals (partner, child) associated with each 
+# mother, across different casefiles 
 metadata_merged_array <- metadata %>%
-  mutate(array_id_merged = ifelse(family_position == "mother", paste0(array, "_merged"), NA_character_)) %>%
+  mutate(array_id_merged = ifelse(family_position == "mother", 
+                                  paste0(array, "_merged"), NA_character_)) %>%
   group_by(casefile_id) %>%
   fill(array_id_merged) %>%
   ungroup() 
-# create dataframe with maternal weighted age (based on age at each embryo) and number of embryos 
+
+# create dataframe with 1) number of embryos total per mother and 
+# 2) weighted age of mother by embryos 
 weighted_ages <- metadata_merged_array %>%
   filter(family_position == "child") %>%
   group_by(array_id_merged) %>%
   summarise(weighted_age = sum(patient_age) / n(),
             child_count = n()) %>% 
   as.data.frame()
-# add the weighted age and embryo count columns to the main metadata table
-metadata_merged_array_ages <- merge(weighted_ages, metadata_merged_array, by = "array_id_merged") %>%
+
+# add the embryo count and weighted age columns to the metadata table
+metadata_merged_array_ages <- merge(weighted_ages, metadata_merged_array, 
+                                    by = "array_id_merged") %>%
   as.data.table()
 
 
-# identify which individuals were genotyped successfully (i.e., are present in the bed output .fam file)
+# Keep only parents, and only those that were successfully genotyped 
+# identify which parents were genotyped (present in the genotyped .fam file)
 metadata_merged_array_ages[, is_genotyped := array %in% fam$V1] %>%
   setorder(array)
 # keep only individuals who are genotyped 
 metadata_merged_array_ages <- metadata_merged_array_ages[is_genotyped == TRUE]
 
-# remove duplicates 
 
+# Remove individuals that were related 
 # remove all families affected by a related individual 
 related_metadata <- merge(metadata_merged_array_ages, king_related_arrays, by.x = "array", by.y = "IID")
 # keep families that did not contain a related individual 
 metadata_merged_array_ages[, related_samples_to_drop := casefile_id %in% related_metadata$casefile_id]
+
+
+
 metadata_merged_array_ages <- metadata_merged_array_ages[related_samples_to_drop == FALSE]
 
-# filter parent age range (keep individuals for which the age is NA)
+# Filter parent age range 
+# keep only parents with ages between 18-90 or NA 
 metadata_merged_array_ages <- metadata_merged_array_ages[((patient_age > 18 & patient_age < 90) | is.na(patient_age)) & ((partner_age > 18 & partner_age < 90) | is.na(partner_age)),]
+
+nrow(metadata_merged_array_ages[metadata_merged_array_ages$related_samples_to_drop == TRUE & (!is.na(metadata_merged_array_ages$egg_donor) | !is.na(metadata_merged_array_ages$sperm_donor)),])
+nrow(metadata_merged_array_ages[metadata_merged_array_ages$related_samples_to_drop == FALSE & (!is.na(metadata_merged_array_ages$egg_donor) | !is.na(metadata_merged_array_ages$sperm_donor)),])
+
+# Assign egg and sperm donor ages 
+
+
 
 # get just mothers to split 
 metadata_merged_array_ages_mothers <- metadata_merged_array_ages[metadata_merged_array_ages$family_position == "mother",]
