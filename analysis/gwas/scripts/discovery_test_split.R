@@ -75,12 +75,15 @@ metadata_merged_array_ages <-
 
 # Filter parent age range 
 # keep only parents with ages between 18-90 or NA 
-metadata_merged_array_ages <- metadata_merged_array_ages[((patient_age > 18 & patient_age < 90) | is.na(patient_age)) & ((partner_age > 18 & partner_age < 90) | is.na(partner_age)),]
+metadata_merged_array_ages <- metadata_merged_array_ages[
+  ((patient_age > 18 & patient_age < 90) | is.na(patient_age)) & 
+    ((partner_age > 18 & partner_age < 90) | is.na(partner_age)),]
 
-nrow(metadata_merged_array_ages[metadata_merged_array_ages$related_samples_to_drop == TRUE & (!is.na(metadata_merged_array_ages$egg_donor) | !is.na(metadata_merged_array_ages$sperm_donor)),])
-nrow(metadata_merged_array_ages[metadata_merged_array_ages$related_samples_to_drop == FALSE & (!is.na(metadata_merged_array_ages$egg_donor) | !is.na(metadata_merged_array_ages$sperm_donor)),])
 
 # Assign egg and sperm donor ages 
+# get average egg donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7530253/
+# get average sperm donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9118971/#:~:text=Donors%20were%20aged%2027%20years,aged%2030%20years%20and%20younger.
+
 
 
 
