@@ -23,7 +23,7 @@ output_paternal <- args[5]
 # read files from args
 metadata <- fread(metadata)
 fam <- fread(fam) 
-king_related_arrays <- fread(king_related_arrays, header = FALSE)
+king_related_arrays <- fread(king_related_arrays)
 
 # Aggregate Across Families
 # remove duplicate individuals  
