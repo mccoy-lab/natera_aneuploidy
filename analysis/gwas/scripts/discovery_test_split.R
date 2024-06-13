@@ -63,16 +63,15 @@ metadata_merged_array_ages <- metadata_merged_array_ages[is_genotyped == TRUE]
 
 
 # Remove individuals that were related 
-# remove all families affected by a related individual 
+# create table of full metadata for any related individuals 
 related_metadata <- merge(metadata_merged_array_ages, king_related_arrays, 
                           by.x = "array", by.y = "IID")
-# keep families that did not contain a related individual 
+# add indicator in metadata for whether individual is related 
 metadata_merged_array_ages[, related_samples_to_drop := 
                              casefile_id %in% related_metadata$casefile_id]
-
-
-
-metadata_merged_array_ages <- metadata_merged_array_ages[related_samples_to_drop == FALSE]
+# remove families with related individuals from metadata 
+metadata_merged_array_ages <- 
+  metadata_merged_array_ages[related_samples_to_drop == FALSE]
 
 # Filter parent age range 
 # keep only parents with ages between 18-90 or NA 
