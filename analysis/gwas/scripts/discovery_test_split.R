@@ -39,6 +39,7 @@ metadata_merged_array <- metadata %>%
   fill(array_id_merged) %>%
   ungroup() 
 
+
 # create dataframe with 1) number of embryos total per mother and 
 # 2) weighted age of mother by embryos 
 weighted_ages <- metadata_merged_array %>%
@@ -87,10 +88,9 @@ metadata_merged_array_ages <- metadata_merged_array_ages[
 
 
 
-# get just mothers to split 
+# get just mothers to split into test and discovery set 
 metadata_merged_array_ages_mothers <- metadata_merged_array_ages[metadata_merged_array_ages$family_position == "mother",]
-# keep each mother only once 
-metadata_merged_array_ages_mothers <- metadata_merged_array_ages_mothers[!duplicated(metadata_merged_array_ages_mothers$array)]
+
 
 
 # Separate into discovery and test sets while maintaining split on key covariates (age, embryo count)
