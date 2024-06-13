@@ -64,9 +64,11 @@ metadata_merged_array_ages <- metadata_merged_array_ages[is_genotyped == TRUE]
 
 # Remove individuals that were related 
 # remove all families affected by a related individual 
-related_metadata <- merge(metadata_merged_array_ages, king_related_arrays, by.x = "array", by.y = "IID")
+related_metadata <- merge(metadata_merged_array_ages, king_related_arrays, 
+                          by.x = "array", by.y = "IID")
 # keep families that did not contain a related individual 
-metadata_merged_array_ages[, related_samples_to_drop := casefile_id %in% related_metadata$casefile_id]
+metadata_merged_array_ages[, related_samples_to_drop := 
+                             casefile_id %in% related_metadata$casefile_id]
 
 
 
