@@ -46,6 +46,7 @@ weighted_ages <- metadata_merged_array %>%
   filter(family_position == "child") %>%
   group_by(array_id_merged) %>%
   summarise(weighted_age = sum(patient_age) / n(),
+            weighted_partner_age = sum(partner_age) / n(),
             child_count = n()) %>% 
   as.data.frame()
 
@@ -84,8 +85,8 @@ metadata_merged_array_ages <- metadata_merged_array_ages[
 # Assign egg and sperm donor ages 
 # get average egg donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7530253/
 # get average sperm donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9118971/#:~:text=Donors%20were%20aged%2027%20years,aged%2030%20years%20and%20younger.
-
-
+metadata_merged_array_ages[egg_donor == "yes", weighted_age := 25]
+metadata_merged_array_ages[sperm_donor == "yes", weighted_age := 27]
 
 
 # get just mothers to split into test and discovery set 
