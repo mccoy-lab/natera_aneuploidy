@@ -1,3 +1,18 @@
+# This script reads a map file containing genomic position and chromosome (two columns) for each site in a vcf,
+# divides the data into a specified number of chunks, and writes the chunk information to an output file. 
+# Each chunk includes the chromosome and position range for the lines in that chunk.
+
+# Usage:
+#     python3 create_chunks.py <num_chunks> <input_mapfile> <outfilename>
+
+#     <num_chunks>       : Number of chunks to divide the input file into.
+#     <input_mapfile>    : Path to the input file containing genomic data.
+#     <outfilename>      : Path to the output file where chunk information will be written.
+
+
+
+
+
 import sys
 import math
 
