@@ -90,7 +90,7 @@ metadata_merged_array_ages[sperm_donor == "yes", weighted_partner_age := 27]
 
 
 # Separate into discovery and test sets while maintaining split on 
-# key covariates (maternal age, embryo count)
+# key covariates (maternal age, embryo count, egg donor status)
 # get just mothers to split into test and discovery set 
 metadata_merged_array_ages_mothers <- metadata_merged_array_ages[
   metadata_merged_array_ages$family_position == "mother",]
@@ -109,7 +109,7 @@ splitdf <- function(dataframe, trainfrac, seed = NULL) {
 }
 
 # Use splitdf to split the dataframe, keeping discovery and test sets equivalent
-# across the input character covariates 
+# across the input character covariates (with a minimum p-value for each)
 splitdf.randomize <- function(dataframe, min_p, trainfrac, 
                               ttestcolnames = c("cols","to","test"), ...) {
   d <- dataframe
@@ -129,67 +129,79 @@ splitdf.randomize <- function(dataframe, min_p, trainfrac,
     print(paste(ttestcolnames," t-test p-value =",ps))
     cat("\n")
   }
-  list(trainset=trainset,testset=testset)
+  list(trainset = trainset, testset = testset)
 }
 
-# get the column names containing the covariates of interest (col #2 and 3)
-cols <- c("weighted_age", "child_count")
-
+# get the column names containing the covariates of interest
+cols <- c("weighted_age", "child_count", "egg_donor")
 # split dataset, keeping even distribution of those covariates
 set.seed(5)
-evensplit <- splitdf.randomize(metadata_merged_array_ages_mothers, min_p=0.05, trainfrac=0.85, cols)
+evensplit <- splitdf.randomize(metadata_merged_array_ages_mothers, 
+                               min_p = 0.05, trainfrac = 0.85, cols)
 
-# add column to metadata of mothers noting whether they're discovery 
-metadata_merged_array_ages_mothers[, is_discovery := array %in% evensplit$trainset$array]
+# add column to metadata noting whether each mother is in the discovery set
+metadata_merged_array_ages_mothers[, is_discovery := 
+                                     array %in% evensplit$trainset$array]
 
 
-# write mothers to file 
-fwrite(metadata_merged_array_ages_mothers[,c("array", "family_position", "is_discovery")], 
+# Write mothers to file 
+fwrite(metadata_merged_array_ages_mothers
+       [,c("array", "family_position", "is_discovery")], 
        file = output_maternal, 
        sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
 
-# propagate those assignments to the fathers
-case_assign <- metadata_merged_array_ages_mothers[, c("casefile_id", "is_discovery")]
+# Propagate those assignments to the fathers
+case_assign <- 
+  metadata_merged_array_ages_mothers[, c("casefile_id", "is_discovery")]
 metadata_fathers <- metadata_merged_array_ages %>%
   .[family_position == "father"] %>%
   merge(., case_assign, by = "casefile_id")
-# remove duplicates
-metadata_fathers <- metadata_fathers[!duplicated(metadata_fathers$array)]
 
-# write fathers to file 
+# Write fathers to file 
 fwrite(metadata_fathers[, c("array", "family_position", "is_discovery")], 
        file = output_paternal, 
        sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
 
 
-# # plot cumulative dist of the covariates 
-# p1 <- ggplot(data = metadata_merged_array_ages_mothers, aes(x = weighted_age, color = is_discovery)) +
-#   geom_density() +
-#   theme_bw() +
-#   theme(axis.line = element_line(), panel.grid = element_blank(), panel.border = element_blank()) +
-#   xlab("Patient Age") +
-#   ylab("Density") + 
-#   scale_color_manual(labels = c("Validation", "Discovery"), values = c("blue", "red")) + 
-#   guides(color=guide_legend("Data Split Assignment"))
+# Plot cumulative distribution of the covariates 
+# plot weighted maternal age 
+p1 <- ggplot(data = metadata_merged_array_ages_mothers, 
+             aes(x = weighted_age, color = is_discovery)) +
+  geom_density() +
+  theme_bw() +
+  theme(axis.line = element_line(), panel.grid = element_blank(), 
+        panel.border = element_blank()) +
+ xlab("Patient Age") +
+ ylab("Density") + 
+ scale_color_manual(labels = c("Validation", "Discovery"), 
+                    values = c("blue", "red")) + 
+ guides(color = guide_legend("Data Split Assignment"))
 
-# p2 <- ggplot(data = metadata_merged_array_ages_mothers, aes(x = partner_age, color = is_discovery)) +
-#   geom_density() +
-#   #xlim(20, 83) + 
-#   theme_bw() +
-#   theme(axis.line = element_line(), panel.grid = element_blank(), panel.border = element_blank()) +
-#   xlab("Partner Age") +
-#   ylab("Density") + 
-#   scale_color_manual(labels = c("Validation", "Discovery"), values = c("blue", "red")) + 
-#   guides(color=guide_legend("Data Split Assignment"))
+# plot weighted maternal age 
+p2 <- ggplot(data = metadata_merged_array_ages_mothers, 
+             aes(x = weighted_partner_age, color = is_discovery)) +
+ geom_density() +
+ theme_bw() +
+ theme(axis.line = element_line(), panel.grid = element_blank(), 
+       panel.border = element_blank()) +
+ xlab("Partner Age") +
+ ylab("Density") + 
+ scale_color_manual(labels = c("Validation", "Discovery"), 
+                    values = c("blue", "red")) + 
+ guides(color = guide_legend("Data Split Assignment"))
 
-# p3 <- ggplot(data = metadata_merged_array_ages_mothers, aes(x = child_count, color = is_discovery)) +
-#   geom_density() +
-#   theme_bw() +
-#   theme(axis.line = element_line(), panel.grid = element_blank(), panel.border = element_blank()) +
-#   xlab("Number of Embryos") +
-#   ylab("Density") + 
-#   scale_color_manual(labels = c("Validation", "Discovery"), values = c("blue", "red")) + 
-#   guides(color=guide_legend("Data Split Assignment"))
+# plot number of embryos per mother
+p3 <- ggplot(data = metadata_merged_array_ages_mothers, 
+             aes(x = child_count, color = is_discovery)) +
+ geom_density() +
+ theme_bw() +
+ theme(axis.line = element_line(), panel.grid = element_blank(), 
+       panel.border = element_blank()) +
+ xlab("Number of Embryos") +
+ ylab("Density") + 
+ scale_color_manual(labels = c("Validation", "Discovery"), 
+                    values = c("blue", "red")) + 
+ guides(color = guide_legend("Data Split Assignment"))
 
 
 # # plot all three as one figure 
