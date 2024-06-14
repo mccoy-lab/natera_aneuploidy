@@ -1,8 +1,7 @@
 #!python3
 
-# Usage: nohup snakemake -p --cores 48 --snakefile gwas.smk > nohup_date.out 2>&1 &
+# Usage: nohup snakemake -p --cores 48 -j 12 --snakefile gwas.smk > nohup_date.out 2>&1 &
 # Usage on rockfish: nohup snakemake -p --snakefile gwas.smk -j 200 --profile ~/code/rockfish_smk_profile/ &
-# Optional: add -j 12 to submit as 12 jobs, etc.
 # Optional: add -n for a dry run
 # Executed from /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
 
@@ -156,11 +155,11 @@ rule discovery_validate_split:
         fam_file=vcf_fp + "opticall_concat_total.norm.b38.fam",
         king_to_remove=rules.king_related_individuals.output.king_exclude,
     output:
-        out_metadata=gwas_results + "spectrum_metadata_weighted_ages.tsv",
+        metadata_weighted_ages=gwas_results + "spectrum_metadata_weighted_ages.tsv",
         discovery_validate_maternal="results/discover_validate_split_mother.txt",
         discovery_validate_paternal="results/discover_validate_split_father.txt",
     shell:
-        "Rscript --vanilla {input.discovery_validate_R} {input.metadata} {input.fam_file} {input.king_to_remove} {output.out_metadata} {output.discovery_validate_maternal} {output.discovery_validate_paternal}"
+        "Rscript --vanilla {input.discovery_validate_R} {input.metadata} {input.fam_file} {input.king_to_remove} {output.metadata_weighted_ages} {output.discovery_validate_maternal} {output.discovery_validate_paternal}"
 
 
 # -------- 2. Subset genetic data for each chromosome to decrease computation time -------- #
