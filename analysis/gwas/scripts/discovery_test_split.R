@@ -86,15 +86,15 @@ metadata_merged_array_ages <- metadata_merged_array_ages[
 # get average egg donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7530253/
 # get average sperm donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9118971/#:~:text=Donors%20were%20aged%2027%20years,aged%2030%20years%20and%20younger.
 metadata_merged_array_ages[egg_donor == "yes", weighted_age := 25]
-metadata_merged_array_ages[sperm_donor == "yes", weighted_age := 27]
+metadata_merged_array_ages[sperm_donor == "yes", weighted_partner_age := 27]
 
 
+# Separate into discovery and test sets while maintaining split on 
+# key covariates (age, embryo count)
 # get just mothers to split into test and discovery set 
-metadata_merged_array_ages_mothers <- metadata_merged_array_ages[metadata_merged_array_ages$family_position == "mother",]
+metadata_merged_array_ages_mothers <- metadata_merged_array_ages[
+  metadata_merged_array_ages$family_position == "mother",]
 
-
-
-# Separate into discovery and test sets while maintaining split on key covariates (age, embryo count)
 # Adapted from https://gettinggeneticsdone.blogspot.com/2011/03/splitting-dataset-revisited-keeping.html
 # splitdf splits a data frame into a discovery and a test set
 splitdf <- function(dataframe, trainfrac, seed=NULL) {
