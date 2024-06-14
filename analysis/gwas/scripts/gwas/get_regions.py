@@ -5,18 +5,14 @@
 # Usage:
 #     python3 create_chunks.py <num_chunks> <input_mapfile> <outfilename>
 
-#     <num_chunks>       : Number of chunks to divide the input file into.
-#     <input_mapfile>    : Path to the input file containing genomic data.
-#     <outfilename>      : Path to the output file where chunk information will be written.
-
-
-
-
+#     num_chunks       : Number of chunks to divide the input file into.
+#     input_mapfile    : Path to the input file containing genomic data.
+#     outfilename      : Path to the output file where chunk information will be written.
 
 import sys
 import math
 
-def create_chunks(input_file, num_chunks, output_file):
+def create_chunks(num_chunks, input_file, output_file):
 	# Read the lines from the input file
 	with open(input_file, 'r') as f:
 		lines = f.readlines()
@@ -58,4 +54,4 @@ if __name__ == "__main__":
 	output_file = sys.argv[3]
 
 	# Create the chunks
-	create_chunks(input_file, num_chunks, output_file)
+	create_chunks(num_chunks, input_file, output_file)
