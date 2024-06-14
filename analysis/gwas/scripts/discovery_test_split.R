@@ -90,30 +90,33 @@ metadata_merged_array_ages[sperm_donor == "yes", weighted_partner_age := 27]
 
 
 # Separate into discovery and test sets while maintaining split on 
-# key covariates (age, embryo count)
+# key covariates (maternal age, embryo count)
 # get just mothers to split into test and discovery set 
 metadata_merged_array_ages_mothers <- metadata_merged_array_ages[
   metadata_merged_array_ages$family_position == "mother",]
 
 # Adapted from https://gettinggeneticsdone.blogspot.com/2011/03/splitting-dataset-revisited-keeping.html
 # splitdf splits a data frame into a discovery and a test set
-splitdf <- function(dataframe, trainfrac, seed=NULL) {
-  if (trainfrac<=0 | trainfrac>=1) stop("Training fraction must be between 0 and 1, not inclusive")
+splitdf <- function(dataframe, trainfrac, seed = NULL) {
+  if (trainfrac <= 0 | trainfrac >= 1) 
+    stop("Training fraction must be between 0 and 1, not inclusive")
   if (!is.null(seed)) set.seed(seed)
   index <- 1:nrow(dataframe)
   trainindex <- sample(index, trunc(length(index)/(1/trainfrac)))
   trainset <- dataframe[trainindex, ]
   testset <- dataframe[-trainindex, ]
-  list(trainset=trainset,testset=testset)
+  list(trainset = trainset, testset = testset)
 }
 
-# splitdf.randomize uses splitdf
-# Inputs the dataframe you want to split, and a character vector with the covariates you want to split evenly 
-splitdf.randomize <- function(dataframe, min_p, trainfrac, ttestcolnames=c("cols","to","test"), ...) {
+# Use splitdf to split the dataframe, keeping discovery and test sets equivalent
+# across the input character covariates 
+splitdf.randomize <- function(dataframe, min_p, trainfrac, 
+                              ttestcolnames = c("cols","to","test"), ...) {
   d <- dataframe
-  if (!all(ttestcolnames %in% names(d))) stop(paste(ttestcolnames,"not in dataframe"))
+  if (!all(ttestcolnames %in% names(d))) 
+    stop(paste(ttestcolnames,"not in dataframe"))
   ps <- NULL
-  while (is.null(ps) | any(ps<min_p)) {
+  while (is.null(ps) | any(ps < min_p)) {
     sets <- splitdf(d, trainfrac)
     trainset <- sets$trainset
     testset <- sets$testset
