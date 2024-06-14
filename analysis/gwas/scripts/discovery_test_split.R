@@ -23,7 +23,7 @@ king_related_arrays <- args[3]
 output_metadata <- args[4]
 output_maternal <- args[5]
 output_paternal <- args[6]
-covariate_figs <- args[7]
+#covariate_figs <- args[7]
 
 # read files from args
 metadata <- fread(metadata)
@@ -213,12 +213,12 @@ p3 <- ggplot(data = metadata_merged_array_ages_mothers,
 
 
 # plot all three as one figure 
-pdf(covariate_figs)
-ggpubr::ggarrange(p1, p2, p3, # list of plots
-                 labels = "AUTO", # labels
-                 common.legend = T, # COMMON LEGEND
-                 legend = "bottom", # legend position
-                 align = "hv", # Align them both, horizontal and vertical
-                 nrow = 1)  # number of rows
-dev.off()
+# pdf(covariate_figs)
+# ggpubr::ggarrange(p1, p2, p3, # list of plots
+#                  labels = "AUTO", # labels
+#                  common.legend = T, # COMMON LEGEND
+#                  legend = "bottom", # legend position
+#                  align = "hv", # Align them both, horizontal and vertical
+#                  nrow = 1)  # number of rows
+# dev.off()
 
