@@ -7,12 +7,12 @@
 # Executed from /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
 
 # -------- Variables and filepaths for GWAS ------- #
-# king_exec = "~/code/king"
 general_outputs_fp = "results/"
 vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
 metadata = (
     "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 )
+# file with weighted parental ages and number of embryos across casefile_ids 
 metadata_weighted_ages = "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/spectrum_metadata_weighted_ages.tsv"
 pcs_out = "results/parental_genotypes_pcs/"
 ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz"
