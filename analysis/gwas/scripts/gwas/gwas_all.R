@@ -8,7 +8,7 @@ library(pbmcapply)
 library(purrr)
 
 # Usage: /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/gwas_all.R \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/metadata_weighted_ages.txt" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/spectrum_metadata_weighted_ages.tsv"
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/opticall_concat_21.norm.b38.bed" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_test_split_mother.txt" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/parental_genotypes_pcs/parental_genotypes.eigenvec" \
@@ -106,9 +106,9 @@ make_model <- function(parent, phenotype_name) {
   
   # Determine the age covariate column based on the "parent" argument
   if (parent == "mother") {
-    age_column <- "patient_age"
+    age_column <- "weighted_age"
   } else if (parent == "father") {
-    age_column <- "partner_age"
+    age_column <- "weighted_partner_age"
   } else {
     stop("Invalid 'parent' argument.")
   }
@@ -119,9 +119,6 @@ make_model <- function(parent, phenotype_name) {
     family <- "quasibinomial"
   } else if (phenotype_name == "embryo_count") {
     response_variable <- "num_embryos"
-    family <- "quasipoisson"
-  } else if (phenotype_name == "embryo_count_euploid") {
-    response_variable <- "euploid"
     family <- "quasipoisson"
   } else if (phenotype_name == "maternal_age") {
     response_variable <- "weighted_age"
