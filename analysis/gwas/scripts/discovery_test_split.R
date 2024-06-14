@@ -9,8 +9,9 @@ library(ggplot2)
 # "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv" \
 # "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_total.norm.b38.fam" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/king_result.king.cutoff.out.id" \ 
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_test_split_mother.txt" \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_test_split_father.txt" 
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_test_split_mother.txt" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_test_split_father.txt" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_test_covariates.pdf"
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
@@ -173,7 +174,7 @@ p1 <- ggplot(data = metadata_merged_array_ages_mothers,
         panel.border = element_blank()) +
  xlab("Patient Age") +
  ylab("Density") + 
- scale_color_manual(labels = c("Validation", "Discovery"), 
+ scale_color_manual(labels = c("Test", "Discovery"), 
                     values = c("blue", "red")) + 
  guides(color = guide_legend("Data Split Assignment"))
 
@@ -186,7 +187,7 @@ p2 <- ggplot(data = metadata_merged_array_ages_mothers,
        panel.border = element_blank()) +
  xlab("Partner Age") +
  ylab("Density") + 
- scale_color_manual(labels = c("Validation", "Discovery"), 
+ scale_color_manual(labels = c("Test", "Discovery"), 
                     values = c("blue", "red")) + 
  guides(color = guide_legend("Data Split Assignment"))
 
@@ -199,18 +200,18 @@ p3 <- ggplot(data = metadata_merged_array_ages_mothers,
        panel.border = element_blank()) +
  xlab("Number of Embryos") +
  ylab("Density") + 
- scale_color_manual(labels = c("Validation", "Discovery"), 
+ scale_color_manual(labels = c("Test", "Discovery"), 
                     values = c("blue", "red")) + 
  guides(color = guide_legend("Data Split Assignment"))
 
 
-# # plot all three as one figure 
-# pdf(plot_fpn)
-# ggpubr::ggarrange(p1, p2, p3, # list of plots
-#                   labels = "AUTO", # labels
-#                   common.legend = T, # COMMON LEGEND
-#                   legend = "bottom", # legend position
-#                   align = "hv", # Align them both, horizontal and vertical
-#                   nrow = 1)  # number of rows
-# dev.off()
+# plot all three as one figure 
+pdf(plot_fpn)
+ggpubr::ggarrange(p1, p2, p3, # list of plots
+                 labels = "AUTO", # labels
+                 common.legend = T, # COMMON LEGEND
+                 legend = "bottom", # legend position
+                 align = "hv", # Align them both, horizontal and vertical
+                 nrow = 1)  # number of rows
+dev.off()
 
