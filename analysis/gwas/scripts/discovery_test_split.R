@@ -8,7 +8,9 @@ library(ggplot2)
 # ./discovery_test_split.R \
 # "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv" \
 # "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_total.norm.b38.fam" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/spectrum_metadata_weighted_ages.tsv" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/king_result.king.cutoff.out.id" \ 
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/metadata_weighted_ages.txt" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_test_split_mother.txt" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_test_split_father.txt" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_test_covariates.pdf"
@@ -18,8 +20,10 @@ args <- commandArgs(trailingOnly = TRUE)
 metadata <- args[1]
 fam <- args[2]
 king_related_arrays <- args[3]
-output_maternal <- args[4]
-output_paternal <- args[5]
+output_metadata <- args[4]
+output_maternal <- args[5]
+output_paternal <- args[6]
+covariate_figs <- args[7]
 
 # read files from args
 metadata <- fread(metadata)
@@ -89,6 +93,9 @@ metadata_merged_array_ages <- metadata_merged_array_ages[
 metadata_merged_array_ages[egg_donor == "yes", weighted_age := 25]
 metadata_merged_array_ages[sperm_donor == "yes", weighted_partner_age := 27]
 
+# Write metadata to file (contains )
+fwrite(metadata_merged_array_ages, file = output_metadata, sep = "\t", 
+       quote = FALSE, row.names = FALSE, col.names = TRUE)
 
 # Separate into discovery and test sets while maintaining split on 
 # key covariates (maternal age, embryo count, egg donor status)
@@ -206,7 +213,7 @@ p3 <- ggplot(data = metadata_merged_array_ages_mothers,
 
 
 # plot all three as one figure 
-pdf(plot_fpn)
+pdf(covariate_figs)
 ggpubr::ggarrange(p1, p2, p3, # list of plots
                  labels = "AUTO", # labels
                  common.legend = T, # COMMON LEGEND
