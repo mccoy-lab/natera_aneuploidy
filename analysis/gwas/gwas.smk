@@ -130,7 +130,7 @@ rule compute_pcs:
 
 
 rule king_related_individuals:
-    """Isolate related individuals (up to second degree) to remove from GWAS"""
+    """Isolate related individuals (up to second degree) to exclude from GWAS"""
     input:
         pgen="merged_imputed.pgen",
         psam="merged_imputed.psam",
