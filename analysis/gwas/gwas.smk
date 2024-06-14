@@ -7,7 +7,7 @@
 # Executed from /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
 
 # -------- Variables and filepaths for GWAS ------- #
-vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/"
+vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/"
 metadata = (
     "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 )
@@ -153,8 +153,8 @@ rule discovery_validate_split:
     input:
         discovery_validate_R="scripts/discovery_test_split.R",
         metadata=metadata,
-        fam_file="/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam",
-        king_to_remove="results/unrelated_toberemoved.txt",
+        fam_file=vcf_fp + "opticall_concat_total.norm.b38.fam",
+        king_to_remove=rules.king_related_individuals.output.king_exclude,
     output:
         out_metadata=gwas_results + "spectrum_metadata_weighted_ages.tsv",
         discovery_validate_maternal="results/discover_validate_split_mother.txt",
