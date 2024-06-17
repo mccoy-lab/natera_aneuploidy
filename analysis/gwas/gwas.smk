@@ -246,8 +246,8 @@ rule generate_aneuploidy_phenotypes:
     output:
         phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
     wildcard_constraints:
-        parent="mother|father",
         phenotype="embryo_count|embryo_count_euploid|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
+        parent="mother|father",
     resources:
         time="0:30:00",
         mem_mb="10G",
