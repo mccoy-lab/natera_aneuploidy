@@ -53,19 +53,27 @@ phenotypes = [
 ]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
-# chroms = range(1, 23) # autosomes
+chroms = range(21, 22)
 
 # shell.prefix("set -o pipefail; ")
 
 
 # -------- Rules section -------- #
+# rule all:
+#     input:
+#         expand(
+#             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
+#             phenotype=phenotypes,
+#             parent=parents,
+#             dataset_type=dataset_type,
+#         ),
 rule all:
     input:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype=phenotypes,
-            parent=parents,
-            dataset_type=dataset_type,
+            phenotype="maternal_age",
+            parent="mother",
+            dataset_type="test",
         ),
 
 
@@ -76,9 +84,9 @@ rule vcf2pgen:
         input_vcf=imputed_vcf_fp
         + "spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
     output:
-        pgen=temp("results/gwas/spectrum_imputed_chr{chrom}.pgen"),
-        psam=temp("results/gwas/spectrum_imputed_chr{chrom}.psam"),
-        pvar=temp("results/gwas/spectrum_imputed_chr{chrom}.pvar"),
+        pgen=temp("results/spectrum_imputed_chr{chrom}.pgen"),
+        psam=temp("results/spectrum_imputed_chr{chrom}.psam"),
+        pvar=temp("results/spectrum_imputed_chr{chrom}.pvar"),
     threads: 24
     params:
         outfix=lambda wildcards: gwas_results + f"spectrum_imputed_chr{wildcards.chrom}",
@@ -87,19 +95,23 @@ rule vcf2pgen:
 
 
 rule merge_full_pgen:
-    """Merge pgen files from each chromosome into a consolidated PGEN file"""
+    """Merge PGEN file from each chromosome into a consolidated PGEN file"""
+     input:
+        expand("results/spectrum_imputed_chr{chrom}.pgen", chrom=range(1, 23)),
+        expand("results/spectrum_imputed_chr{chrom}.psam", chrom=range(1, 23)),
+        expand("results/spectrum_imputed_chr{chrom}.pvar", chrom=range(1, 23)),
     output:
-        tmp_merge_file=temp("results/gwas/merged_pgen.txt"),
-        pgen="merged_imputed.pgen",
-        psam="merged_imputed.psam",
-        pvar="merged_imputed.pvar",
+        tmp_merge_file=temp("results/merged_pgen.txt"),
+        pgen="results/merged_imputed.pgen",
+        psam="results/merged_imputed.psam",
+        pvar="results/merged_imputed.pvar",
     resources:
         time="1:00:00",
         mem_mb="5G",
     threads: 24
     shell:
         """
-        for i in $(seq 1 22); do echo \"results/gwas/spectrum_imputed_chr${{i}}\" ; done > {output.tmp_merge_file}
+        for i in $(seq 1 23); do echo \"results/spectrum_imputed_chr${{i}}\" ; done > {output.tmp_merge_file}
         plink2 --memory 9000 --pmerge-list {output.tmp_merge_file} --maf 0.005 --threads {threads} --make-pgen --out merged_imputed
         """
 
@@ -107,14 +119,14 @@ rule merge_full_pgen:
 rule compute_pcs:
     """Compute PCA using genotype data"""
     input:
-        pgen="merged_imputed.pgen",
-        psam="merged_imputed.psam",
-        pvar="merged_imputed.pvar",
+        pgen=rules.merge_full_pgen.output.pgen,
+        psam=rules.merge_full_pgen.output.psam,
+        pvar=rules.merge_full_pgen.output.pvar,
     output:
-        keep_variants="merged_imputed.prune.in",
-        remove_variants=temp("merged_imputed.prune.out"),
-        evecs="merged_imputed.eigenvec",
-        evals="merged_imputed.eigenval",
+        keep_variants="results/merged_imputed.prune.in",
+        remove_variants=temp("results/merged_imputed.prune.out"),
+        evecs="results/merged_imputed.eigenvec",
+        evals="results/merged_imputed.eigenval",
     resources:
         time="1:00:00",
         mem_mb="10G",
@@ -131,9 +143,9 @@ rule compute_pcs:
 rule king_related_individuals:
     """Isolate related individuals (up to second degree) to exclude from GWAS"""
     input:
-        pgen="merged_imputed.pgen",
-        psam="merged_imputed.psam",
-        pvar="merged_imputed.pvar",
+        pgen=rules.merge_full_pgen.output.pgen,
+        psam=rules.merge_full_pgen.output.psam,
+        pvar=rules.merge_full_pgen.output.pvar,
     output:
         king_include=temp("results/king_result.king.cutoff.in.id"),
         king_exclude="results/king_result.king.cutoff.out.id",
@@ -144,7 +156,7 @@ rule king_related_individuals:
     params:
         king_thresh=0.125,
     shell:
-        "plink2 --memory 9000 --pgen {input.pgen} --psam {input.psam} --pvar {input.pvar} --threads {threads} --maf 0.01 --king-cutoff {params.king_thresh} --out king_result"
+        "plink2 --pgen {input.pgen} --psam {input.psam} --pvar {input.pvar} --threads {threads} --maf 0.01 --king-cutoff {params.king_thresh} --out king_result"
 
 
 rule discovery_validate_split:
@@ -173,9 +185,7 @@ rule get_chrom_pos:
         mem_mb="2G",
     threads: 1
     shell:
-        """
-        bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.chrom_mapfile}
-        """
+        "bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.chrom_mapfile}"
 
 
 rule make_vcf_regions:
@@ -190,9 +200,7 @@ rule make_vcf_regions:
         nchunks=lambda wildcards: chunks_dict[f"chr{wildcards.chrom}"],
     threads: 1
     shell:
-        """
-        python3 {input.get_regions} {params.nchunks} {input.chrom_mapfile} {output.regions_file}
-        """
+        "python3 {input.get_regions} {params.nchunks} {input.chrom_mapfile} {output.regions_file}"
 
 
 rule bed_split_vcf:
