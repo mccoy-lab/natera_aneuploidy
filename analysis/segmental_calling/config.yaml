@@ -1,0 +1,2 @@
+metadata: "../../data/spectrum_metadata_merged.csv"
+aneuploidy_calls: "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.031624.tsv.gz"

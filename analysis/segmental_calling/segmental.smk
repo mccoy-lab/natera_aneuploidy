@@ -9,12 +9,8 @@ from pathlib import Path
 from io import StringIO
 
 
-# ---- Parameters for inference in Natera Data ---- #
 configfile: "config.yaml"
 
-
-metadata_file = "../../data/spectrum_metadata_merged.csv"
-aneuploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.031624.tsv.gz"
 
 # Create the VCF data dictionary for each chromosome ...
 vcf_dict = {}
@@ -25,7 +21,7 @@ for i, c in enumerate(range(1, 23)):
     )
 
 # Read in the aggregate metadata file
-meta_df = pd.read_csv(metadata_file)
+meta_df = pd.read_csv(config["metadata"])
 
 
 def find_child_data(
@@ -131,7 +127,7 @@ rule generate_parent_sample_list:
 rule obtain_valid_trios:
     """Obtain the valid trios here."""
     input:
-        metadata_tsv=metadata_file,
+        metadata_tsv=config["metadata"],
         parent_samples="results/segmental_inference/parent_samples.txt",
     output:
         valid_trios="results/segmental_inference/valid_trios.txt",
@@ -196,7 +192,7 @@ rule collapse_segmental_calls:
     output:
         "results/raw_segmental_calls/segmental_calls.tsv.gz",
     shell:
-        "find results/segmental_inference -name \"*.tsv\"  | while read line; do cat $line; done | awk '!visited[$0]++' | gzip > {output}"
+        "find results/segmental_inference/ -name \"*.tsv\"  | while read line; do cat $line; done | awk '!visited[$0]++' | gzip > {output}"
 
 
 rule gzip_table:
