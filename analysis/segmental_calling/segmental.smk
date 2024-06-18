@@ -11,6 +11,8 @@ from io import StringIO
 
 # ---- Parameters for inference in Natera Data ---- #
 configfile: "config.yaml"
+
+
 metadata_file = "../../data/spectrum_metadata_merged.csv"
 aneuploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.031624.tsv.gz"
 
@@ -18,9 +20,9 @@ aneuploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_out
 vcf_dict = {}
 chroms = [f"chr{i}" for i in range(1, 23)]
 for i, c in enumerate(range(1, 23)):
-    vcf_dict[
-        chroms[i]
-    ] = f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/eagle_phased_hg38/natera_parents.b38.chr{c}.vcf.gz"
+    vcf_dict[chroms[i]] = (
+        f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/eagle_phased_hg38/natera_parents.b38.chr{c}.vcf.gz"
+    )
 
 # Read in the aggregate metadata file
 meta_df = pd.read_csv(metadata_file)
@@ -113,7 +115,6 @@ rule all:
         "results/tables/segmental_calls_postqc.tsv.gz",
 
 
-
 rule generate_parent_sample_list:
     """Generate the parental samples list."""
     input:
@@ -188,6 +189,16 @@ rule est_segmental_changepoints:
         "scripts/changept_segmental.py"
 
 
+rule collapse_segmental_calls:
+    """Collapse all of the segmental calls into their postQC components."""
+    input:
+        total_data,
+    output:
+        "results/raw_segmental_calls/segmental_calls.tsv.gz",
+    shell:
+        "find results/segmental_inference -name \"*.tsv\"  | while read line; do cat $line; done | awk '!visited[$0]++' | gzip > {output}"
+
+
 rule gzip_table:
     """Gzipping of tables - since polars does not by default."""
     input:
@@ -201,7 +212,7 @@ rule gzip_table:
 rule merge_aneuploidy_w_segmental:
     """Merging full aneuploidy calls and segmental findings."""
     input:
-        segmental_calls=config["segmental_calls"],
+        segmental_calls="results/raw_segmental_calls/segmental_calls.tsv.gz",
         aneuploidy_calls=config["aneuploidy_calls"],
     output:
         raw_segmental_calls=temp("results/tables/segmental_calls_raw.tsv"),
