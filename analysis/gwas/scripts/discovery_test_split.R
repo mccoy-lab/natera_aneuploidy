@@ -1,7 +1,7 @@
 library(data.table)
 library(dplyr)
 library(tidyr)
-library(ggplot2)
+#library(ggplot2)
 #library(ggpubr)
 
 # Usage: 
@@ -172,44 +172,44 @@ fwrite(metadata_fathers[, c("array", "family_position", "is_discovery")],
 
 
 # Plot cumulative distribution of the covariates 
-# plot weighted maternal age 
-p1 <- ggplot(data = metadata_merged_array_ages_mothers, 
-             aes(x = weighted_age, color = is_discovery)) +
-  geom_density() +
-  theme_bw() +
-  theme(axis.line = element_line(), panel.grid = element_blank(), 
-        panel.border = element_blank()) +
- xlab("Patient Age") +
- ylab("Density") + 
- scale_color_manual(labels = c("Test", "Discovery"), 
-                    values = c("blue", "red")) + 
- guides(color = guide_legend("Data Split Assignment"))
+# # plot weighted maternal age 
+# p1 <- ggplot(data = metadata_merged_array_ages_mothers, 
+#              aes(x = weighted_age, color = is_discovery)) +
+#   geom_density() +
+#   theme_bw() +
+#   theme(axis.line = element_line(), panel.grid = element_blank(), 
+#         panel.border = element_blank()) +
+#  xlab("Patient Age") +
+#  ylab("Density") + 
+#  scale_color_manual(labels = c("Test", "Discovery"), 
+#                     values = c("blue", "red")) + 
+#  guides(color = guide_legend("Data Split Assignment"))
 
-# plot weighted maternal age 
-p2 <- ggplot(data = metadata_merged_array_ages_mothers, 
-             aes(x = weighted_partner_age, color = is_discovery)) +
- geom_density() +
- theme_bw() +
- theme(axis.line = element_line(), panel.grid = element_blank(), 
-       panel.border = element_blank()) +
- xlab("Partner Age") +
- ylab("Density") + 
- scale_color_manual(labels = c("Test", "Discovery"), 
-                    values = c("blue", "red")) + 
- guides(color = guide_legend("Data Split Assignment"))
+# # plot weighted maternal age 
+# p2 <- ggplot(data = metadata_merged_array_ages_mothers, 
+#              aes(x = weighted_partner_age, color = is_discovery)) +
+#  geom_density() +
+#  theme_bw() +
+#  theme(axis.line = element_line(), panel.grid = element_blank(), 
+#        panel.border = element_blank()) +
+#  xlab("Partner Age") +
+#  ylab("Density") + 
+#  scale_color_manual(labels = c("Test", "Discovery"), 
+#                     values = c("blue", "red")) + 
+#  guides(color = guide_legend("Data Split Assignment"))
 
-# plot number of embryos per mother
-p3 <- ggplot(data = metadata_merged_array_ages_mothers, 
-             aes(x = child_count, color = is_discovery)) +
- geom_density() +
- theme_bw() +
- theme(axis.line = element_line(), panel.grid = element_blank(), 
-       panel.border = element_blank()) +
- xlab("Number of Embryos") +
- ylab("Density") + 
- scale_color_manual(labels = c("Test", "Discovery"), 
-                    values = c("blue", "red")) + 
- guides(color = guide_legend("Data Split Assignment"))
+# # plot number of embryos per mother
+# p3 <- ggplot(data = metadata_merged_array_ages_mothers, 
+#              aes(x = child_count, color = is_discovery)) +
+#  geom_density() +
+#  theme_bw() +
+#  theme(axis.line = element_line(), panel.grid = element_blank(), 
+#        panel.border = element_blank()) +
+#  xlab("Number of Embryos") +
+#  ylab("Density") + 
+#  scale_color_manual(labels = c("Test", "Discovery"), 
+#                     values = c("blue", "red")) + 
+#  guides(color = guide_legend("Data Split Assignment"))
 
 
 # plot all three as one figure 
