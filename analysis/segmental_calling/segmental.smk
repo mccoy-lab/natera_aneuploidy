@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-
+import polars as pl
 import pickle, gzip
 from tqdm import tqdm
 from pathlib import Path
@@ -10,6 +10,7 @@ from io import StringIO
 
 
 # ---- Parameters for inference in Natera Data ---- #
+configfile: "config.yaml"
 metadata_file = "../../data/spectrum_metadata_merged.csv"
 aneuploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.031624.tsv.gz"
 
@@ -107,6 +108,10 @@ rule all:
     input:
         "results/segmental_inference/valid_trios.txt",
         total_data,
+        "results/tables/segmental_calls_raw.tsv.gz",
+        "results/tables/segmental_calls_filt.tsv.gz",
+        "results/tables/segmental_calls_postqc.tsv.gz",
+
 
 
 rule generate_parent_sample_list:
@@ -181,3 +186,166 @@ rule est_segmental_changepoints:
         penalty=10,
     script:
         "scripts/changept_segmental.py"
+
+
+rule gzip_table:
+    """Gzipping of tables - since polars does not by default."""
+    input:
+        segmental_calls="results/tables/{tag}.tsv",
+    output:
+        segmental_calls="results/tables/{tag}.tsv.gz",
+    shell:
+        "gzip -c {input} > {output}"
+
+
+rule merge_aneuploidy_w_segmental:
+    """Merging full aneuploidy calls and segmental findings."""
+    input:
+        segmental_calls=config["segmental_calls"],
+        aneuploidy_calls=config["aneuploidy_calls"],
+    output:
+        raw_segmental_calls=temp("results/tables/segmental_calls_raw.tsv"),
+        postqc_segmental_calls=temp("results/tables/segmental_calls_filt.tsv"),
+    params:
+        ppThresh=0.80,
+        lengthThresh=5e6,
+        nsnps=100,
+    run:
+        seg_df = pl.read_csv(input.segmental_calls, null_values=["NA"], separator="\t")
+        aneu_df = pl.read_csv(
+            input.aneuploidy_calls, null_values=["NA"], separator="\t"
+        )
+        seg_df = seg_df.with_columns(
+            (pl.col("end") - pl.col("start")).alias("segment_size")
+        )
+        merged_seg_df = seg_df.join(aneu_df, on=["mother", "father", "child", "chrom"])
+        merged_seg_df.write_csv(
+            output.raw_segmental_calls, separator="\t", null_value="NA"
+        )
+        filt_seg_df = merged_seg_df.filter(
+            (pl.col("mean_posterior") >= params.ppThresh)
+            & (pl.col("segment_size") >= params.lengthThresh)
+            & (pl.col("nsnps") > params.nsnps)
+        )
+        filt_seg_df.write_csv(
+            output.postqc_segmental_calls, separator="\t", null_value="NA"
+        )
+
+
+rule split_filt_segmental_data:
+    """Split the filtered segmental data for analyses."""
+    input:
+        segmental_calls=rules.merge_aneuploidy_w_segmental.output.postqc_segmental_calls,
+    output:
+        segmental_calls_split=temp(
+            expand(
+                "results/tables_split/segmental_calls_filt.{x}.tsv",
+                x=range(nchunks + 1),
+            )
+        ),
+    run:
+        df = pl.read_csv(input.segmental_calls, null_values=["NA"], separator="\t")
+        n = df.shape[0]
+        chunk_size = int(n / nchunks)
+        for ix, frame in enumerate(df.iter_slices(n_rows=chunk_size)):
+            frame.write_csv(
+                f"results/tables_split/segmental_calls_filt.{ix}.tsv", separator="\t"
+            )
+
+
+rule segment_endpoint_refinement:
+    """Use the karyohmm path-traces to map the quantiles of the segment endpoints."""
+    input:
+        segmental_calls="results/tables_split/segmental_calls_filt.{x}.tsv",
+    output:
+        segmental_endpoints="results/tables_split/segmental_postqc_probendpoints.{x}.tsv",
+    resources:
+        time="0:30:00",
+    params:
+        base_path="/scratch16/rmccoy22/abiddan1/natera_aneuploidy/analysis/aneuploidy/results/natera_inference",
+    script:
+        "scripts/endpt_estimation.py"
+
+
+rule bph_sph_segmental:
+    """Estimate the BPH and SPH statuses of each trisomy."""
+    input:
+        segmental_calls="results/tables_split/segmental_calls_filt.{x}.tsv",
+    output:
+        segmental_bph_sph="results/tables_split/segmental_postqc_bph_sph.{x}.tsv",
+    resources:
+        time="0:30:00",
+    params:
+        base_path="/scratch16/rmccoy22/abiddan1/natera_aneuploidy/analysis/aneuploidy/results/natera_inference",
+    script:
+        "scripts/bph_sph_segmental.py"
+
+
+rule collect_endpoint_refinement:
+    input:
+        expand(
+            "results/tables_split/segmental_postqc_probendpoints.{x}.tsv",
+            x=range(nchunks + 1),
+        ),
+    output:
+        "results/tables/segmental_postqc_probendpoints.tsv",
+    shell:
+        "awk '!a[$0]++' {input} > {output}"
+
+
+rule collect_bph_sph_segmental:
+    input:
+        expand(
+            "results/tables_split/segmental_postqc_bph_sph.{x}.tsv",
+            x=range(nchunks + 1),
+        ),
+    output:
+        "results/tables/segmental_postqc_bph_sph.tsv",
+    shell:
+        "awk '!a[$0]++' {input} > {output}"
+
+
+rule merge_qc_tables:
+    """Merge all of the post-QC analyses to a much larger table."""
+    input:
+        segmental_calls=rules.merge_aneuploidy_w_segmental.output.postqc_segmental_calls,
+        segmental_bph_sph="results/tables/segmental_postqc_bph_sph.tsv",
+        segmental_endpoints="results/tables/segmental_postqc_probendpoints.tsv",
+    output:
+        post_qc_segmental_calls="results/tables/segmental_calls_postqc.tsv",
+    run:
+        seg_df = pl.read_csv(
+            input.segmental_calls,
+            separator="\t",
+            infer_schema_length=10000,
+            null_values=["NA"],
+        )
+        bph_sph_df = pl.read_csv(
+            input.segmental_bph_sph,
+            separator="\t",
+            infer_schema_length=10000,
+            ignore_errors=True,
+            null_values=["NA"],
+        )
+        endpoints_df = pl.read_csv(
+            input.segmental_endpoints,
+            separator="\t",
+            infer_schema_length=10000,
+            ignore_errors=True,
+            null_values=["NA"],
+        )
+        merge1_df = seg_df.join(
+            endpoints_df,
+            how="left",
+            on=["mother", "father", "child", "chrom", "start", "end", "karyotype"],
+        )
+        merge2_df = merge1_df.join(
+            bph_sph_df,
+            how="left",
+            on=["mother", "father", "child", "chrom", "start", "end"],
+        )
+        merge2_df.write_csv(
+            output.post_qc_segmental_calls,
+            separator="\t",
+            null_value="NA",
+        )
