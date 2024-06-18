@@ -88,10 +88,14 @@ rule vcf2pgen:
         psam=temp("results/spectrum_imputed_chr{chrom}.psam"),
         pvar=temp("results/spectrum_imputed_chr{chrom}.pvar"),
     threads: 24
+    wildcard_constraints:
+        chrom=range(1, 23),
+    resources:
+    	mem_mb="100G",
     params:
-        outfix=lambda wildcards: gwas_results + f"spectrum_imputed_chr{wildcards.chrom}",
+        outfix=lambda wildcards: f"results/spectrum_imputed_chr{wildcards.chrom}",
     shell:
-        "plink2 --memory 9000 --vcf {input.input_vcf} dosage=DS --double-id --maf 0.005 --threads {threads} --make-pgen --out {params.outfix}"
+        "plink2 --vcf {input.input_vcf} dosage=DS --double-id --maf 0.005 --threads {threads} --make-pgen --out {params.outfix}"
 
 
 rule merge_full_pgen:
@@ -105,14 +109,16 @@ rule merge_full_pgen:
         pgen="results/merged_imputed.pgen",
         psam="results/merged_imputed.psam",
         pvar="results/merged_imputed.pvar",
+    params:
+    	outfix="results/merged_imputed"
     resources:
-        time="1:00:00",
-        mem_mb="5G",
+        time="6:00:00",
+        mem_mb="100G",
     threads: 24
     shell:
         """
-        for i in $(seq 1 23); do echo \"results/spectrum_imputed_chr${{i}}\" ; done > {output.tmp_merge_file}
-        plink2 --memory 9000 --pmerge-list {output.tmp_merge_file} --maf 0.005 --threads {threads} --make-pgen --out merged_imputed
+        for i in $(seq 1 22); do echo \"results/spectrum_imputed_chr${{i}}\" ; done > {output.tmp_merge_file}
+        plink2 --pmerge-list {output.tmp_merge_file} --maf 0.005 --threads {threads} --make-pgen --out {params.outfix}
         """
 
 # -------- 1. Generate files necessary for GWAS -------- #
@@ -128,15 +134,16 @@ rule compute_pcs:
         evecs="results/merged_imputed.eigenvec",
         evals="results/merged_imputed.eigenval",
     resources:
-        time="1:00:00",
-        mem_mb="10G",
+        time="6:00:00",
+        mem_mb="50G",
     params:
         npcs=20,
+        outfix="results/merged_imputed"
     threads: 24
     shell:
         """
-        plink2 --memory 9000 --pgen {input.pgen} --psam {input.psam} --pvar {input.pvar} --threads {threads} --maf 0.01 --indep-pairwise 200 25 0.4 --out merged_imputed
-        plink2 --memory 9000 --pgen {input.pgen} --psam {input.psam} --pvar {input.pvar} --extract {output.keep_variants} --pca {params.npcs} approx --threads {threads} --out merged_imputed
+        plink2 --pgen {input.pgen} --psam {input.psam} --pvar {input.pvar} --threads {threads} --maf 0.01 --indep-pairwise 200 25 0.4 --out {params.outfix}
+        plink2 --pgen {input.pgen} --psam {input.psam} --pvar {input.pvar} --extract {output.keep_variants} --pca {params.npcs} approx --threads {threads} --out {params.outfix}
         """
 
 
@@ -150,13 +157,14 @@ rule king_related_individuals:
         king_include=temp("results/king_result.king.cutoff.in.id"),
         king_exclude="results/king_result.king.cutoff.out.id",
     resources:
-        time="1:00:00",
-        mem_mb="1G",
+        time="6:00:00",
+        mem_mb="50G",
     threads: 24
     params:
         king_thresh=0.125,
+        outfix="results/king_result"
     shell:
-        "plink2 --pgen {input.pgen} --psam {input.psam} --pvar {input.pvar} --threads {threads} --maf 0.01 --king-cutoff {params.king_thresh} --out king_result"
+        "plink2 --pgen {input.pgen} --psam {input.psam} --pvar {input.pvar} --threads {threads} --maf 0.01 --king-cutoff {params.king_thresh} --out {params.outfix}"
 
 
 rule discovery_validate_split:
@@ -319,7 +327,7 @@ rule merge_chroms:
         expand(
             gwas_results
             + "gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
-            chrom=range(1, 23),
+            chrom=range(21, 23),
         ),
     output:
         merged_file=gwas_results
