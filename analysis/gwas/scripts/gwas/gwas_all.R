@@ -104,9 +104,6 @@ get_gt <- function(bed, bed_dataset_indices, snp_index, metadata,
 # Function to make GWAS model based on parent and phenotype
 make_model <- function(parent, phenotype_name) {
   
-  # Info in weighted_age col is based on parent for which phenotype was generated 
-  age_column <- "weighted_age"
-  
   # Choose variable columns and model family based on phenotype name
   if (grepl("ploidy", phenotype_name)) {
     response_variable <- "cbind(aneu_true, aneu_false)"
@@ -124,16 +121,16 @@ make_model <- function(parent, phenotype_name) {
     stop("Invalid 'phenotype_name' argument.")
   }
   
-  # Set formula string to include age column (unless age phenotype) and response variable
-  if (phenotype_name == "maternal_age") {
-    formula_string <- paste0(response_variable, " ~ PC1 + PC2 + ",
-                             "PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + alt_count + egg_donor_factor",
-                             collapse = "")
-  } else {
-    formula_string <- paste0(response_variable, " ~ PC1 + PC2 + ",
-                           "PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + ",
-                           age_column, " + alt_count + egg_donor_factor",
+  # Set formula string to include age column (unless age phenotype) and 
+  # response variable
+  formula_string <- paste0(response_variable, " ~ PC1 + PC2 + PC3 + PC4 + ", 
+                             "PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + PC11 + ", 
+                             "PC12 + PC13 + PC14 + PC15 + PC16 + PC17 + PC18 +", 
+                             " PC19 + PC20 + alt_count + egg_donor_factor", 
                            collapse = "")
+  if (phenotype_name != "maternal_age") {
+    formula_string <- paste0(formula_string, " + weighted_age", 
+                             collapse = "")
   }
    
   # Return model for use in GWAS
