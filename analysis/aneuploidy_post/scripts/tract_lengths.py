@@ -55,7 +55,7 @@ if __name__ == "__main__":
             n_chunks.append(cur_chunks)
             mean_chunk_size.append(cur_mean_chunk_size)
         except KeyError:
-            # NOTE: this is ok for now when there are just 5 states
+            # NOTE: this is ok for now when there are just 6 states
             n_snps.append(0)
             karyo = ["0", "1m", "1p", "2", "3m", "3p"]
             n_chunks.append([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])

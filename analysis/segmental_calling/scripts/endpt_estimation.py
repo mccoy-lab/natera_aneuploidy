@@ -18,10 +18,12 @@ def find_hmm_file(base_path="", mother=None, father=None, child=None, chrom=None
 
 
 def estimate_endpoints(
-    gammas, pos, karyo, karyotype="3p", start=None, end=None, qs=[0.05, 0.5, 0.95]
+    gammas, pos, karyo, karyotype=None, start=None, end=None, qs=[0.05, 0.5, 0.95]
 ):
     assert gammas.shape[1] == pos.size
     assert end >= start
+    assert karyotype is not None
+    assert karyotype in ["0", "1m", "1p", "2", "3m", "3p"]
     # Look at the starting point first.
     hmm = MetaHMM()
     g, x = hmm.marginal_posterior_karyotypes(gammas, karyo)
