@@ -119,89 +119,11 @@ day5_only <- function(ploidy_calls, metadata) {
   return(ploidy_calls)
 }
 
-
-# Count number of embryos per parent affected by each phenotype
-count_ploidy_by_parent <- function(ploidy_calls, parent, phenotype,
-                                   max_meiotic = 3,
-                                   min_ploidy = 15) {
-  
-  # Confirm that max_meiotic is numeric and positive
-  if (!is.numeric(max_meiotic) || max_meiotic <= 0) {
-    stop("Invalid 'max_meiotic' argument.
-    	     It should be a positive numeric value.")
-  }
-  
-  # Confirm that min_ploidy is numeric and positive
-  if (!is.numeric(min_ploidy) || min_ploidy <= 0) {
-    stop("Invalid 'min_ploidy' argument.
-    	     It should be a positive numeric value.")
-  }
-  
-  # Choose relevant aneuploidies based on phenotype
-  if (phenotype == "triploidy" & parent == "mother") {
-    cn <- "3m"
-  } else if (phenotype == "triploidy" & parent == "father") {
-    cn <- "3p"
-  } else if (phenotype == "haploidy" & parent == "mother") {
-    cn <- "1p"
-  } else if (phenotype == "haploidy" & parent == "father") {
-    cn <- "1m"
-  } else if (phenotype == "maternal_meiotic_aneuploidy") {
-    cn <- c("3m", "1p")
-  } else if (phenotype == "complex_aneuploidy") {
-    cn <- c("0", "1m", "1p", "3m", "3p")
-  } else {
-    stop("Invalid 'phenotype' argument.")
-  }
-  
-  # Count ploidies based on phenotype definition
-  result <- ploidy_calls %>%
-    group_by(get(parent), child) %>%
-    summarise(num_affected = sum(bf_max_cat %in% cn),
-              unique_bf_max_cat =
-                n_distinct(bf_max_cat[bf_max_cat %in% cn])) %>%
-    mutate(
-      is_ploidy = case_when(
-        phenotype == "maternal_meiotic_aneuploidy" ~ ifelse(num_affected > 0
-                                                            & num_affected < 
-                                                              max_meiotic,
-          "aneu_true", "aneu_false"),
-        phenotype == "complex_aneuploidy" ~ ifelse(num_affected > 0
-                                                   & unique_bf_max_cat >= 2,
-          "aneu_true", "aneu_false"),
-        TRUE ~ ifelse(num_affected > min_ploidy, "aneu_true", "aneu_false")
-      )
-    ) %>%
-    count(is_ploidy) %>%
-    pivot_wider(names_from = is_ploidy, values_from = n, values_fill = 0)
-  
-  # Update column name to match with external data
-  colnames(result)[1] <- "array"
-
-  return(result)
-}
-
-
-# Get weighted maternal age across embryos, number of cycles,
-# number of embryos, and number of euploid (all chr cn=2) and
-# number of aneuploid (1 or more chr with other than cn=2)
-count_embryos_by_parent <- function(ploidy_calls, metadata, parent) {
-  
-  # Count number of chromosomes for which cn is not 2
-  cn <- c("0", "1m", "1p", "3m", "3p")
-  
-  # Count number of aneuploid embryos for each mother
-  aneuploidy_counts <- ploidy_calls %>%
-    group_by(get(parent), child) %>%
-    summarise(num_affected = sum(bf_max_cat %in% cn)) %>%
-    mutate(is_ploidy = ifelse(num_affected > 0, "aneu_true", "aneu_false")) %>%
-    count(is_ploidy) %>%
-    pivot_wider(names_from = is_ploidy, values_from = n, values_fill = 0) %>%
-    rename("aneuploid" := aneu_true, "euploid" := aneu_false)
-  
-  # Update column name to match with external data
-  colnames(aneuploidy_counts)[1] <- "array"
-  
+# Create table with array, number of embryos, number of visits, weighted age,
+# and aneuploidy counts (if ploidy phenotype) 
+make_phenotype <- function(metadata, parent, phenotype, ploidy_calls, 
+                           max_meiotic = 3,
+                           min_ploidy = 15) {
   # Create new column that tags every individual affiliated with each
   # parent, even if in different caseIDs
   metadata_merged_array <- metadata %>%
@@ -229,14 +151,58 @@ count_embryos_by_parent <- function(ploidy_calls, metadata, parent) {
   weighted_ages$array <- gsub("_merged", "", weighted_ages$array_id_merged)
   # Remove array_id_merged column
   weighted_ages <- subset(weighted_ages, select = -c(array_id_merged))
+  # Rename for return if not ploidy merging 
+  return <- weighted_ages 
   
-  # Merge aneuploidy counts and weighted ages dataframes
-  merged_table <- merge(weighted_ages, aneuploidy_counts, by = "array",
-                        all.x = TRUE)
+  # If phenotype is a ploidy, count ploidies by parent and merge with age 
+  if (grepl("ploidy", phenotype)) {
+    # Select ploidy status based on phenotype and parent 
+    if (phenotype == "triploidy" & parent == "mother") {
+      cn <- "3m"
+    } else if (phenotype == "triploidy" & parent == "father") {
+      cn <- "3p"
+    } else if (phenotype == "haploidy" & parent == "mother") {
+      cn <- "1p"
+    } else if (phenotype == "haploidy" & parent == "father") {
+      cn <- "1m"
+    } else if (phenotype == "maternal_meiotic_aneuploidy") {
+      cn <- c("3m", "1p")
+    } else if (phenotype == "complex_aneuploidy") {
+      cn <- c("0", "1m", "1p", "3m", "3p")
+    }
+    
+    # Count ploidies based on phenotype definition
+    result <- ploidy_calls %>%
+      group_by(get(parent), child) %>%
+      summarise(num_affected = sum(bf_max_cat %in% cn),
+                unique_bf_max_cat =
+                  n_distinct(bf_max_cat[bf_max_cat %in% cn])) %>%
+      mutate(
+        is_ploidy = case_when(
+          phenotype == "maternal_meiotic_aneuploidy" ~ ifelse(num_affected > 0
+                                                              & num_affected < 
+                                                                max_meiotic,
+                                                              "aneu_true", "aneu_false"),
+          phenotype == "complex_aneuploidy" ~ ifelse(num_affected > 0
+                                                     & unique_bf_max_cat >= 2,
+                                                     "aneu_true", "aneu_false"),
+          TRUE ~ ifelse(num_affected > min_ploidy, "aneu_true", "aneu_false")
+        )
+      ) %>%
+      count(is_ploidy) %>%
+      pivot_wider(names_from = is_ploidy, values_from = n, values_fill = 0)
+    
+    # Update column name to match with external data
+    colnames(result)[1] <- "array"
+    
+    # Merge aneuploidy counts and weighted ages dataframes
+    return <- merge(weighted_ages, result, by = "array",
+                          all.x = TRUE)
+    
+  }
   
-  return(merged_table)
+  return(return)
 }
-
 
 # Generate file for phenotype of interest
 run_phenotype <- function(ploidy_calls, parent, metadata, phenotype,
@@ -253,15 +219,8 @@ run_phenotype <- function(ploidy_calls, parent, metadata, phenotype,
     ploidy_calls <- day5_only(ploidy_calls, metadata)
   }
   
-  # If aneuploidy phenotype, group ploidy by respective parent
-  # else if embryo count phenotype, count embryos (total, euploid, and aneu)
-  # by respective parent
-  if (grepl("ploidy", phenotype)) {
-    pheno_output <- count_ploidy_by_parent(ploidy_calls, parent,
-                                           phenotype, max_meiotic)
-  } else {
-    pheno_output <- count_embryos_by_parent(ploidy_calls, metadata, parent)
-  }
+  # Compute phenotype 
+  pheno_output <- make_phenotype(metadata, parent, phenotype, ploidy_calls, max_meiotic, min_ploidy)
   
   return(pheno_output)
 }

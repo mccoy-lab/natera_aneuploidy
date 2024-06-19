@@ -104,14 +104,8 @@ get_gt <- function(bed, bed_dataset_indices, snp_index, metadata,
 # Function to make GWAS model based on parent and phenotype
 make_model <- function(parent, phenotype_name) {
   
-  # Determine the age covariate column based on the "parent" argument
-  if (parent == "mother") {
-    age_column <- "weighted_age"
-  } else if (parent == "father") {
-    age_column <- "weighted_partner_age"
-  } else {
-    stop("Invalid 'parent' argument.")
-  }
+  # Info in weighted_age col is based on parent for which phenotype was generated 
+  age_column <- "weighted_age"
   
   # Choose variable columns and model family based on phenotype name
   if (grepl("ploidy", phenotype_name)) {
