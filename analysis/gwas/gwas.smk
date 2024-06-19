@@ -1,5 +1,6 @@
 #!python3
 
+# Usage: conda activate natera-aneuploidy-gwas
 # Usage: nohup snakemake -p --cores 48 -j 12 --snakefile gwas.smk > nohup_date.out 2>&1 &
 # Usage on rockfish: nohup snakemake -p --snakefile gwas.smk -j 200 --profile ~/code/rockfish_smk_profile/ &
 # Optional: add -n for a dry run
@@ -10,7 +11,6 @@ vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genot
 metadata = (
     "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 )
-pcs_out = "results/parental_genotypes_pcs/"
 ploidy_calls = "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz"
 gwas_results = "results/gwas/"
 imputed_vcf_fp = "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/"
