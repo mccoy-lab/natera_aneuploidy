@@ -9,6 +9,7 @@ library(dplyr)
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/aneuploidy_phenotypes.R \
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz \
 # mother \ # parent to group phenotype by
+# /scratch16/rmccoy22/abiddan1/natera_segmental/analysis/segmental_qc/results/tables/segmental_calls_postqc.tsv.gz \ # segmental aneuploidy calls to remove chrom 
 # /data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv \
 # maternal_meiotic_aneuploidy \ # phenotype name
 # TRUE
@@ -25,26 +26,28 @@ args <- commandArgs(trailingOnly = TRUE)
 # assign arguments to variables
 # ploidy calls for each embryo's chromosomes, from karyoHMM
 ploidy_calls <- args[1]
+# segmental calls to distinguish from whole chromosomal aneuploidies 
+segmental_calls <- args[2]
 # parent to measure phenotype
-parent <- args[2]
+parent <- args[3]
 # metadata to filter for day5 embryos
-metadata <- args[3]
+metadata <- args[4]
 # phenotype
-phenotype <- args[4]
+phenotype <- args[5]
 # whether to keep only day 5 embryos
-filter_day_5 <- args[5]
+filter_day_5 <- args[6]
 # minimum bayes factor for filtering
-bayes_factor_cutoff <- as.numeric(args[6])
+bayes_factor_cutoff <- as.numeric(args[7])
 # how many cn = 0 before it's failed amplification
-nullisomy_threshold <- as.numeric(args[7])
+nullisomy_threshold <- as.numeric(args[8])
 # min posterior probability of cn state
-min_prob <- as.numeric(args[8])
+min_prob <- as.numeric(args[9])
 # max number of chr for maternal meiotic pheno
-max_meiotic <- as.numeric(args[9])
+max_meiotic <- as.numeric(args[10])
 # min number of chr for whole genome gain/loss
-min_ploidy <- as.numeric(args[10])
+min_ploidy <- as.numeric(args[11])
 # output file name
-out_fname <- args[11]
+out_fname <- args[12]
 
 # source Rscript with helper functions
 #source("helper_functions/phenotyping_helper_functions.R")
@@ -53,8 +56,9 @@ out_fname <- args[11]
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/aneuploidy_phenotypes.R
 
 # Function to filter embryos by quality
-filter_data <- function(ploidy_calls, parent, bayes_factor_cutoff = 2,
-                        nullisomy_threshold = 5, min_prob = 0.9) {
+filter_data <- function(ploidy_calls, parent, segmental_calls, 
+                        bayes_factor_cutoff = 2, nullisomy_threshold = 5, 
+                        min_prob = 0.9) {
   
   # Confirm that bayes_factor_cutoff is numeric and positive
   if (!is.numeric(bayes_factor_cutoff) || bayes_factor_cutoff <= 0) {
@@ -105,6 +109,18 @@ filter_data <- function(ploidy_calls, parent, bayes_factor_cutoff = 2,
     mutate(high_prob = pmax(`0`, `1m`, `1p`, `2`, `3m`, `3p`) > min_prob)
   # Keep only chromosomes with sufficiently high probability cn call
   ploidy_calls <- ploidy_calls[ploidy_calls$high_prob == TRUE, ]
+  
+  # Keep only chromosomes that are not affected by post-QC segmental aneu
+  # Add column that makes ID of mother-father-child-chrom in whole chr 
+  ploidy_calls$uid <- paste0(ploidy_calls$mother, "+", ploidy_calls$father, "+",
+                             ploidy_calls$child, "+", ploidy_calls$chrom)
+  # Add column that makes ID of mother-father-child-chrom in segmental
+  segmental_calls$uid <- paste0(segmental_calls$mother, "+", 
+                                segmental_calls$father, "+", 
+                                segmental_calls$child, "+", 
+                                segmental_calls$chrom)
+  # Remove from ploidy calls any chromosomes in segmentals 
+  ploidy_calls <- ploidy_calls[!ploidy_calls$uid %in% segmental_calls$uid,]
   
   return(ploidy_calls)
 }
@@ -205,14 +221,15 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
 }
 
 # Generate file for phenotype of interest
-run_phenotype <- function(ploidy_calls, parent, metadata, phenotype,
-                          filter_day_5 = TRUE, bayes_factor_cutoff = 2,
-                          nullisomy_threshold = 5, min_prob = 0.9,
-                          max_meiotic = 3, min_ploidy = 15) {
+run_phenotype <- function(ploidy_calls, parent, segmental_calls, metadata, 
+                          phenotype, filter_day_5 = TRUE, 
+                          bayes_factor_cutoff = 2, nullisomy_threshold = 5, 
+                          min_prob = 0.9, max_meiotic = 3, min_ploidy = 15) {
   
   # Filter embryo data
-  ploidy_calls <- filter_data(ploidy_calls, parent, bayes_factor_cutoff,
-                              nullisomy_threshold, min_prob)
+  ploidy_calls <- filter_data(ploidy_calls, parent, segmental_calls, 
+                              bayes_factor_cutoff, nullisomy_threshold, 
+                              min_prob)
   
   # Keep only day 5 embryos
   if (filter_day_5 == TRUE) {
@@ -220,23 +237,24 @@ run_phenotype <- function(ploidy_calls, parent, metadata, phenotype,
   }
   
   # Compute phenotype 
-  pheno_output <- make_phenotype(metadata, parent, phenotype, ploidy_calls, max_meiotic, min_ploidy)
+  pheno_output <- make_phenotype(metadata, parent, phenotype, ploidy_calls, 
+                                 max_meiotic, min_ploidy)
   
   return(pheno_output)
 }
 
 
-# read in embryos and metadata
+# Read in embryos and metadata
 ploidy_calls <- fread(ploidy_calls)
 metadata <- fread(metadata)
 
-# keep only high-quality embryos (remove noisy, high-bayes factor, and
-# potential failed amplification embryos) and day 5 embryos
-# count number of aneuploid and non-aneuploid embryos per parent
-pheno_by_parent <- run_phenotype(ploidy_calls, parent, metadata, phenotype,
-                                 filter_day_5, bayes_factor_cutoff,
-                                 nullisomy_threshold, min_prob,
-                                 max_meiotic, min_ploidy)
+# Keep only high-quality embryos (remove noisy, high-bayes factor, and
+# Potential failed amplification embryos) and day 5 embryos
+# Count number of aneuploid and non-aneuploid embryos per parent
+pheno_by_parent <- run_phenotype(ploidy_calls, parent, segmental_calls, 
+                                 metadata, phenotype, filter_day_5, 
+                                 bayes_factor_cutoff, nullisomy_threshold, 
+                                 min_prob, max_meiotic, min_ploidy)
 
-# write to file
+# Write phenotype info to file
 write.csv(pheno_by_parent, out_fname, row.names = FALSE)
