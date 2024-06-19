@@ -1,13 +1,21 @@
-import numpy as np
-import pickle
 import gzip as gz
+import pickle
+
 import click
+import numpy as np
 import pandas as pd
 from karyohmm import MetaHMM
 
 
 def bph(states):
-    """Identify states that are BPH - both parental homologs."""
+    """Identify states that are BPH - both parental homologs.
+
+    States are four-tuples which show the up to
+    two maternal and two paternal haplotypes being copied.
+
+    For example: (1,1,0,-1) indicates a maternal SPH trisomy
+    where the two maternal haplotypes are the same
+    """
     idx = []
     for i, s in enumerate(states):
         assert len(s) == 4

@@ -59,10 +59,26 @@ def expand_mosaic_est(fp="results/mosaic_est/valid_mosaics.txt"):
         return []
 
 
+def expand_tract_est(fp="results/tract_length/valid_tracts.txt"):
+    if Path(fp).is_file():
+        tract_df = pd.read_csv(fp, sep="\t")
+        res_files = []
+        for m, p, c in zip(
+            tract_df.mother.values,
+            tract_df.father.values,
+            tract_df.child.values,
+        ):
+            res_files.append(f"results/tract_length/inferred/{m}+{p}+{c}.tsv")
+        return res_files
+    else:
+        return []
+
+
 rule all:
     input:
         # "results/mosaic_est/natera.total.mosaic_est.tsv.gz",
-        "results/bph_sph/natera.total.bph_sph.tsv.gz",
+        # "results/bph_sph/natera.total.bph_sph.tsv.gz",
+        "results/tract_length/natera.total.tract_length.tsv.gz",
         "results/filt_aneuploidy.tsv.gz",
 
 
@@ -173,7 +189,49 @@ rule aggregate_mosaic_est:
         "find results/mosaic_est/inferred/ -name \"*.tsv\" | while read line; do cat $line; done | awk '!visited[$0]++' | gzip > {output.aggregate_mosaic_est}"
 
 
-# ----------- 2a. Merging aneuploidy calls + BPH SPH + Mosaic Estimates -------- #
+# ----------- 3. Estimating tract-summaries for quality control -------- #
+rule isolate_tract_length_summaries:
+    """Isolate the embryos to compute the tract length distribution."""
+    input:
+        aneuploidy_calls=aneuploidy_calls,
+    output:
+        tract_length_tsv="results/tract_length/valid_tracts.txt",
+    run:
+        aneuploidy_df = pd.read_csv(input.aneuploidy_calls, sep="\t")
+        assert "bf_max_cat" in aneuploidy_df.columns
+        assert "mother" in aneuploidy_df.columns
+        assert "father" in aneuploidy_df.columns
+        assert "child" in aneuploidy_df.columns
+        tract_df = aneuploidy_df[["mother", "father", "child"]].drop_duplicates()
+        tract_df.to_csv(output.tract_length_tsv, sep="\t", index=None)
+
+
+rule tract_summary:
+    """Estimate tract-length summaries for aneuploidy call quality assessment."""
+    input:
+        tract_id_tsv="results/tract_length/valid_tracts.txt",
+        hmm_traceback=lambda wildcards: f"{results_dir}/{wildcards.mother}+{wildcards.father}/{wildcards.child}.hmm_model.pkl.gz",
+    output:
+        tracts_tsv="results/tract_length/inferred/{mother}+{father}+{child}.tsv",
+    resources:
+        time="0:10:00",
+        mem_mb="2G",
+    script:
+        "scripts/tract_lengths.py"
+
+
+rule aggregate_tract_summary:
+    """Aggregate the tract estimation signature."""
+    input:
+        tract_id_tsv="results/tract_length/valid_tracts.txt",
+        tract_results=expand_tract_est(),
+    output:
+        aggregate_tract_est="results/tract_length/natera.total.tract_length.tsv.gz",
+    shell:
+        "find results/tract_length/inferred/ -name \"*.tsv\" | while read line; do cat $line; done | awk '!visited[$0]++' | gzip > {output.aggregate_tract_est}"
+
+
+# ----------- 4. Merging aneuploidy calls + BPH SPH + Mosaic Estimates -------- #
 rule merge_aneuploidy_bph_sph_mosaic:
     input:
         aneuploidy_tsv=aneuploidy_calls,
