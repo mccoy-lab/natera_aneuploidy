@@ -8,7 +8,7 @@ library(pbmcapply)
 library(purrr)
 
 # Usage: /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/gwas_all.R \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/spectrum_metadata_weighted_ages.tsv"
+# "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/opticall_concat_21.norm.b38.bed" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_test_split_mother.txt" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/parental_genotypes_pcs/parental_genotypes.eigenvec" \
@@ -130,13 +130,18 @@ make_model <- function(parent, phenotype_name) {
     stop("Invalid 'phenotype_name' argument.")
   }
   
-  # Set formula string to include age column and response variable
-  formula_string <- paste0(response_variable, " ~ PC1 + PC2 + ",
+  # Set formula string to include age column (unless age phenotype) and response variable
+  if (phenotype_name == "maternal_age") {
+    formula_string <- paste0(response_variable, " ~ PC1 + PC2 + ",
+                             "PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + alt_count + egg_donor_factor",
+                             collapse = "")
+  } else {
+    formula_string <- paste0(response_variable, " ~ PC1 + PC2 + ",
                            "PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + ",
                            age_column, " + alt_count + egg_donor_factor",
                            collapse = "")
-  
-  
+  }
+   
   # Return model for use in GWAS
   return(list(formula_string = formula_string, family = family))
 }
