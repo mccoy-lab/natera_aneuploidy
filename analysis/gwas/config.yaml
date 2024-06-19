@@ -1,8 +1,6 @@
 project_name: "natera_aneuploidy_gwas"
 metadata: "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 ploidy_calls: "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz"
-unimputed_genotypes: "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/"
-imputed_parents: "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/"
-intermediate_files: "results/gwas/intermediate_files/"
-summary_stats: "results/gwas/summary_stats/"
+opticall: "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_total.norm.b38.fam"
+
 
