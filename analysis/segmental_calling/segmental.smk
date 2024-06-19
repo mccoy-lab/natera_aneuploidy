@@ -233,6 +233,7 @@ rule merge_aneuploidy_w_segmental:
             (pl.col("mean_posterior") >= params.ppThresh)
             & (pl.col("segment_size") >= params.lengthThresh)
             & (pl.col("nsnps") > params.nsnps)
+            & (pl.col("karyotype") != pl.col("bf_max_cat"))
         )
         filt_seg_df.write_csv(
             output.postqc_segmental_calls, separator="\t", null_value="NA"
