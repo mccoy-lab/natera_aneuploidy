@@ -72,8 +72,8 @@ rule all:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
             phenotype="maternal_age",
-            parent="mother",
-            dataset_type="test",
+            parent="father",
+            dataset_type="discovery",
         ),
 
 
