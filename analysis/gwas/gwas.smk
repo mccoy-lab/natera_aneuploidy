@@ -234,6 +234,7 @@ rule generate_aneuploidy_phenotypes:
     input:
         rscript="scripts/phenotypes/generate_phenotype_files.R",
         ploidy_calls=config['ploidy_calls'],
+        segmental_calls=config['segmental_calls'],
         metadata=config['metadata'],
     output:
         phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
@@ -253,7 +254,7 @@ rule generate_aneuploidy_phenotypes:
     shell:
         """
         ml gcc r/4.0.2
-        Rscript --vanilla {input.rscript} {input.ploidy_calls} {wildcards.parent} {input.metadata} {wildcards.phenotype} {params.filter_day_5} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {params.min_prob} {params.max_meiotic} {params.min_ploidy} {output.phenotype_file}
+        Rscript --vanilla {input.rscript} {input.ploidy_calls} {input.segmental_calls} {wildcards.parent} {input.metadata} {wildcards.phenotype} {params.filter_day_5} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {params.min_prob} {params.max_meiotic} {params.min_ploidy} {output.phenotype_file}
         """
 
 
