@@ -71,9 +71,9 @@ rule all:
     input:
         expand(
             gwas_results + "gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype="maternal_age",
-            parent="father",
-            dataset_type="discovery",
+            phenotype="maternal_meiotic_aneuploidy",
+            parent="mother",
+            dataset_type="test",
         ),
 
 
@@ -254,7 +254,7 @@ rule generate_aneuploidy_phenotypes:
     output:
         phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
     wildcard_constraints:
-        phenotype="embryo_count|embryo_count_euploid|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
+        phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
         parent="mother|father",
     resources:
         time="0:30:00",
