@@ -278,7 +278,7 @@ rule run_gwas_subset:
     """Run GWAS for each set of parameters, using the subsetted bed files"""
     input:
         gwas_rscript="scripts/gwas/gwas_all.R",
-        metadata_weighted_ages=rules.discovery_validate_split.output.metadata_weighted_ages,
+        metadata=metadata,
         bed=rules.bed_split_vcf.output.bed,
         discovery_test="results/discover_validate_split_{parent}.txt",
         parental_pcs=rules.compute_pcs.output.evecs,
@@ -298,7 +298,7 @@ rule run_gwas_subset:
     shell:
         """
         ml gcc r/4.0.2
-        Rscript --vanilla {input.gwas_rscript} {input.metadata_weighted_ages} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}
+        Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}
         """
 
 
