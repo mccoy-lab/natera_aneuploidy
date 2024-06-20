@@ -287,17 +287,21 @@ def filter_parent_child_data(child_df, mat_haps, pat_haps, rsids, pos, ref, alt)
     bafs = np.zeros(len(rsids))
     lrrs_raw = np.empty(len(rsids))
     lrrs_norm = np.empty(len(rsids))
+    a_intensity = np.zeros(len(rsids))
+    b_intensity = np.zeros(len(rsids))
     rsid_dict = {}
-    for r, lrr_raw, lrr_norm, baf, B in tqdm(
+    for r, lrr_raw, lrr_norm, baf, B, x, y in tqdm(
         zip(
             child_df.rsid.values,
             child_df.LRR_raw.values,
             child_df.LRR_norm.values,
             child_df.b.values,
             child_df.B.values,
+            child_df.x.values,
+            child_df.y.values,
         )
     ):
-        rsid_dict[r] = (lrr_raw, lrr_norm, baf, B)
+        rsid_dict[r] = (lrr_raw, lrr_norm, baf, B, x, y)
     for i, (r, rx, ax) in tqdm(enumerate(zip(rsids, ref, alt))):
         (lrr_raw, lrr_norm, cur_baf, b_allele) = rsid_dict[r]
         lrrs_raw[i] = lrr_raw
@@ -309,10 +313,16 @@ def filter_parent_child_data(child_df, mat_haps, pat_haps, rsids, pos, ref, alt)
         ):
             if (b_allele == ax) | (b_allele == complement(ax)):
                 bafs[i] = cur_baf
+                a_intensity[i] = x
+                b_intensity[i] = y
             elif (b_allele == rx) | (b_allele == complement(rx)):
                 bafs[i] = 1.0 - cur_baf
+                a_intensity[i] = y
+                b_intensity[i] = x
             else:
                 bafs[i] = np.nan
+                a_intensity[i] = np.nan
+                b_intensity[i] = np.nan
         else:
             bafs[i] = np.nan
     idx = ~np.isnan(bafs)
@@ -325,21 +335,23 @@ def filter_parent_child_data(child_df, mat_haps, pat_haps, rsids, pos, ref, alt)
     ref = ref[idx]
     alt = alt[idx]
     rsids = rsids[idx]
-    return bafs, lrrs_raw, lrrs_norm, mat_haps, pat_haps, rsids, pos, ref, alt
+    ref_intensity = a_intensity[idx]
+    alt_intensity = b_intensity[idx]
+    return (
+        bafs,
+        lrrs_raw,
+        lrrs_norm,
+        mat_haps,
+        pat_haps,
+        rsids,
+        pos,
+        ref,
+        alt,
+        ref_intensity,
+        alt_intensity,
+    )
 
 
-# @click.command()
-# @click.option('--child_csv', required=True, type=str, help='Embryo CSV file.')
-# @click.option('--cytosnp_map', required=True, type=str, help='CytoSNP v12 Mapping file.')
-# @click.option('--alleles_file', required=True, type=str, help='Alleles for specific cytosnp probes.')
-# @click.option('--cytosnp_cluster', required=True, type=str, help='Cytosnp clusters from the EGT file.')
-# @click.option('--norm_xy', required=False, default=None, type=str, help='Normalized XY-intensities.')
-# @click.option('--raw_xy', required=False, default=None, type=str, help='Raw XY-intensities.')
-# @click.option('--meanr', required=False, default=None, type=str, help='mean-R tables based on raw intensity.')
-# @click.option('--vcf_file', required=True, type=str, help='VCF File containing parental genotypes.')
-# @click.option('--mother_id', required=True, type=str, help='Mother ID.')
-# @click.option('--father_id', required=True, type=str, help='Father ID.')
-# @click.option('--outfile', required=True, type=str, help='Output File containing SNP values.')
 def main(
     child_csv,
     cytosnp_map,
@@ -390,6 +402,8 @@ def main(
         pos,
         refs,
         alts,
+        ref_intensity,
+        alt_intensity,
     ) = filter_parent_child_data(child_df, mat_haps, pat_haps, rsids, pos, ref, alt)
     print("Finished parent & embryo filtering!", file=sys.stderr)
     # Save the data to an npz file or table
@@ -403,6 +417,8 @@ def main(
         "pos": pos,
         "refs": refs,
         "alts": alts,
+        "ref_intensity": ref_intensity,
+        "alt_intensity": alt_intensity,
         "aploid": "real_data",
     }
     return res_dict
