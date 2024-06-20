@@ -1,6 +1,6 @@
 #!python3
 
-# Usage: conda activate natera-aneuploidy-gwas
+# Usage: conda activate natera-aneuploidy-gwas \ ml snakemake
 # Usage: nohup snakemake -p --cores 48 -j 12 --snakefile gwas.smk > nohup_date.out 2>&1 &
 # Usage on rockfish: nohup snakemake -p --snakefile gwas.smk -j 200 --profile ~/code/rockfish_smk_profile/ &
 # Optional: add -n for a dry run
@@ -46,28 +46,28 @@ phenotypes = [
 ]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
-chroms = range(21, 22)
+chroms = range(1, 24)
 
 # shell.prefix("set -o pipefail; ")
 
 
 # -------- Rules section -------- #
-# rule all:
-#     input:
-#         expand(
-#             "results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-#             phenotype=phenotypes,
-#             parent=parents,
-#             dataset_type=dataset_type,
-#         ),
 rule all:
     input:
         expand(
             "results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype="maternal_meiotic_aneuploidy",
+            phenotype=["maternal_age", "embryo_count"],
             parent="mother",
-            dataset_type="test",
+            dataset_type=dataset_type,
         ),
+# rule all:
+#     input:
+#         expand(
+#             "results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
+#             phenotype="embryo_count",
+#             parent="mother",
+#             dataset_type="discovery",
+#         ),
 
 
 # -------- 0. Preprocess genetic data -------- #
@@ -81,7 +81,6 @@ rule vcf2pgen:
         pvar=temp("results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.pvar"),
     threads: 24
     wildcard_constraints:
-        #chrom=range(1, 23),
         chrom = "|".join(map(str, range(1, 23))),
     resources:
     	mem_mb="100G",
@@ -307,7 +306,7 @@ rule merge_chroms:
     input:
         expand(
             "results/gwas/summary_stats/gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
-            chrom=range(21, 23),
+            chrom=range(1, 24),
         ),
     output:
         merged_file="results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
