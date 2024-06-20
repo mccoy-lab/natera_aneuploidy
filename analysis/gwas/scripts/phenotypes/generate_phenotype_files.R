@@ -35,7 +35,7 @@ metadata <- args[4]
 # phenotype
 phenotype <- args[5]
 # whether to keep only day 5 embryos
-filter_day_5 <- args[6]
+filter_day_5 <- as.logical(args[6])
 # minimum bayes factor for filtering
 bayes_factor_cutoff <- as.numeric(args[7])
 # how many cn = 0 before it's failed amplification
@@ -48,6 +48,7 @@ max_meiotic <- as.numeric(args[10])
 min_ploidy <- as.numeric(args[11])
 # output file name
 out_fname <- args[12]
+
 
 # source Rscript with helper functions
 #source("helper_functions/phenotyping_helper_functions.R")
@@ -195,10 +196,9 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
                   n_distinct(bf_max_cat[bf_max_cat %in% cn])) %>%
       mutate(
         is_ploidy = case_when(
-          phenotype == "maternal_meiotic_aneuploidy" ~ ifelse(num_affected > 0
-                                                              & num_affected < 
-                                                                max_meiotic,
-                                                              "aneu_true", "aneu_false"),
+          phenotype == "maternal_meiotic_aneuploidy" ~ 
+            ifelse(num_affected > 0 & num_affected < max_meiotic,
+                   "aneu_true", "aneu_false"),
           phenotype == "complex_aneuploidy" ~ ifelse(num_affected > 0
                                                      & unique_bf_max_cat >= 2,
                                                      "aneu_true", "aneu_false"),
@@ -246,6 +246,7 @@ run_phenotype <- function(ploidy_calls, parent, segmental_calls, metadata,
 
 # Read in embryos and metadata
 ploidy_calls <- fread(ploidy_calls)
+segmental_calls <- fread(segmental_calls)
 metadata <- fread(metadata)
 
 # Keep only high-quality embryos (remove noisy, high-bayes factor, and
