@@ -213,7 +213,6 @@ rule bed_split_vcf:
         bim="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bim",
         fam="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.fam",
         log="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.log",
-        nosex="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.nosex",
     resources:
         mem_mb="6G",
     params:
@@ -224,7 +223,7 @@ rule bed_split_vcf:
         """
         region=$(awk -v n={wildcards.chunk} "NR==n+1 {{print}}" {input.regions_file})
         bcftools view -r $region -Ob {input.input_vcf} > {output.bcf}
-        plink --memory 9000 --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
+        plink2 --memory 9000 --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
         """
 
 
