@@ -303,7 +303,7 @@ def filter_parent_child_data(child_df, mat_haps, pat_haps, rsids, pos, ref, alt)
     ):
         rsid_dict[r] = (lrr_raw, lrr_norm, baf, B, x, y)
     for i, (r, rx, ax) in tqdm(enumerate(zip(rsids, ref, alt))):
-        (lrr_raw, lrr_norm, cur_baf, b_allele) = rsid_dict[r]
+        (lrr_raw, lrr_norm, cur_baf, b_allele, x, y) = rsid_dict[r]
         lrrs_raw[i] = lrr_raw
         lrrs_norm[i] = lrr_norm
         if (
