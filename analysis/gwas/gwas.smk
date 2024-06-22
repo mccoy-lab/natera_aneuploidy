@@ -56,7 +56,7 @@ rule all:
     input:
         expand(
             "results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype=["maternal_age", "embryo_count"],
+            phenotype="maternal_age",
             parent="mother",
             dataset_type=dataset_type,
         ),
@@ -79,6 +79,7 @@ rule vcf2pgen:
         pgen=temp("results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.pgen"),
         psam=temp("results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.psam"),
         pvar=temp("results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.pvar"),
+        log=temp("results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.log"),
     threads: 24
     wildcard_constraints:
         chrom = "|".join(map(str, range(1, 23))),
@@ -213,7 +214,7 @@ rule bed_split_vcf:
         fam="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.fam",
         log="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.log",
     resources:
-        mem_mb="6G",
+        mem_mb="3G",
     params:
         nchunks=lambda wildcards: chunks_dict[f"chr{wildcards.chrom}"],
         outfix="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}",
@@ -268,7 +269,7 @@ rule run_gwas_subset:
         phenotype_file=rules.generate_aneuploidy_phenotypes.output.phenotype_file,
         bim=rules.bed_split_vcf.output.bim,
     output:
-        gwas_output="results/gwas/summary_stats/subset_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv",
+        gwas_output=temp("results/gwas/summary_stats/subset_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv"),
     threads: 16
     resources:
         time="0:30:00",
@@ -296,7 +297,7 @@ rule merge_subsets:
             chunk=range(chunks_dict.get(f"chr{wildcards.chrom}", 0)),
         ),
     output:
-        gwas_output="results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
+        gwas_output=temp("results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv"),
     shell:
         "cat {input} > {output.gwas_output}"
 
