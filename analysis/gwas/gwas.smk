@@ -1,7 +1,7 @@
 #!python3
 
 # Usage: conda activate natera-aneuploidy-gwas \ ml snakemake
-# Usage: nohup snakemake -p --cores 48 -j 12 --snakefile gwas.smk > nohup_date.out 2>&1 &
+# Usage on dev node: nohup snakemake -p --cores 48 -j 12 --snakefile gwas.smk > nohup_date.out 2>&1 &
 # Usage on rockfish: nohup snakemake -p --snakefile gwas.smk -j 200 --profile ~/code/rockfish_smk_profile/ &
 # Optional: add -n for a dry run
 # Executed from /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
@@ -56,7 +56,7 @@ rule all:
     input:
         expand(
             "results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype="maternal_age",
+            phenotype="embryo_count",
             parent="mother",
             dataset_type=dataset_type,
         ),
@@ -184,6 +184,8 @@ rule get_chrom_pos:
     resources:
         mem_mb="2G",
     threads: 1
+    wildcard_constraints:
+        chrom = "|".join(map(str, range(1, 23))),
     shell:
         "bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.chrom_mapfile}"
 
@@ -199,6 +201,8 @@ rule make_vcf_regions:
     params:
         nchunks=lambda wildcards: chunks_dict[f"chr{wildcards.chrom}"],
     threads: 1
+    wildcard_constraints:
+        chrom = "|".join(map(str, range(1, 23))),
     shell:
         "python3 {input.get_regions} {params.nchunks} {input.chrom_mapfile} {output.regions_file}"
 
@@ -219,6 +223,8 @@ rule bed_split_vcf:
         nchunks=lambda wildcards: chunks_dict[f"chr{wildcards.chrom}"],
         outfix="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}",
     threads: 16
+    wildcard_constraints:
+        chrom = "|".join(map(str, range(1, 23))),
     shell:
         """
         region=$(awk -v n={wildcards.chunk} "NR==n+1 {{print}}" {input.regions_file})
@@ -257,7 +263,7 @@ rule generate_aneuploidy_phenotypes:
         """
 
 
-# -------- 3. Execute GWAS and concatenate files -------- #
+# -------- 4. Execute GWAS and concatenate files -------- #
 rule run_gwas_subset:
     """Run GWAS for each set of parameters, using the subsetted bed files"""
     input:
@@ -278,6 +284,7 @@ rule run_gwas_subset:
         dataset_type="discovery|test",
         phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
         parent="mother|father",
+        chrom = "|".join(map(str, range(1, 23))),
     shell:
         """
         ml gcc r/4.0.2
@@ -298,8 +305,37 @@ rule merge_subsets:
         ),
     output:
         gwas_output=temp("results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv"),
+    wildcard_constraints:
+        chrom = "|".join(map(str, range(1, 23))),
     shell:
         "cat {input} > {output.gwas_output}"
+
+
+rule gwas_x_chrom: 
+    """Compute GWAS for the whole X chromosome."""
+    input:
+        gwas_rscript="scripts/gwas/gwas_all.R",
+        metadata=config['metadata'],
+        bed="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bed",
+        discovery_test="results/gwas/intermediate_files/discover_validate_split_{parent}.txt",
+        parental_pcs=rules.compute_pcs.output.evecs,
+        phenotype_file=rules.generate_aneuploidy_phenotypes.output.phenotype_file,
+        bim="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bim",
+    output:
+        gwas_output=temp("results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_23.tsv"),
+    threads: 16
+    resources:
+        time="6:00:00",
+        mem_mb="100G",
+    wildcard_constraints:
+        dataset_type="discovery|test",
+        phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
+        parent="mother|father",
+    shell:
+        """
+        ml gcc r/4.0.2
+        Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}
+        """
 
 
 rule merge_chroms:
