@@ -1,89 +1,126 @@
 library(data.table)
-library(ggplot2)
 library(dplyr)
 library(tidyr)
-#library(ggpubr)
 
 # Usage: 
 # ./discovery_test_split.R \
 # "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv" \
-# "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_031423/genotypes/opticall_concat_total.norm.b38.fam" \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/unrelated_toberemoved.txt" \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_mother.txt" \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_father.txt" 
+# "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_total.norm.b38.fam" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/spectrum_metadata_weighted_ages.tsv" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/king_result.king.cutoff.out.id" \ 
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/metadata_weighted_ages.txt" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_test_split_mother.txt" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_test_split_father.txt" \
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 metadata <- args[1]
 fam <- args[2]
 king_related_arrays <- args[3]
-output_maternal <- args[4]
-output_paternal <- args[5]
+output_metadata <- args[4]
+output_maternal <- args[5]
+output_paternal <- args[6]
 
 # read files from args
 metadata <- fread(metadata)
 fam <- fread(fam) 
-king_related_arrays <- fread(king_related_arrays, header = FALSE)
+king_related_arrays <- fread(king_related_arrays)
 
-# assign all individuals to the same mother across casefile IDs 
+# Aggregate Across Families
+# remove duplicate individuals  
+metadata <- metadata %>%
+  distinct(array, .keep_all = TRUE)
+
+# apply same array ID to all individuals (partner, child) associated with each 
+# mother, across different casefiles 
 metadata_merged_array <- metadata %>%
-  mutate(array_id_merged = ifelse(family_position == "mother", paste0(array, "_merged"), NA_character_)) %>%
+  mutate(array_id_merged = ifelse(family_position == "mother", 
+                                  paste0(array, "_merged"), NA_character_)) %>%
   group_by(casefile_id) %>%
   fill(array_id_merged) %>%
   ungroup() 
-# create dataframe with maternal weighted age (based on age at each embryo) and number of embryos 
+
+
+# create dataframe with 1) number of embryos total per mother and 
+# 2) weighted age of mother by embryos 
 weighted_ages <- metadata_merged_array %>%
   filter(family_position == "child") %>%
   group_by(array_id_merged) %>%
   summarise(weighted_age = sum(patient_age) / n(),
+            weighted_partner_age = sum(partner_age) / n(),
             child_count = n()) %>% 
   as.data.frame()
-# add the weighted age and embryo count columns to the main metadata table
-metadata_merged_array_ages <- merge(weighted_ages, metadata_merged_array, by = "array_id_merged") %>%
+
+# add the embryo count and weighted age columns to the metadata table
+metadata_merged_array_ages <- merge(weighted_ages, metadata_merged_array, 
+                                    by = "array_id_merged") %>%
   as.data.table()
 
 
-# identify which individuals were genotyped successfully (i.e., are present in the bed output .fam file)
+# Keep only parents, and only those that were successfully genotyped 
+# identify which parents were genotyped (present in the genotyped .fam file)
 metadata_merged_array_ages[, is_genotyped := array %in% fam$V1] %>%
   setorder(array)
 # keep only individuals who are genotyped 
 metadata_merged_array_ages <- metadata_merged_array_ages[is_genotyped == TRUE]
 
-# remove all families affected by a related individual 
-related_metadata <- merge(metadata_merged_array_ages, king_related_arrays, by.x = "array", by.y = "V1")
-# keep families that did not contain a related individual 
-metadata_merged_array_ages[, related_samples_to_drop := casefile_id %in% related_metadata$casefile_id]
-metadata_merged_array_ages <- metadata_merged_array_ages[related_samples_to_drop == FALSE]
 
-# filter parent age range (keep individuals for which the age is NA)
-metadata_merged_array_ages <- metadata_merged_array_ages[((patient_age > 18 & patient_age < 90) | is.na(patient_age)) & ((partner_age > 18 & partner_age < 90) | is.na(partner_age)),]
+# Remove individuals that were related 
+# create table of full metadata for any related individuals 
+related_metadata <- merge(metadata_merged_array_ages, king_related_arrays, 
+                          by.x = "array", by.y = "IID")
+# add indicator in metadata for whether individual is related 
+metadata_merged_array_ages[, related_samples_to_drop := 
+                             casefile_id %in% related_metadata$casefile_id]
+# remove families with related individuals from metadata 
+metadata_merged_array_ages <- 
+  metadata_merged_array_ages[related_samples_to_drop == FALSE]
 
-# get just mothers to split 
-metadata_merged_array_ages_mothers <- metadata_merged_array_ages[metadata_merged_array_ages$family_position == "mother",]
-# keep each mother only once 
-metadata_merged_array_ages_mothers <- metadata_merged_array_ages_mothers[!duplicated(metadata_merged_array_ages_mothers$array)]
+# Filter parent age range 
+# keep only parents with ages between 18-90 or NA 
+metadata_merged_array_ages <- metadata_merged_array_ages[
+  ((patient_age > 18 & patient_age < 90) | is.na(patient_age)) & 
+    ((partner_age > 18 & partner_age < 90) | is.na(partner_age)),]
 
 
-# Separate into discovery and test sets while maintaining split on key covariates (age, embryo count)
+# Assign egg and sperm donor ages 
+# get average egg donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7530253/
+# get average sperm donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9118971/#:~:text=Donors%20were%20aged%2027%20years,aged%2030%20years%20and%20younger.
+metadata_merged_array_ages[egg_donor == "yes", weighted_age := 25]
+metadata_merged_array_ages[sperm_donor == "yes", weighted_partner_age := 27]
+
+# Write metadata to file (contains )
+fwrite(metadata_merged_array_ages, file = output_metadata, sep = "\t", 
+       quote = FALSE, row.names = FALSE, col.names = TRUE)
+
+# Separate into discovery and test sets while maintaining split on 
+# key covariates (maternal age, embryo count, egg donor status)
+# get just mothers to split into test and discovery set 
+metadata_merged_array_ages_mothers <- metadata_merged_array_ages[
+  metadata_merged_array_ages$family_position == "mother",]
+
 # Adapted from https://gettinggeneticsdone.blogspot.com/2011/03/splitting-dataset-revisited-keeping.html
 # splitdf splits a data frame into a discovery and a test set
-splitdf <- function(dataframe, trainfrac, seed=NULL) {
-  if (trainfrac<=0 | trainfrac>=1) stop("Training fraction must be between 0 and 1, not inclusive")
+splitdf <- function(dataframe, trainfrac, seed = NULL) {
+  if (trainfrac <= 0 | trainfrac >= 1) 
+    stop("Training fraction must be between 0 and 1, not inclusive")
   if (!is.null(seed)) set.seed(seed)
   index <- 1:nrow(dataframe)
   trainindex <- sample(index, trunc(length(index)/(1/trainfrac)))
   trainset <- dataframe[trainindex, ]
   testset <- dataframe[-trainindex, ]
-  list(trainset=trainset,testset=testset)
+  list(trainset = trainset, testset = testset)
 }
 
-# splitdf.randomize uses splitdf
-# Inputs the dataframe you want to split, and a character vector with the covariates you want to split evenly 
-splitdf.randomize <- function(dataframe, min_p, trainfrac, ttestcolnames=c("cols","to","test"), ...) {
+# Use splitdf to split the dataframe, keeping discovery and test sets equivalent
+# across the input character covariates (with a minimum p-value for each)
+splitdf.randomize <- function(dataframe, min_p, trainfrac, 
+                              ttestcolnames = c("cols","to","test"), ...) {
   d <- dataframe
-  if (!all(ttestcolnames %in% names(d))) stop(paste(ttestcolnames,"not in dataframe"))
+  if (!all(ttestcolnames %in% names(d))) 
+    stop(paste(ttestcolnames,"not in dataframe"))
   ps <- NULL
-  while (is.null(ps) | any(ps<min_p)) {
+  while (is.null(ps) | any(ps < min_p)) {
     sets <- splitdf(d, trainfrac)
     trainset <- sets$trainset
     testset <- sets$testset
@@ -96,76 +133,35 @@ splitdf.randomize <- function(dataframe, min_p, trainfrac, ttestcolnames=c("cols
     print(paste(ttestcolnames," t-test p-value =",ps))
     cat("\n")
   }
-  list(trainset=trainset,testset=testset)
+  list(trainset = trainset, testset = testset)
 }
 
-# get the column names containing the covariates of interest (col #2 and 3)
-cols <- c("weighted_age", "child_count")
-
+# get the column names containing the covariates of interest
+cols <- c("weighted_age", "child_count", "egg_donor")
 # split dataset, keeping even distribution of those covariates
 set.seed(5)
-evensplit <- splitdf.randomize(metadata_merged_array_ages_mothers, min_p=0.05, trainfrac=0.85, cols)
+evensplit <- splitdf.randomize(metadata_merged_array_ages_mothers, 
+                               min_p = 0.05, trainfrac = 0.85, cols)
 
-# add column to metadata of mothers noting whether they're discovery 
-metadata_merged_array_ages_mothers[, is_discovery := array %in% evensplit$trainset$array]
+# add column to metadata noting whether each mother is in the discovery set
+metadata_merged_array_ages_mothers[, is_discovery := 
+                                     array %in% evensplit$trainset$array]
 
 
-# write mothers to file 
-fwrite(metadata_merged_array_ages_mothers[,c("array", "family_position", "is_discovery")], 
+# Write mothers to file 
+fwrite(metadata_merged_array_ages_mothers
+       [,c("array", "family_position", "is_discovery")], 
        file = output_maternal, 
        sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
 
-# propagate those assignments to the fathers
-case_assign <- metadata_merged_array_ages_mothers[, c("casefile_id", "is_discovery")]
+# Propagate those assignments to the fathers
+case_assign <- 
+  metadata_merged_array_ages_mothers[, c("casefile_id", "is_discovery")]
 metadata_fathers <- metadata_merged_array_ages %>%
   .[family_position == "father"] %>%
   merge(., case_assign, by = "casefile_id")
-# remove duplicates
-metadata_fathers <- metadata_fathers[!duplicated(metadata_fathers$array)]
 
-# write fathers to file 
+# Write fathers to file 
 fwrite(metadata_fathers[, c("array", "family_position", "is_discovery")], 
        file = output_paternal, 
        sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
-
-
-# # plot cumulative dist of the covariates 
-# p1 <- ggplot(data = metadata_merged_array_ages_mothers, aes(x = weighted_age, color = is_discovery)) +
-#   geom_density() +
-#   theme_bw() +
-#   theme(axis.line = element_line(), panel.grid = element_blank(), panel.border = element_blank()) +
-#   xlab("Patient Age") +
-#   ylab("Density") + 
-#   scale_color_manual(labels = c("Validation", "Discovery"), values = c("blue", "red")) + 
-#   guides(color=guide_legend("Data Split Assignment"))
-
-# p2 <- ggplot(data = metadata_merged_array_ages_mothers, aes(x = partner_age, color = is_discovery)) +
-#   geom_density() +
-#   #xlim(20, 83) + 
-#   theme_bw() +
-#   theme(axis.line = element_line(), panel.grid = element_blank(), panel.border = element_blank()) +
-#   xlab("Partner Age") +
-#   ylab("Density") + 
-#   scale_color_manual(labels = c("Validation", "Discovery"), values = c("blue", "red")) + 
-#   guides(color=guide_legend("Data Split Assignment"))
-
-# p3 <- ggplot(data = metadata_merged_array_ages_mothers, aes(x = child_count, color = is_discovery)) +
-#   geom_density() +
-#   theme_bw() +
-#   theme(axis.line = element_line(), panel.grid = element_blank(), panel.border = element_blank()) +
-#   xlab("Number of Embryos") +
-#   ylab("Density") + 
-#   scale_color_manual(labels = c("Validation", "Discovery"), values = c("blue", "red")) + 
-#   guides(color=guide_legend("Data Split Assignment"))
-
-
-# # plot all three as one figure 
-# pdf(plot_fpn)
-# ggpubr::ggarrange(p1, p2, p3, # list of plots
-#                   labels = "AUTO", # labels
-#                   common.legend = T, # COMMON LEGEND
-#                   legend = "bottom", # legend position
-#                   align = "hv", # Align them both, horizontal and vertical
-#                   nrow = 1)  # number of rows
-# dev.off()
-
