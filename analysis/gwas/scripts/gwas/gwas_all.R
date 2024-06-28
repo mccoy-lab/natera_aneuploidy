@@ -13,7 +13,7 @@ library(purrr)
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_mother.txt" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/parental_genotypes_pcs/parental_genotypes.eigenvec" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/haploidy_by_mother.csv" \
-#  "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/subsets/spectrum_imputed_chr21_rehead_filter_cpra_18.bim \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/subsets/spectrum_imputed_chr21_rehead_filter_cpra_18.bim" \
 # "discovery" \ # dataset_type
 # "haploidy" \ # phenotype_name
 # "mother" \ # parent
@@ -129,22 +129,8 @@ make_model <- function(parent, phenotype_name) {
                              " PC19 + PC20 + alt_count + egg_donor_factor", 
                            collapse = "")
   
-  # if pheno is embryo count, add age based on parent 
-  if (phenotype_name == "embryo_count") {
-    if (parent == "mother") {
-      formula_string <- paste0(formula_string, " + patient_age", 
-                               collapse = "")
-    } else if (parent == "father") {
-      formula_string <- paste0(formula_string, " + partner_age", 
-                               collapse = "")
-    } 
-  } else if (phenotype_name == "maternal_age") {
-    # if pheno is maternal age, use no age covariate
-    formula_string <- formula_string
-  } else {
-    # if pheno is ploidy or sex ratio, use weighted age 
-    formula_string <- paste0(formula_string, " + weighted_age", 
-                             collapse = "")
+  if (phenotype_name != "maternal_age") {
+   formula_string <- paste0(formula_string, " + weighted_age", collapse = "")
   }
    
   # Return model for use in GWAS

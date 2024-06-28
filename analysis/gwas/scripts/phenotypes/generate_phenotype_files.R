@@ -270,7 +270,7 @@ run_metadata_phenotype <- function(metadata, parent, filter_day_5 = TRUE) {
   child_counts <- filtered_metadata %>%
     filter(family_position == "child") %>%
     group_by(casefile_id) %>%
-    summarise(num_children = n())
+    summarise(num_embryos = n())
   
   # merge the parent data with the child counts
   result <- filtered_parents %>%
@@ -282,6 +282,18 @@ run_metadata_phenotype <- function(metadata, parent, filter_day_5 = TRUE) {
     arrange(casefile_id, year) %>%
     slice(1) %>%
     ungroup()
+  
+  # make "weighted age" the appropriate partner age column to match 
+  # format of other phenotypes 
+  if (parent == "mother") {
+    result$weighted_age <- result$patient_age
+  } else if (parent == "father") {
+    result$weighted_age <- result$partner_age
+  }
+  
+  # keep only array, weighted_age, num_embryos 
+  result <- result %>%
+    select(array, weighted_age, num_embryos)
   
   return(result)
 }
