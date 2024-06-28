@@ -50,12 +50,6 @@ min_ploidy <- as.numeric(args[11])
 out_fname <- args[12]
 
 
-# source Rscript with helper functions
-#source("helper_functions/phenotyping_helper_functions.R")
-
-## Functions for use in generating aneuploidy phenotypes
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/aneuploidy_phenotypes.R
-
 # Function to filter embryos by quality
 filter_data <- function(ploidy_calls, parent, segmental_calls, 
                         bayes_factor_cutoff = 2, nullisomy_threshold = 5, 
