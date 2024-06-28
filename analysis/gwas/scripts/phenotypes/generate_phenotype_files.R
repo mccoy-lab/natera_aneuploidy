@@ -237,19 +237,73 @@ run_phenotype <- function(ploidy_calls, parent, segmental_calls, metadata,
   return(pheno_output)
 }
 
+# Generate file for metadata-based phenotypes 
+run_metadata_phenotype <- function(metadata, parent, filter_day_5 = TRUE) {
+  
+  # get each parent only once, in their first instance
+  filtered_parents <- metadata %>% 
+    filter(family_position %in% c("mother", "father")) %>% 
+    group_by(array) %>% 
+    arrange(patient_age, partner_age) %>% 
+    slice(1)
+  
+  # get the casefile_ids of the selected parents
+  selected_casefile_ids <- filtered_parents$casefile_id
+  
+  # filter the data to keep only the selected parents and their children
+  # and only keep each individual once 
+  filtered_metadata <- metadata %>%
+    filter(casefile_id %in% selected_casefile_ids) %>%
+    distinct(array, .keep_all = TRUE)
+  
+  # create phenotype file 
+  filtered_parents <- filtered_metadata %>%
+    filter(family_position == parent)
+  
+  # keep only day 5 embryos (remove sperm and day3 embryos)
+  if (filter_day_5 == TRUE) {
+    filtered_metadata <- 
+      filtered_metadata[filtered_metadata$sample_scale != "single_cell",]
+  }
+  
+  # count the number of children per casefile_id
+  child_counts <- filtered_metadata %>%
+    filter(family_position == "child") %>%
+    group_by(casefile_id) %>%
+    summarise(num_children = n())
+  
+  # merge the parent data with the child counts
+  result <- filtered_parents %>%
+    left_join(child_counts, by = "casefile_id")
+  
+  # keep only first parent for each casefile id
+  result <- result %>%
+    group_by(casefile_id) %>%
+    arrange(casefile_id, year) %>%
+    slice(1) %>%
+    ungroup()
+  
+  return(result)
+}
 
 # Read in embryos and metadata
 ploidy_calls <- fread(ploidy_calls)
 segmental_calls <- fread(segmental_calls)
 metadata <- fread(metadata)
 
-# Keep only high-quality embryos (remove noisy, high-bayes factor, and
-# Potential failed amplification embryos) and day 5 embryos
-# Count number of aneuploid and non-aneuploid embryos per parent
-pheno_by_parent <- run_phenotype(ploidy_calls, parent, segmental_calls, 
-                                 metadata, phenotype, filter_day_5, 
-                                 bayes_factor_cutoff, nullisomy_threshold, 
-                                 min_prob, max_meiotic, min_ploidy)
+# Generate metadata- or ploidy-based phenotype info 
+if (phenotype %in% c("embryo_count", "maternal_age")) {
+  pheno_by_parent <- run_metadata_phenotype(metadata, parent, 
+                                            filter_day_5 = TRUE)
+} else {
+  # Keep only high-quality embryos (remove noisy, high-bayes factor, and
+  # Potential failed amplification embryos) and day 5 embryos
+  # Count number of aneuploid and non-aneuploid embryos per parent
+  pheno_by_parent <- run_phenotype(ploidy_calls, parent, segmental_calls, 
+                                   metadata, phenotype, filter_day_5, 
+                                   bayes_factor_cutoff, nullisomy_threshold, 
+                                   min_prob, max_meiotic, min_ploidy)
+}
 
 # Write phenotype info to file
 write.csv(pheno_by_parent, out_fname, row.names = FALSE)
