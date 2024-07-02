@@ -135,6 +135,11 @@ day5_only <- function(ploidy_calls, metadata) {
 make_phenotype <- function(metadata, parent, phenotype, ploidy_calls, 
                            max_meiotic = 3,
                            min_ploidy = 15) {
+  
+  # Remove parents that are entirely duplicated rows in metadata
+  metadata <- metadata %>% 
+    distinct()
+  
   # Create new column that tags every individual affiliated with each
   # parent, even if in different caseIDs
   metadata_merged_array <- metadata %>%
