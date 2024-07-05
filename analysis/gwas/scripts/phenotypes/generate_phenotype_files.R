@@ -16,7 +16,7 @@ library(dplyr)
 # 2 \ remove chr with bayes factor > bayes_factor_cutoff
 # 5 \ remove embryos that had more chr with cn = 0 for than nullisomy_threshold
 # 0.9 \ minimum posterior probability for each cn call
-# 3 \ max number of affected chr to count for maternal meiotic phenotype
+# 5 \ max number of affected chr to count for maternal meiotic phenotype
 # 15 \ min number of affected chr to count for whole genome gain/loss
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/maternal_meiotic_aneuploidy_by_mother.csv \
 
@@ -133,7 +133,7 @@ day5_only <- function(ploidy_calls, metadata) {
 # Create table with array, number of embryos, number of visits, weighted age,
 # and aneuploidy counts (if ploidy phenotype) 
 make_phenotype <- function(metadata, parent, phenotype, ploidy_calls, 
-                           max_meiotic = 3,
+                           max_meiotic = 5,
                            min_ploidy = 15) {
   
   # Remove parents that are entirely duplicated rows in metadata
@@ -196,7 +196,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
       mutate(
         is_ploidy = case_when(
           phenotype == "maternal_meiotic_aneuploidy" ~ 
-            ifelse(num_affected > 0 & num_affected < max_meiotic,
+            ifelse(num_affected > 0 & num_affected <= max_meiotic,
                    "aneu_true", "aneu_false"),
           phenotype == "complex_aneuploidy" ~ ifelse(num_affected > 0
                                                      & unique_bf_max_cat >= 2,
@@ -223,7 +223,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
 run_phenotype <- function(ploidy_calls, parent, segmental_calls, metadata, 
                           phenotype, filter_day_5 = TRUE, 
                           bayes_factor_cutoff = 2, nullisomy_threshold = 5, 
-                          min_prob = 0.9, max_meiotic = 3, min_ploidy = 15) {
+                          min_prob = 0.9, max_meiotic = 5, min_ploidy = 15) {
   
   # Filter embryo data
   ploidy_calls <- filter_data(ploidy_calls, parent, segmental_calls, 
