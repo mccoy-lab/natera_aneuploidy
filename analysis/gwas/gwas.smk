@@ -258,7 +258,7 @@ rule generate_aneuploidy_phenotypes:
         bayes_factor_cutoff=2,
         nullisomy_threshold=5,
         min_prob=0.9,
-        max_meiotic=3,
+        max_meiotic=5,
         min_ploidy=15,
     shell:
         """
