@@ -46,12 +46,6 @@ threads <- as.numeric(args[10])
 # output file name
 out_fname <- args[11]
 
-# source Rscript with helper functions
-#source("helper_functions/gwas_helper_functions.R")
-
-## Functions for use in executing Natera GWAS
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/gwas_all.R
-
 # Subset data to include only discovery or test
 discovery_test_split <- function(dataset_type, discovery_test, metadata, bed) {
   
