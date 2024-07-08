@@ -47,6 +47,10 @@ phenotypes = [
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
 chroms = range(1, 24)
+ploidy_phenotypes = [
+    "haploidy",
+    "triploidy"
+]
 
 # shell.prefix("set -o pipefail; ")
 
@@ -56,7 +60,7 @@ rule all:
     input:
         expand(
             "results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype="haploidy",
+            phenotype=ploidy_phenotypes,
             parent="mother",
             dataset_type=dataset_type,
         ),
@@ -254,7 +258,7 @@ rule generate_aneuploidy_phenotypes:
         bayes_factor_cutoff=2,
         nullisomy_threshold=5,
         min_prob=0.9,
-        max_meiotic=3,
+        max_meiotic=5,
         min_ploidy=15,
     shell:
         """
@@ -304,7 +308,7 @@ rule merge_subsets:
             chunk=range(chunks_dict.get(f"chr{wildcards.chrom}", 0)),
         ),
     output:
-        gwas_output=temp("results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv"),
+        gwas_output="results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
     wildcard_constraints:
         chrom = "|".join(map(str, range(1, 23))),
     shell:
@@ -322,10 +326,10 @@ rule gwas_x_chrom:
         phenotype_file=rules.generate_aneuploidy_phenotypes.output.phenotype_file,
         bim="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bim",
     output:
-        gwas_output=temp("results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_23.tsv"),
+        gwas_output="results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_23.tsv",
     threads: 16
     resources:
-        time="6:00:00",
+        time="9:00:00",
         mem_mb="100G",
     wildcard_constraints:
         dataset_type="discovery|test",

@@ -13,7 +13,7 @@ library(purrr)
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_mother.txt" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/parental_genotypes_pcs/parental_genotypes.eigenvec" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/haploidy_by_mother.csv" \
-#  "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/subsets/spectrum_imputed_chr21_rehead_filter_cpra_18.bim \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/subsets/spectrum_imputed_chr21_rehead_filter_cpra_18.bim" \
 # "discovery" \ # dataset_type
 # "haploidy" \ # phenotype_name
 # "mother" \ # parent
@@ -45,12 +45,6 @@ parent <- args[9]
 threads <- as.numeric(args[10])
 # output file name
 out_fname <- args[11]
-
-# source Rscript with helper functions
-#source("helper_functions/gwas_helper_functions.R")
-
-## Functions for use in executing Natera GWAS
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/gwas_all.R
 
 # Subset data to include only discovery or test
 discovery_test_split <- function(dataset_type, discovery_test, metadata, bed) {
@@ -128,9 +122,9 @@ make_model <- function(parent, phenotype_name) {
                              "PC12 + PC13 + PC14 + PC15 + PC16 + PC17 + PC18 +", 
                              " PC19 + PC20 + alt_count + egg_donor_factor", 
                            collapse = "")
+  
   if (phenotype_name != "maternal_age") {
-    formula_string <- paste0(formula_string, " + weighted_age", 
-                             collapse = "")
+   formula_string <- paste0(formula_string, " + weighted_age", collapse = "")
   }
    
   # Return model for use in GWAS
