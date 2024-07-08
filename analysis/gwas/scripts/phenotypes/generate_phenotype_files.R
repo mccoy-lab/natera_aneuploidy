@@ -243,6 +243,8 @@ run_phenotype <- function(ploidy_calls, parent, segmental_calls, metadata,
 }
 
 # Generate file for metadata-based phenotypes 
+# This includes number of embryos (n_embryos) and maternal age
+# at first IVF cycle in the dataset 
 run_metadata_phenotype <- function(metadata, parent, filter_day_5 = TRUE) {
   
   # get each parent only once, in their first instance
@@ -261,7 +263,7 @@ run_metadata_phenotype <- function(metadata, parent, filter_day_5 = TRUE) {
     filter(casefile_id %in% selected_casefile_ids) %>%
     distinct(array, .keep_all = TRUE)
   
-  # create phenotype file 
+  # initiate filtering such that each parent is kept only once
   filtered_parents <- filtered_metadata %>%
     filter(family_position == parent)
   
