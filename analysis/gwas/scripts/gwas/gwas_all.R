@@ -20,6 +20,9 @@ library(purrr)
 # 16 \ # number of threads
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/gwas_haploidy_by_mother_discovery_9.tsv"
 
+# Colnames for outfile: 
+# pos snp beta  se  t p.value af  snp_id  effect_allele chr drop  ref alt
+
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 # metadata for all years
@@ -222,4 +225,4 @@ gwas_results_dt <- run_gwas(dataset_type, discovery_test, metadata, bed, bim,
 
 # write to file
 write.table(gwas_results_dt, out_fname, append = FALSE, sep = "\t", dec = ".",
-            row.names = FALSE, col.names = TRUE, quote = FALSE)
+            row.names = FALSE, col.names = FALSE, quote = FALSE)
