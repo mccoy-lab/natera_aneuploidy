@@ -6,6 +6,7 @@ library(BEDMatrix)
 library(dplyr)
 library(pbmcapply)
 library(purrr)
+library(countreg)
 
 # Usage: /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/gwas_all.R \
 # "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
@@ -116,7 +117,7 @@ make_model <- function(phenotype_name) {
     family <- "quasibinomial"
   } else if (phenotype_name == "embryo_count") {
     response_variable <- "num_embryos"
-    family <- "quasipoisson"
+    family <- "ztpoisson"
   } else if (phenotype_name == "maternal_age") {
     response_variable <- "patient_age"
     family <- "gaussian"
@@ -127,17 +128,20 @@ make_model <- function(phenotype_name) {
     stop("Invalid 'phenotype_name' argument.")
   }
   
-  # Set formula string to include age column (unless age phenotype) and 
+  # Set formula string to include both parental ages (omit patient_age as
+  # covariate when maternal age is phenotype), both donor statuses, PCs, and
   # response variable
   formula_string <- paste0(response_variable, " ~ PC1 + PC2 + PC3 + PC4 + ", 
-                             "PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + PC11 + ", 
-                             "PC12 + PC13 + PC14 + PC15 + PC16 + PC17 + PC18 +", 
-                             " PC19 + PC20 + alt_count", 
+                           "PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + PC11 + ", 
+                           "PC12 + PC13 + PC14 + PC15 + PC16 + PC17 + PC18 + ",
+                           "PC19 + PC20 + is.na(egg_donor) + ",
+                           "is.na(sperm_donor) + scale(partner_age) + alt_count", 
                            collapse = "")
   
-  # if (phenotype_name != "maternal_age") {
-  #  formula_string <- paste0(formula_string, " + weighted_age", collapse = "")
-  # }
+  # For all phenotypes other than maternal age, include patient_age as covariate
+  if (phenotype_name != "maternal_age") {
+    formula_string <- paste0(formula_string, " + scale(patient_age)", collapse = "")
+    }
    
   # Return model for use in GWAS
   return(list(formula_string = formula_string, family = family))
