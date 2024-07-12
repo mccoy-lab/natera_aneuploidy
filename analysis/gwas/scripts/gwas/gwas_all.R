@@ -95,6 +95,10 @@ get_gt <- function(bed, bed_dataset_indices, snp_index, metadata,
     stop("Invalid parent value. It should be either 'mother' or 'father'.")
   }
   
+  # Include only first visit from each patient for the linear model 
+  phenotype <- phenotype[phenotype$visit_id == 1,]
+  
+  # Add phenotype and pcs to gt info 
   gt <- merge(gt, metadata, by = "array") %>%
     merge(phenotype, by = "array") %>%
     merge(pcs, by = "array") 
