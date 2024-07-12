@@ -137,8 +137,7 @@ make_model <- function(phenotype_name) {
 
 # Calculate GWAS at each genomic site
 gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
-                          bed_dataset_indices, metadata, parent,
-                          phenotype_name) {
+                          bed_dataset_indices, metadata, phenotype_name) {
   
   # Get characteristics for each site
   snp_name <- colnames(bed)[snp_index]
@@ -178,7 +177,7 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
 
 # Run GWAS across dataset
 run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs, 
-                     phenotype, parent, phenotype_name, threads = 32) {
+                     phenotype, phenotype_name, threads = 32) {
   
   # Subset bed file corresponding to correct dataset type
   bed_dataset <- discovery_test_split(dataset_type, discovery_test, 
@@ -192,7 +191,7 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs,
                              function(x) gwas_per_site(x, bed_dataset, bim,
                                                        pcs, phenotype,
                                                        bed_dataset_indices,
-                                                       metadata, parent,
+                                                       metadata, 
                                                        phenotype_name),
                              mc.cores = threads)
   # Bind output across all sites
@@ -221,7 +220,7 @@ bim <- fread(bim) %>%
 
 # conduct GWAS across all sites
 gwas_results_dt <- run_gwas(dataset_type, discovery_test, metadata, bed, bim,
-                            pcs, phenotype, parent, phenotype_name, threads)
+                            pcs, phenotype, phenotype_name, threads)
 
 # write to file
 write.table(gwas_results_dt, out_fname, append = FALSE, sep = "\t", dec = ".",
