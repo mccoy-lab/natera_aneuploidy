@@ -149,7 +149,7 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
   gt <- get_gt(bed, bed_dataset_indices, snp_index, metadata, phenotype, pcs)
   
   # Make GWAS model
-  model <- make_model(parent, phenotype_name)
+  model <- make_model(phenotype_name)
   formula_string <- model$formula_string
   family <- model$family
   m1 <- glm(formula_string, family = family, data = gt) %>%
