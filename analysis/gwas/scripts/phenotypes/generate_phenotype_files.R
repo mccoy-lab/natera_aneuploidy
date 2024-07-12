@@ -8,7 +8,7 @@ library(dplyr)
 # Usage:
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/generate_phenotype_files.R \
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz \
-# /scratch16/rmccoy22/abiddan1/natera_segmental/analysis/segmental_qc/results/tables/segmental_calls_postqc.tsv.gz \ # segmental aneuploidy calls to remove chrom 
+# /scratch16/rmccoy22/abiddan1/natera_segmental/analysis/segmental_qc/results/tables/segmental_calls_postqc_refined.tsv.gz \ # segmental aneuploidy calls to remove chrom 
 # mother \ # parent to group phenotype by
 # /data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv \
 # maternal_meiotic_aneuploidy \ # phenotype name
@@ -229,7 +229,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
         aneu_false = sum(aneu_false),   
         total_embryos = sum(aneu_true + aneu_false)  
       ) %>%
-      left_join(age_produced, by = c("mother" = "mother_id", "visit_id")) %>%
+      #left_join(age_produced, by = c("mother" = "mother_id", "visit_id")) %>%
       left_join(num_visits, by = c("mother" = "mother_id")) %>%
       ungroup()
   } else {
@@ -248,25 +248,6 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
       left_join(num_visits, by = "mother_id")
   }
 }
-
-# Generate file for phenotype of interest
-run_phenotype <- function(ploidy_calls, parent, segmental_calls, metadata, 
-                          phenotype, filter_day_5 = TRUE, 
-                          bayes_factor_cutoff = 2, nullisomy_threshold = 5, 
-                          min_prob = 0.9, max_meiotic = 5, min_ploidy = 15) {
-  
-  # Filter embryo data
-  ploidy_calls <- filter_data(ploidy_calls, parent, segmental_calls, 
-                              bayes_factor_cutoff, filter_day_5, 
-                              nullisomy_threshold, min_prob)
-  
-  # Compute phenotype 
-  pheno_output <- make_phenotype(metadata, parent, phenotype, ploidy_calls, 
-                                 max_meiotic, min_ploidy)
-  
-  return(pheno_output)
-}
-
 
 # Read in embryos and metadata
 ploidy_calls <- fread(ploidy_calls)
