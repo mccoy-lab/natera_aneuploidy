@@ -109,6 +109,7 @@ rule all:
         "results/tables/segmental_calls_raw.tsv.gz",
         "results/tables/segmental_calls_filt.tsv.gz",
         "results/tables/segmental_calls_postqc.tsv.gz",
+        "results/tables/segmental_calls_postqc_refined.tsv.gz",
 
 
 rule generate_parent_sample_list:
@@ -356,4 +357,39 @@ rule merge_qc_tables:
             output.post_qc_segmental_calls,
             separator="\t",
             null_value="NA",
+        )
+
+
+rule final_postqc_filter:
+    """Applying one final filtering step for segmental calls."""
+    input:
+        post_qc_segmental_calls="results/tables/segmental_calls_postqc.tsv",
+    output:
+        post_qc_segmental_calls_refined="results/tables/segmental_calls_postqc_refined.tsv",
+    params:
+        ppThresh=0.90,
+        lengthThresh=5e6,
+        nsnps=100,
+    run:
+        seg_df = pl.read_csv(
+            input.post_qc_segmental_calls,
+            separator="\t",
+            infer_schema_length=10000,
+            null_values=["NA"],
+        )
+        filt_seg_df = seg_df.with_columns(
+            (pl.col("end_50") - pl.col("start_50")).alias("segment_size")
+        ).filter(
+            (pl.col("segment_size") >= params.lengthThresh)
+            & (pl.col("nsnps") > params.nsnps)
+            & (pl.col("mean_posterior") > params.ppThresh)
+            & (pl.col("karyotype") != pl.col("bf_max_cat"))
+        )
+        filt_seg_df = filt_seg_df.with_columns(
+            pl.concat_str(
+                pl.col("mother"), pl.col("father"), pl.col("child"), separator="+"
+            ).alias("uid")
+        )
+        filt_seg_df.write_csv(
+            output.post_qc_segmental_calls_refined, separator="\t", null_value="NA"
         )
