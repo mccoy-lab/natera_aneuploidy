@@ -8,8 +8,8 @@ library(dplyr)
 # Usage:
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/aneuploidy_phenotypes.R \
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz \
-# mother \ # parent to group phenotype by
 # /scratch16/rmccoy22/abiddan1/natera_segmental/analysis/segmental_qc/results/tables/segmental_calls_postqc.tsv.gz \ # segmental aneuploidy calls to remove chrom 
+# mother \ # parent to group phenotype by
 # /data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv \
 # maternal_meiotic_aneuploidy \ # phenotype name
 # TRUE
@@ -52,7 +52,8 @@ out_fname <- args[12]
 
 # Function to filter embryos by quality
 filter_data <- function(ploidy_calls, parent, segmental_calls, 
-                        bayes_factor_cutoff = 2, nullisomy_threshold = 5, 
+                        bayes_factor_cutoff = 2, filter_day_5 = TRUE, 
+                        nullisomy_threshold = 5, 
                         min_prob = 0.9) {
   
   # Confirm that bayes_factor_cutoff is numeric and positive
@@ -77,9 +78,13 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
   ploidy_calls <- ploidy_calls %>%
     distinct(child, chrom, .keep_all = TRUE)
 
-  
   # Remove embryos that have noise more than 3sd from mean
   ploidy_calls <- ploidy_calls[ploidy_calls$embryo_noise_3sd == FALSE, ]
+  
+  # Remove day 3 embryos 
+  if (filter_day_5 == TRUE) {
+    ploidy_calls <- ploidy_calls[ploidy_calls$day3_embryo == FALSE,]
+  }
   
   # Remove embryos with failed amplification
   # Count number of chromosomes called as nullisomies for each embryo
@@ -117,16 +122,6 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
   # Remove from ploidy calls any chromosomes in segmentals 
   ploidy_calls <- ploidy_calls[!ploidy_calls$uid %in% segmental_calls$uid,]
   
-  return(ploidy_calls)
-}
-
-# Function to keep only day 5 embryos
-day5_only <- function(ploidy_calls, metadata) {
-  
-  # Intersect embryo with metadata (few_cells = day 5)
-  ploidy_calls <- ploidy_calls[ploidy_calls$child %in% 
-                                 metadata[metadata$sample_scale ==
-                                            "few_cells", ]$array, ]
   return(ploidy_calls)
 }
 
@@ -227,13 +222,8 @@ run_phenotype <- function(ploidy_calls, parent, segmental_calls, metadata,
   
   # Filter embryo data
   ploidy_calls <- filter_data(ploidy_calls, parent, segmental_calls, 
-                              bayes_factor_cutoff, nullisomy_threshold, 
-                              min_prob)
-  
-  # Keep only day 5 embryos
-  if (filter_day_5 == TRUE) {
-    ploidy_calls <- day5_only(ploidy_calls, metadata)
-  }
+                              bayes_factor_cutoff, filter_day_5, 
+                              nullisomy_threshold, min_prob)
   
   # Compute phenotype 
   pheno_output <- make_phenotype(metadata, parent, phenotype, ploidy_calls, 
