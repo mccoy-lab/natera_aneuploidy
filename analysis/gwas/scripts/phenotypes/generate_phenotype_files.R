@@ -6,7 +6,7 @@ library(tidyr)
 library(dplyr)
 
 # Usage:
-# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/aneuploidy_phenotypes.R \
+# /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/generate_phenotype_files.R \
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz \
 # /scratch16/rmccoy22/abiddan1/natera_segmental/analysis/segmental_qc/results/tables/segmental_calls_postqc.tsv.gz \ # segmental aneuploidy calls to remove chrom 
 # mother \ # parent to group phenotype by
@@ -274,10 +274,10 @@ segmental_calls <- fread(segmental_calls)
 metadata <- fread(metadata)
 
 # Run phenotype 
-pheno_by_parent <- run_phenotype(ploidy_calls, parent, segmental_calls, 
-                                 metadata, phenotype, filter_day_5, 
-                                 bayes_factor_cutoff, nullisomy_threshold, 
-                                 min_prob, max_meiotic, min_ploidy)
+pheno_by_parent <- make_phenotype(metadata, parent, phenotype, ploidy_calls, 
+                                  segmental_calls, bayes_factor_cutoff = 2, 
+                                  filter_day_5 = TRUE, nullisomy_threshold = 5, 
+                                  max_meiotic = 5, min_ploidy = 15)
 
 # Write phenotype info to file
 write.csv(pheno_by_parent, out_fname, row.names = FALSE)
