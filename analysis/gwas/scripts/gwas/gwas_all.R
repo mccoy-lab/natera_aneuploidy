@@ -98,8 +98,8 @@ get_gt <- function(bed, bed_dataset_indices, snp_index, metadata,
 }
 
 
-# Function to make GWAS model based on parent and phenotype
-make_model <- function(parent, phenotype_name) {
+# Function to make GWAS model based on phenotype
+make_model <- function(phenotype_name) {
   
   # Choose variable columns and model family based on phenotype name
   if (grepl("ploidy", phenotype_name)) {
