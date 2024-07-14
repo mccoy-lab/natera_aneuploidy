@@ -60,8 +60,8 @@ rule all:
     input:
         expand(
             "results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype=ploidy_phenotypes,
-            parent="mother",
+            phenotype="maternal_meiotic_aneuploidy",
+            parent=parents,
             dataset_type=dataset_type,
         ),
 # rule all:
