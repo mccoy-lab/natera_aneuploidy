@@ -229,7 +229,6 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
         aneu_false = sum(aneu_false),   
         total_embryos = sum(aneu_true + aneu_false)  
       ) %>%
-      #left_join(age_produced, by = c("mother" = "mother_id", "visit_id")) %>%
       left_join(num_visits, by = c("mother" = "mother_id")) %>%
       ungroup()
   } else {
