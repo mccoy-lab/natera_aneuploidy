@@ -135,7 +135,8 @@ make_model <- function(phenotype_name) {
                            "PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + PC11 + ", 
                            "PC12 + PC13 + PC14 + PC15 + PC16 + PC17 + PC18 + ",
                            "PC19 + PC20 + is.na(egg_donor) + ",
-                           "is.na(sperm_donor) + scale(partner_age) + alt_count", 
+                           "is.na(sperm_donor) + factor(year) + ", 
+                           "scale(partner_age) + alt_count", 
                            collapse = "")
   
   # For all phenotypes other than maternal age, include patient_age as covariate
