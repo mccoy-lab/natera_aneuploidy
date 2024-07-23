@@ -152,7 +152,6 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     ungroup()
   
   # for aneuploidy phenotypes, count aneuploid/euploid embryos per visit
-  # and merge with parental age 
   if (grepl("ploidy", phenotype)) {
     # select ploidy status based on phenotype and parent 
     if (phenotype == "triploidy" & parent == "mother") {
