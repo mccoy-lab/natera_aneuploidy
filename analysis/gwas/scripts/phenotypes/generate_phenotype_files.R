@@ -229,15 +229,17 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
         total_embryos = sum(aneu_true + aneu_false)  
       ) %>%
       left_join(num_visits, by = c("mother" = "mother_id")) %>%
+      left_join(age_produced, 
+                by = c("mother" = "mother_id", "visit_id" = "visit_id")) %>%
       ungroup()
   } else {
     # calculate phenotypes based on metadata (embryo count, maternal age) 
     mother_summary <- child_data %>%
       group_by(mother_id, visit_id) %>%
       summarise(
-        num_embryos = n(),                     # Count number of children per visit
+        num_embryos = n(), # Count number of children per visit
         patient_age = first(patient_age),
-        partner_age = first(partner_age) # Capture the patient age for the visit
+        partner_age = first(partner_age) # Capture ages for the visit
       ) %>%
       ungroup()
     
