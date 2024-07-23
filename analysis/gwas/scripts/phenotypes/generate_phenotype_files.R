@@ -13,7 +13,7 @@ library(dplyr)
 # /data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv \
 # maternal_meiotic_aneuploidy \ # phenotype name
 # TRUE
-# 2 \ remove chr with bayes factor > bayes_factor_cutoff
+# 2 \ keep only chroms with bayes factor greater than the threshold for bayes factor qc
 # 5 \ remove embryos that had more chr with cn = 0 for than nullisomy_threshold
 # 0.9 \ minimum posterior probability for each cn call
 # 5 \ max number of affected chr to count for maternal meiotic phenotype
@@ -101,7 +101,7 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
   ploidy_calls <- ploidy_calls[complete.cases(
     ploidy_calls[,c("0", "1m", "1p", "2", "3m", "3p")]), ]
   
-  # Keep only rows that met the threshold for bayes factor qc
+  # Keep only rows with bayes factor greater than the threshold for bayes factor qc
   ploidy_calls <- ploidy_calls[ploidy_calls$bf_max > bayes_factor_cutoff, ]
   
   # Add column that checks whether the max posterior is greater than threshold
