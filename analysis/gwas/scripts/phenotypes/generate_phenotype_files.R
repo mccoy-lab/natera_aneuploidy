@@ -101,7 +101,8 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
   ploidy_calls <- ploidy_calls[complete.cases(
     ploidy_calls[,c("0", "1m", "1p", "2", "3m", "3p")]), ]
   
-  # Keep only rows with bayes factor greater than the threshold for bayes factor qc
+  # Keep only rows with bayes factor greater than the threshold for 
+  # bayes factor qc
   ploidy_calls <- ploidy_calls[ploidy_calls$bf_max > bayes_factor_cutoff, ]
   
   # Add column that checks whether the max posterior is greater than threshold
