@@ -119,7 +119,7 @@ make_model <- function(phenotype_name) {
     response_variable <- "num_embryos"
     family <- "ztpoisson"
   } else if (phenotype_name == "maternal_age") {
-    response_variable <- "patient_age"
+    response_variable <- "patient_age_cycle"
     family <- "gaussian"
   } else if (phenotype_name == "sex_ratio") {
     response_variable <- "cbind(XY, XX)"
@@ -136,12 +136,12 @@ make_model <- function(phenotype_name) {
                            "PC12 + PC13 + PC14 + PC15 + PC16 + PC17 + PC18 + ",
                            "PC19 + PC20 + is.na(egg_donor) + ",
                            "is.na(sperm_donor) + factor(year) + ", 
-                           "scale(partner_age) + alt_count", 
+                           "scale(partner_age_cycle) + alt_count", 
                            collapse = "")
   
   # For all phenotypes other than maternal age, include patient_age as covariate
   if (phenotype_name != "maternal_age") {
-    formula_string <- paste0(formula_string, " + scale(patient_age)", collapse = "")
+    formula_string <- paste0(formula_string, " + scale(patient_age_cycle)", collapse = "")
     }
    
   # Return model for use in GWAS

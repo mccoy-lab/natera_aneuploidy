@@ -217,8 +217,8 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     # track parental age at each visit 
     age_produced <- child_data %>%
       group_by(mother_id, visit_id) %>%
-      summarise(patient_age = mean(patient_age, na.rm = TRUE),
-                partner_age = mean(partner_age, na.rm = TRUE)) %>%
+      summarise(patient_age_cycle = mean(patient_age, na.rm = TRUE),
+                partner_age_cycle = mean(partner_age, na.rm = TRUE)) %>%
       ungroup()
     
     # group by family 
@@ -239,8 +239,8 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
       group_by(mother_id, visit_id) %>%
       summarise(
         num_embryos = n(), # Count number of children per visit
-        patient_age = first(patient_age),
-        partner_age = first(partner_age) # Capture ages for the visit
+        patient_age_cycle = first(patient_age),
+        partner_age_cycle = first(partner_age) # Capture ages for the visit
       ) %>%
       ungroup()
     
