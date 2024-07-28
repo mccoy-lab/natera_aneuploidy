@@ -104,6 +104,12 @@ get_gt <- function(bed, bed_dataset_indices, snp_index, metadata,
     merge(phenotype, by = "array") %>%
     merge(pcs, by = "array") 
   
+  # Assign egg and sperm donor ages 
+  # get average egg donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7530253/
+  # get average sperm donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9118971/#:~:text=Donors%20were%20aged%2027%20years,aged%2030%20years%20and%20younger.
+  gt[egg_donor == "yes", patient_age_cycle := 25]
+  gt[sperm_donor == "yes", partner_age_cycle := 27]
+  
   return(gt)
 }
 
