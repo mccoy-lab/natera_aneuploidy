@@ -13,7 +13,7 @@ library(dplyr)
 # /data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv \
 # maternal_meiotic_aneuploidy \ # phenotype name
 # TRUE
-# 2 \ remove chr with bayes factor > bayes_factor_cutoff
+# 2 \ keep only chroms with bayes factor greater than the threshold for bayes factor qc
 # 5 \ remove embryos that had more chr with cn = 0 for than nullisomy_threshold
 # 0.9 \ minimum posterior probability for each cn call
 # 5 \ max number of affected chr to count for maternal meiotic phenotype
@@ -101,7 +101,8 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
   ploidy_calls <- ploidy_calls[complete.cases(
     ploidy_calls[,c("0", "1m", "1p", "2", "3m", "3p")]), ]
   
-  # Keep only rows that met the threshold for bayes factor qc
+  # Keep only rows with bayes factor greater than the threshold for 
+  # bayes factor qc
   ploidy_calls <- ploidy_calls[ploidy_calls$bf_max > bayes_factor_cutoff, ]
   
   # Add column that checks whether the max posterior is greater than threshold
@@ -152,7 +153,6 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     ungroup()
   
   # for aneuploidy phenotypes, count aneuploid/euploid embryos per visit
-  # and merge with parental age 
   if (grepl("ploidy", phenotype)) {
     # select ploidy status based on phenotype and parent 
     if (phenotype == "triploidy" & parent == "mother") {
@@ -217,8 +217,8 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     # track parental age at each visit 
     age_produced <- child_data %>%
       group_by(mother_id, visit_id) %>%
-      summarise(patient_age = mean(patient_age, na.rm = TRUE),
-                partner_age = mean(partner_age, na.rm = TRUE)) %>%
+      summarise(patient_age_cycle = mean(patient_age, na.rm = TRUE),
+                partner_age_cycle = mean(partner_age, na.rm = TRUE)) %>%
       ungroup()
     
     # group by family 
@@ -230,15 +230,17 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
         total_embryos = sum(aneu_true + aneu_false)  
       ) %>%
       left_join(num_visits, by = c("mother" = "mother_id")) %>%
+      left_join(age_produced, 
+                by = c("mother" = "mother_id", "visit_id" = "visit_id")) %>%
       ungroup()
   } else {
     # calculate phenotypes based on metadata (embryo count, maternal age) 
     mother_summary <- child_data %>%
       group_by(mother_id, visit_id) %>%
       summarise(
-        num_embryos = n(),                     # Count number of children per visit
-        patient_age = first(patient_age),
-        partner_age = first(partner_age) # Capture the patient age for the visit
+        num_embryos = n(), # Count number of children per visit
+        patient_age_cycle = first(patient_age),
+        partner_age_cycle = first(partner_age) # Capture ages for the visit
       ) %>%
       ungroup()
     
