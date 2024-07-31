@@ -37,9 +37,7 @@ if config["hmm_sims"]["model_comp"]:
     TARGETS.append("results/total_hmm_ploidy.tsv.gz")
 if config["hmm_sims"]["mixed_ploidy"]:
     TARGETS.append("results/mixed_ploidy_sims.tsv.gz")
-    TARGETS.append("results/mixed_ploidy_sims.mosaic_est.tsv.gz")
-# if config["hmm_sims"]["fpr_sims"]:
-#    TARGETS.append("results/fpr_sims_hmm_ploidy.tsv.gz")
+    # TARGETS.append("results/mixed_ploidy_sims.mosaic_est.tsv.gz")
 
 
 localrules:
@@ -123,11 +121,14 @@ rule hmm_combine_baf_lrr:
         phase_err = int(wildcards.p) == 1
         with open(output.ploidy, "w") as out:
             data = np.load(input.hmm_model)
+            cats = np.array(["0", "1m", "1p", "2", "3m", "3p"])
+            posteriors = [data[x] for x in cats]
+            max_cat_full = cats[np.argmax(posteriors)]
             out.write(
-                "mother\tfather\tchild\taploid\trep\tm\ta\tsigma\tpi0\tsigma_est\tpi0_est\t0\t1m\t1p\t2\t3m\t3p\n"
+                "mother\tfather\tchild\taploid\trep\tm\ta\tsigma\tpi0\tsigma_est\tpi0_est\t0\t1m\t1p\t2\t3m\t3p\tmax_cat\n"
             )
             out.write(
-                f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{data['aploid']}\t{wildcards.rep}\t{wildcards.m}\t{a}\t{sigma}\t{pi0}\t{data['sigma_est']}\t{data['pi0_est']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\n"
+                f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{data['aploid']}\t{wildcards.rep}\t{wildcards.m}\t{a}\t{sigma}\t{pi0}\t{data['sigma_est']}\t{data['pi0_est']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\t{max_cat_full}\n"
             )
 
 
@@ -146,32 +147,6 @@ rule collect_hmm_model_baf_lrr:
         ),
     output:
         tot_hmm_tsv="results/total_hmm_ploidy.tsv.gz",
-    run:
-        dfs = []
-        for p in input.hmm_tsvs:
-            df = pd.read_csv(p, sep="\t")
-            dfs.append(df)
-        tot_df = pd.concat(dfs)
-        tot_df.to_csv(output.tot_hmm_tsv, sep="\t", index=None)
-
-
-rule collect_fpr_baf_model_data:
-    """Collect FPR-data simulations for evaluating posterior cutoffs."""
-    input:
-        hmm_tsvs=expand(
-            "results/hmm_ploidy_comp/ploidy{k}/sim{rep}_m{m}_pi{pi0}_sigma{sigma}_skew{skew}.a{a}.phase_error{p}.lrr{lrr}.model_comp.tsv",
-            k=config["hmm_sims"]["fpr_sims"]["ploidy"],
-            rep=range(1, config["hmm_sims"]["fpr_sims"]["reps"] + 1),
-            m=config["hmm_sims"]["fpr_sims"]["m"],
-            pi0=config["hmm_sims"]["fpr_sims"]["pi0"],
-            sigma=config["hmm_sims"]["fpr_sims"]["std_dev"],
-            skew=config["hmm_sims"]["fpr_sims"]["skew"],
-            a=100,
-            p=1,
-            lrr=0,
-        ),
-    output:
-        tot_hmm_tsv="results/fpr_sims_hmm_ploidy.tsv.gz",
     run:
         dfs = []
         for p in input.hmm_tsvs:
@@ -244,13 +219,19 @@ rule hmm_model_chromosomes_mixed:
         n = int(wildcards.n)
         with open(output.ploidy, "w") as out:
             out.write(
-                "mother\tfather\tchild\trep\tm\tploidies\tn\tp_mono\tp_tri\tsigma\tpi0\tsigma_est\tpi0_est\t0\t1m\t1p\t2\t3m\t3p\n"
+                "mother\tfather\tchild\trep\tm\tn_cells\tn_cells_disomy\tn_cells_monosomy\tn_cells_trisomy\tp_mono\tp_tri\tsigma\tpi0\tsigma_est\tpi0_est\t0\t1m\t1p\t2\t3m\t3p\tmax_cat\n"
             )
             data = np.load(input.hmm_model)
             sim_data = np.load(input.sims)
-            ploid_str = ",".join([str(x) for x in sim_data["ploidies"]])
+            cell_ids = sim_data["ploidies"]
+            n_cells_disomy = np.sum(cell_ids == 2)
+            n_cells_monosomy = np.sum(cell_ids == 1)
+            n_cells_trisomy = np.sum(cell_ids == 3)
+            cats = np.array(["0", "1m", "1p", "2", "3m", "3p"])
+            posteriors = [data[x] for x in cats]
+            max_cat_full = cats[np.argmax(posteriors)]
             out.write(
-                f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{wildcards.rep}\t{wildcards.m}\t{ploid_str}\t{n}\t{prop_mono}\t{prop_tri}\t{sigma}\t{pi0}\t{data['sigma_est']}\t{data['pi0_est']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\n"
+                f"{data['mother_id']}\t{data['father_id']}\t{data['child_id']}\t{wildcards.rep}\t{wildcards.m}\t{n}\t{n_cells_disomy}\t{n_cells_monosomy}\t{n_cells_trisomy}\t{prop_mono}\t{prop_tri}\t{sigma}\t{pi0}\t{data['sigma_est']}\t{data['pi0_est']}\t{data['0']}\t{data['1m']}\t{data['1p']}\t{data['2']}\t{data['3m']}\t{data['3p']}\t{max_cat_full}\n"
             )
 
 
