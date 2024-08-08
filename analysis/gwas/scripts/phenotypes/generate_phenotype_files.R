@@ -19,6 +19,7 @@ library(dplyr)
 # 5 \ max number of affected chr to count for maternal meiotic phenotype
 # 15 \ min number of affected chr to count for whole genome gain/loss
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/maternal_meiotic_aneuploidy_by_mother.csv \
+# 21 \ chromosome of interest for single-chromosome aneuploidy 
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
@@ -48,6 +49,13 @@ max_meiotic <- as.numeric(args[10])
 min_ploidy <- as.numeric(args[11])
 # output file name
 out_fname <- args[12]
+# chromosome of interest if single-chromosome aneuploidy phenotype 
+# check if the 13th arg is provided 
+if (length(args) > 12) {
+  chromosome <- args[13]
+} else {
+  chromosome <- NULL  
+}
 
 
 # Function to filter embryos by quality
@@ -163,11 +171,12 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
       cn <- "1p"
     } else if (phenotype == "haploidy" & parent == "father") {
       cn <- "1m"
-    } else if (phenotype == "maternal_meiotic_aneuploidy") {
+    } else if (phenotype == "maternal_meiotic_aneuploidy" | 
+               phenotype == "single_chr_aneuploidy") {
       cn <- c("3m", "1p")
     } else if (phenotype == "complex_aneuploidy") {
       cn <- c("0", "1m", "1p", "3m", "3p")
-    }
+    } 
     
     # filter karyohmm data (quality control, day 5, posterior probabilities)
     ploidy_calls <- filter_data(ploidy_calls, parent, segmental_calls, 
@@ -193,6 +202,12 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
       mutate(visit_id = 
                coalesce(visit_id_mother, visit_id_father, visit_id_child)) %>%
       dplyr::select(-visit_id_mother, -visit_id_father, -visit_id_child)
+    
+    # if phenotype is single-chromosome, keep only ploidy calls from that chr
+    if (phenotype == "single_chr_aneuploidy") {
+      ploidy_calls <- ploidy_calls[as.integer(sub("chr", "", 
+                                          ploidy_calls$chrom)) == chromosome, ]
+    }
     
     # count number of aneuploid and euploid embryos in each visit 
     result <- ploidy_calls %>%
