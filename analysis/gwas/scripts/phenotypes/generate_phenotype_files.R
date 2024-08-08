@@ -134,12 +134,12 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
   return(ploidy_calls)
 }
 
-# create phenotypes for trais, both aneuploidy and metadata-based 
+# create phenotypes for traits, both aneuploidy and metadata-based 
 # (maternal meiotic aneuploidy, triploidy, haploidy, embryo count, maternal age)  
 make_phenotype <- function(metadata, parent, phenotype, ploidy_calls, 
                            segmental_calls, bayes_factor_cutoff = 2, 
                            filter_day_5 = TRUE, nullisomy_threshold = 5, 
-                           max_meiotic = 5, min_ploidy = 15) {
+                           max_meiotic = 5, min_ploidy = 15, chromosome) {
   
   # assign all members of each family to the same mother, across casefile IDs 
   metadata_mothers <- metadata %>%
@@ -172,7 +172,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     } else if (phenotype == "haploidy" & parent == "father") {
       cn <- "1m"
     } else if (phenotype == "maternal_meiotic_aneuploidy" | 
-               phenotype == "single_chr_aneuploidy") {
+               phenotype == "single_chromosome_aneuploidy") {
       cn <- c("3m", "1p")
     } else if (phenotype == "complex_aneuploidy") {
       cn <- c("0", "1m", "1p", "3m", "3p")
@@ -204,7 +204,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
       dplyr::select(-visit_id_mother, -visit_id_father, -visit_id_child)
     
     # if phenotype is single-chromosome, keep only ploidy calls from that chr
-    if (phenotype == "single_chr_aneuploidy") {
+    if (phenotype == "single_chromosome_aneuploidy") {
       ploidy_calls <- ploidy_calls[as.integer(sub("chr", "", 
                                           ploidy_calls$chrom)) == chromosome, ]
     }
@@ -219,6 +219,9 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
           phenotype == "maternal_meiotic_aneuploidy" ~ 
             ifelse(num_affected > 0 & num_affected <= max_meiotic, 
                    "aneu_true", "aneu_false"),
+          phenotype == "single_chromosome_aneuploidy" ~ 
+            ifelse(num_affected == 1, 
+                   "aneu_true", "aneu_false"),
           phenotype == "complex_aneuploidy" ~ 
             ifelse(num_affected > 0 & unique_bf_max_cat >= 2, 
                    "aneu_true", "aneu_false"),
@@ -227,7 +230,8 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
         )
       ) %>%
       count(visit_id, is_ploidy) %>%
-      pivot_wider(names_from = is_ploidy, values_from = n, values_fill = list(n = 0))
+      pivot_wider(names_from = is_ploidy, values_from = n, 
+                  values_fill = list(n = 0))
     
     # track parental age at each visit 
     age_produced <- child_data %>%
