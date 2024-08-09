@@ -290,7 +290,7 @@ pheno_by_parent <- make_phenotype(metadata, parent, phenotype, ploidy_calls,
                                   segmental_calls, bayes_factor_cutoff, 
                                   filter_day_5, nullisomy_threshold, 
                                   max_meiotic, min_ploidy, filter_mosaics, 
-                                  mosaic_threshold, chromosome)
+                                  mosaic_threshold = 0.340, chromosome)
 
 # Write phenotype info to file
 write.csv(pheno_by_parent, out_fname, row.names = FALSE)
