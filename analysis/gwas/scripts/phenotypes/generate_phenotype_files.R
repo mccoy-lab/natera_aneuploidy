@@ -139,7 +139,8 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
 make_phenotype <- function(metadata, parent, phenotype, ploidy_calls, 
                            segmental_calls, bayes_factor_cutoff = 2, 
                            filter_day_5 = TRUE, nullisomy_threshold = 5, 
-                           max_meiotic = 5, min_ploidy = 15, chromosome) {
+                           max_meiotic = 5, min_ploidy = 15, 
+                           chromosome = NULL) {
   
   # assign all members of each family to the same mother, across casefile IDs 
   metadata_mothers <- metadata %>%
@@ -276,9 +277,9 @@ metadata <- fread(metadata)
 
 # Run phenotype 
 pheno_by_parent <- make_phenotype(metadata, parent, phenotype, ploidy_calls, 
-                                  segmental_calls, bayes_factor_cutoff = 2, 
-                                  filter_day_5 = TRUE, nullisomy_threshold = 5, 
-                                  max_meiotic = 5, min_ploidy = 15)
+                                  segmental_calls, bayes_factor_cutoff, 
+                                  filter_day_5, nullisomy_threshold, 
+                                  max_meiotic, min_ploidy, chromosome)
 
 # Write phenotype info to file
 write.csv(pheno_by_parent, out_fname, row.names = FALSE)
