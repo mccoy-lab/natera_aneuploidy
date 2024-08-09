@@ -19,7 +19,6 @@ library(dplyr)
 # 5 \ max number of affected chr to count for maternal meiotic phenotype
 # 15 \ min number of affected chr to count for whole genome gain/loss
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/maternal_meiotic_aneuploidy_by_mother.csv \
-# 21 \ chromosome of interest for single-chromosome aneuploidy 
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
@@ -49,12 +48,13 @@ max_meiotic <- as.numeric(args[10])
 min_ploidy <- as.numeric(args[11])
 # output file name
 out_fname <- args[12]
-# chromosome of interest if single-chromosome aneuploidy phenotype 
-# check if the 13th arg is provided 
-if (length(args) > 12) {
-  chromosome <- args[13]
+
+# assign chromosome variable if phenotype is single-chromosome aneuploidy 
+if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
+  # extract the chr number 
+  chromosome <- as.integer(gsub("[^0-9]", "", phenotype))
 } else {
-  chromosome <- NULL  
+  chromosome <- NULL
 }
 
 
@@ -173,7 +173,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     } else if (phenotype == "haploidy" & parent == "father") {
       cn <- "1m"
     } else if (phenotype == "maternal_meiotic_aneuploidy" | 
-               phenotype == "single_chromosome_aneuploidy") {
+               grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
       cn <- c("3m", "1p")
     } else if (phenotype == "complex_aneuploidy") {
       cn <- c("0", "1m", "1p", "3m", "3p")
