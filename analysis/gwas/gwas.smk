@@ -287,7 +287,6 @@ rule run_gwas_subset:
         mem_mb="10G",
     wildcard_constraints:
         dataset_type="discovery|test",
-        phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy|chr16_aneuploidy|chr21_aneuploidy|chr22_aneuploidy|maternal_meiotic_aneuploidy_age_interaction",
         parent="mother|father",
         chrom = "|".join(map(str, range(1, 23))),
     shell:
@@ -334,7 +333,6 @@ rule gwas_x_chrom:
         mem_mb="100G",
     wildcard_constraints:
         dataset_type="discovery|test",
-        phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy|chr16_aneuploidy|chr21_aneuploidy|chr22_aneuploidy|maternal_meiotic_aneuploidy_age_interaction",
         parent="mother|father",
     shell:
         """
