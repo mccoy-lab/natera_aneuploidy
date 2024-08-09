@@ -205,7 +205,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
       dplyr::select(-visit_id_mother, -visit_id_father, -visit_id_child)
     
     # if phenotype is single-chromosome, keep only ploidy calls from that chr
-    if (phenotype == "single_chromosome_aneuploidy") {
+    if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
       ploidy_calls <- ploidy_calls[as.integer(sub("chr", "", 
                                           ploidy_calls$chrom)) == chromosome, ]
     }
@@ -220,7 +220,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
           phenotype == "maternal_meiotic_aneuploidy" ~ 
             ifelse(num_affected > 0 & num_affected <= max_meiotic, 
                    "aneu_true", "aneu_false"),
-          phenotype == "single_chromosome_aneuploidy" ~ 
+          grepl("^chr[0-9]+_aneuploidy$", phenotype) ~ 
             ifelse(num_affected == 1, 
                    "aneu_true", "aneu_false"),
           phenotype == "complex_aneuploidy" ~ 
