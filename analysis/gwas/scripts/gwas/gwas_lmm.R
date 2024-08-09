@@ -281,6 +281,7 @@ colnames(pcs)[1] <- "array"
 phenotype <- fread(phenotype)
 bim <- fread(bim) %>%
   setnames(., c("chr", "snp_id", "drop", "pos", "ref", "alt"))
+gwas_summary_stats <- fread(gwas_summary_stats)
 
 
 # conduct GWAS across all sites
