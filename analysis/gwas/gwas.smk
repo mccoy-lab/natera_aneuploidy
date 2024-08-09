@@ -43,14 +43,13 @@ phenotypes = [
     "maternal_meiotic_aneuploidy",
     "haploidy",
     "triploidy",
+    "chr16_aneuploidy",
+    "chr21_aneuploidy",
+    "chr22_aneuploidy"
 ]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
 chroms = range(1, 24)
-ploidy_phenotypes = [
-    "haploidy",
-    "triploidy"
-]
 
 # shell.prefix("set -o pipefail; ")
 
@@ -60,7 +59,7 @@ rule all:
     input:
         expand(
             "results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype="maternal_meiotic_aneuploidy",
+            phenotype=phenotypes,
             parent=parents,
             dataset_type=dataset_type,
         ),
@@ -248,7 +247,7 @@ rule generate_phenotypes:
     output:
         phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
     wildcard_constraints:
-        phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
+        phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy|chr16_aneuploidy|chr21_aneuploidy|chr22_aneuploidy",
         parent="mother|father",
     resources:
         time="0:30:00",
@@ -286,7 +285,7 @@ rule run_gwas_subset:
         mem_mb="10G",
     wildcard_constraints:
         dataset_type="discovery|test",
-        phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
+        phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy|chr16_aneuploidy|chr21_aneuploidy|chr22_aneuploidy",
         parent="mother|father",
         chrom = "|".join(map(str, range(1, 23))),
     shell:
@@ -333,7 +332,7 @@ rule gwas_x_chrom:
         mem_mb="100G",
     wildcard_constraints:
         dataset_type="discovery|test",
-        phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy",
+        phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy|chr16_aneuploidy|chr21_aneuploidy|chr22_aneuploidy",
         parent="mother|father",
     shell:
         """
