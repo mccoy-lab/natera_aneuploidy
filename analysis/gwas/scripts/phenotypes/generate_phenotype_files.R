@@ -65,7 +65,8 @@ if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
 filter_data <- function(ploidy_calls, parent, segmental_calls, 
                         bayes_factor_cutoff = 2, filter_day_5 = TRUE, 
                         nullisomy_threshold = 5, 
-                        min_prob = 0.9, filter_mosaics = TRUE) {
+                        min_prob = 0.9, filter_mosaics = TRUE, 
+                        mosaic_threshold = 0.340) {
   
   # Confirm that bayes_factor_cutoff is numeric and positive
   if (!is.numeric(bayes_factor_cutoff) || bayes_factor_cutoff <= 0) {
@@ -134,8 +135,8 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
   # Remove trisomies that are likely mosaic 
   if (filter_mosaics == TRUE) {
     ploidy_calls <- ploidy_calls[!(ploidy_calls$bf_max_cat %in% c("3m", "3p") & 
-         (ploidy_calls$post_bph_centro < 0.340 & 
-            ploidy_calls$post_bph_noncentro < 0.340)), ]
+         (ploidy_calls$post_bph_centro < mosaic_threshold & 
+            ploidy_calls$post_bph_noncentro < mosaic_threshold)), ]
   }
   
   return(ploidy_calls)
@@ -147,7 +148,8 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
                            segmental_calls, bayes_factor_cutoff = 2, 
                            filter_day_5 = TRUE, nullisomy_threshold = 5, 
                            max_meiotic = 5, min_ploidy = 15, 
-                           filter_mosaics = TRUE, chromosome = NULL) {
+                           filter_mosaics = TRUE, mosaic_threshold = 0.340, 
+                           chromosome = NULL) {
   
   # assign all members of each family to the same mother, across casefile IDs 
   metadata_mothers <- metadata %>%
@@ -189,7 +191,8 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     # filter karyohmm data (quality control, day 5, posterior probabilities)
     ploidy_calls <- filter_data(ploidy_calls, parent, segmental_calls, 
                                 bayes_factor_cutoff, filter_day_5,
-                                nullisomy_threshold, min_prob, filter_mosaics)
+                                nullisomy_threshold, min_prob, filter_mosaics,
+                                mosaic_threshold)
     
     # create a lookup table for array and visit_id
     visit_lookup <- child_data %>%
@@ -287,7 +290,7 @@ pheno_by_parent <- make_phenotype(metadata, parent, phenotype, ploidy_calls,
                                   segmental_calls, bayes_factor_cutoff, 
                                   filter_day_5, nullisomy_threshold, 
                                   max_meiotic, min_ploidy, filter_mosaics, 
-                                  chromosome)
+                                  mosaic_threshold, chromosome)
 
 # Write phenotype info to file
 write.csv(pheno_by_parent, out_fname, row.names = FALSE)
