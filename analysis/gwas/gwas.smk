@@ -237,9 +237,9 @@ rule bed_split_vcf:
         """
 
 
-# -------- 3. Create aneuploidy phenotypes -------- #
-rule generate_aneuploidy_phenotypes:
-    """Make file for each aneuploidy phenotype"""
+# -------- 3. Create phenotypes -------- #
+rule generate_phenotypes:
+    """Make file for each phenotype"""
     input:
         rscript="scripts/phenotypes/generate_phenotype_files.R",
         ploidy_calls=config['ploidy_calls'],
@@ -276,7 +276,7 @@ rule run_gwas_subset:
         bed=rules.bed_split_vcf.output.bed,
         discovery_test="results/gwas/intermediate_files/discover_validate_split_{parent}.txt",
         parental_pcs=rules.compute_pcs.output.evecs,
-        phenotype_file=rules.generate_aneuploidy_phenotypes.output.phenotype_file,
+        phenotype_file=rules.generate_phenotypes.output.phenotype_file,
         bim=rules.bed_split_vcf.output.bim,
     output:
         gwas_output=temp("results/gwas/summary_stats/subset_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv"),
@@ -323,7 +323,7 @@ rule gwas_x_chrom:
         bed="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bed",
         discovery_test="results/gwas/intermediate_files/discover_validate_split_{parent}.txt",
         parental_pcs=rules.compute_pcs.output.evecs,
-        phenotype_file=rules.generate_aneuploidy_phenotypes.output.phenotype_file,
+        phenotype_file=rules.generate_phenotypes.output.phenotype_file,
         bim="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bim",
     output:
         gwas_output="results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_23.tsv",
