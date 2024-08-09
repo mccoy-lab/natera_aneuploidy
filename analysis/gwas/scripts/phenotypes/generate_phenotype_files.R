@@ -131,9 +131,12 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
   # Remove from ploidy calls any chromosomes in segmentals 
   ploidy_calls <- ploidy_calls[!ploidy_calls$uid %in% segmental_calls$uid,]
   
-  # Filter mosaic embryos 
-  ploidy_calls <- ploidy_calls[(ploidy_calls$post_bph_noncentro >= 0.252) | 
-                                 (ploidy_calls$post_bph_centro >= 0.252), ]
+  # Remove trisomies that are likely mosaic 
+  if (filter_mosaics == TRUE) {
+    ploidy_calls <- ploidy_calls[!(ploidy_calls$bf_max_cat %in% c("3m", "3p") & 
+         (ploidy_calls$post_bph_centro < 0.340 & 
+            ploidy_calls$post_bph_noncentro < 0.340)), ]
+  }
   
   return(ploidy_calls)
 }
@@ -144,7 +147,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
                            segmental_calls, bayes_factor_cutoff = 2, 
                            filter_day_5 = TRUE, nullisomy_threshold = 5, 
                            max_meiotic = 5, min_ploidy = 15, 
-                           chromosome = NULL) {
+                           filter_mosaics = TRUE, chromosome = NULL) {
   
   # assign all members of each family to the same mother, across casefile IDs 
   metadata_mothers <- metadata %>%
@@ -283,7 +286,8 @@ metadata <- fread(metadata)
 pheno_by_parent <- make_phenotype(metadata, parent, phenotype, ploidy_calls, 
                                   segmental_calls, bayes_factor_cutoff, 
                                   filter_day_5, nullisomy_threshold, 
-                                  max_meiotic, min_ploidy, chromosome)
+                                  max_meiotic, min_ploidy, filter_mosaics, 
+                                  chromosome)
 
 # Write phenotype info to file
 write.csv(pheno_by_parent, out_fname, row.names = FALSE)
