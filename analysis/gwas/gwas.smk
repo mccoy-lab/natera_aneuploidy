@@ -269,7 +269,7 @@ rule generate_phenotypes:
 
 
 # -------- 4. Execute GWAS and concatenate files -------- #
-rule run_gwas_subset:
+rule run_gwas_autosome_subset:
     """Run GWAS for each set of parameters, using the subsetted bed files"""
     input:
         gwas_rscript="scripts/gwas/gwas_all.R",
@@ -355,7 +355,7 @@ rule merge_chroms:
 
 
 # -------- 5. Execute GWAS linear mixed model and concatenate files -------- #
-rule run_gwas_lmm_subset:
+rule run_gwas_lmm_autosome_subset:
     """Run GWAS LMM for each set of parameters, using the subsetted bed files"""
     input:
         gwas_rscript="scripts/gwas/gwas_lmm.R",
