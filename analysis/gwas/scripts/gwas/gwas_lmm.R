@@ -23,7 +23,8 @@ library(countreg)
 # "haploidy" \ # phenotype_name
 # "mother" \ # parent
 # 16 \ # number of threads
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/gwas_haploidy_by_mother_discovery_9.tsv"
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/summary_stats/gwas_haploidy_by_mother_discovery_total.tsv.gz" \ # gwas summary stats from regular glm 
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/gwas_lmm_haploidy_by_mother_discovery_9.tsv"
 
 # get command line arguments
 args <- commandArgs(trailingOnly = TRUE)
