@@ -147,8 +147,17 @@ make_model <- function(phenotype_name) {
   
   # For all phenotypes other than maternal age, include patient_age as covariate
   if (phenotype_name != "maternal_age") {
-    formula_string <- paste0(formula_string, " + scale(patient_age_cycle)", collapse = "")
-    }
+    formula_string <- paste0(formula_string, " + scale(patient_age_cycle)", 
+                             collapse = "")
+  }
+  
+  # If the phenotype includes "age_interaction", change the alt_count and 
+  # maternal age to be interacting 
+  if (grepl("age_interaction", phenotype_name)) {
+    formula_string <- 
+      gsub("alt_count \\+ scale\\(patient_age_cycle\\)", 
+           "alt_count * scale(patient_age_cycle)", formula_string)
+  }
    
   # Return model for use in GWAS
   return(list(formula_string = formula_string, family = family))
