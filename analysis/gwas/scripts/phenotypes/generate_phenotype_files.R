@@ -12,12 +12,13 @@ library(dplyr)
 # mother \ # parent to group phenotype by
 # /data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv \
 # maternal_meiotic_aneuploidy \ # phenotype name
-# TRUE
+# TRUE \ whether to keep only day 5 embryos 
 # 2 \ keep only chroms with bayes factor greater than the threshold for bayes factor qc
 # 5 \ remove embryos that had more chr with cn = 0 for than nullisomy_threshold
 # 0.9 \ minimum posterior probability for each cn call
 # 5 \ max number of affected chr to count for maternal meiotic phenotype
 # 15 \ min number of affected chr to count for whole genome gain/loss
+# TRUE \ whether to filter out putative mosaics 
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/maternal_meiotic_aneuploidy_by_mother.csv \
 
 # get command line arguments
@@ -46,8 +47,10 @@ min_prob <- as.numeric(args[9])
 max_meiotic <- as.numeric(args[10])
 # min number of chr for whole genome gain/loss
 min_ploidy <- as.numeric(args[11])
+# whether to filter out mosaic embryos
+filter_mosaics <- args[12]
 # output file name
-out_fname <- args[12]
+out_fname <- args[13]
 
 # assign chromosome variable if phenotype is single-chromosome aneuploidy 
 if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
@@ -62,7 +65,7 @@ if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
 filter_data <- function(ploidy_calls, parent, segmental_calls, 
                         bayes_factor_cutoff = 2, filter_day_5 = TRUE, 
                         nullisomy_threshold = 5, 
-                        min_prob = 0.9) {
+                        min_prob = 0.9, filter_mosaics = TRUE) {
   
   # Confirm that bayes_factor_cutoff is numeric and positive
   if (!is.numeric(bayes_factor_cutoff) || bayes_factor_cutoff <= 0) {
@@ -182,7 +185,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     # filter karyohmm data (quality control, day 5, posterior probabilities)
     ploidy_calls <- filter_data(ploidy_calls, parent, segmental_calls, 
                                 bayes_factor_cutoff, filter_day_5,
-                                nullisomy_threshold, min_prob)
+                                nullisomy_threshold, min_prob, filter_mosaics)
     
     # create a lookup table for array and visit_id
     visit_lookup <- child_data %>%
