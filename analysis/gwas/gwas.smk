@@ -259,10 +259,11 @@ rule generate_phenotypes:
         min_prob=0.9,
         max_meiotic=5,
         min_ploidy=15,
+        filter_mosaics="TRUE",
     shell:
         """
         ml gcc r/4.0.2
-        Rscript --vanilla {input.rscript} {input.ploidy_calls} {input.segmental_calls} {wildcards.parent} {input.metadata} {wildcards.phenotype} {params.filter_day_5} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {params.min_prob} {params.max_meiotic} {params.min_ploidy} {output.phenotype_file}
+        Rscript --vanilla {input.rscript} {input.ploidy_calls} {input.segmental_calls} {wildcards.parent} {input.metadata} {wildcards.phenotype} {params.filter_day_5} {params.bayes_factor_cutoff} {params.nullisomy_threshold} {params.min_prob} {params.max_meiotic} {params.min_ploidy} {params.filter_mosaics} {output.phenotype_file}
         """
 
 
