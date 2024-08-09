@@ -352,3 +352,92 @@ rule merge_chroms:
         merged_file="results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
     shell:
         "cat {input} | gzip > {output.merged_file}"
+
+
+# -------- 5. Execute GWAS linear mixed model and concatenate files -------- #
+rule run_gwas_lmm_subset:
+    """Run GWAS LMM for each set of parameters, using the subsetted bed files"""
+    input:
+        gwas_rscript="scripts/gwas/gwas_lmm.R",
+        metadata=config['metadata'],
+        bed=rules.bed_split_vcf.output.bed,
+        discovery_test="results/gwas/intermediate_files/discover_validate_split_{parent}.txt",
+        parental_pcs=rules.compute_pcs.output.evecs,
+        phenotype_file=rules.generate_phenotypes.output.phenotype_file,
+        bim=rules.bed_split_vcf.output.bim,
+        summary_stats=rules.run_gwas_subset.output.gwas_output,
+    output:
+        gwas_output=temp("results/gwas/summary_stats/subset_gwas_lmm_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv"),
+    threads: 16
+    resources:
+        time="0:30:00",
+        mem_mb="10G",
+    wildcard_constraints:
+        dataset_type="discovery|test",
+        parent="mother|father",
+        chrom = "|".join(map(str, range(1, 23))),
+    shell:
+        """
+        ml gcc r/4.0.2
+        Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {input.summary_stats} {output.gwas_output}
+        """
+
+
+rule merge_lmm_subsets:
+    """Create single file for GWAS LMM for each chromosome, merging all subsets"""
+    input:
+        lambda wildcards: expand(
+            "results/gwas/summary_stats/subset_gwas_lmm_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{chrom}}_{chunk}.tsv",
+            phenotype=wildcards.phenotype,
+            parent=wildcards.parent,
+            dataset_type=wildcards.dataset_type,
+            chrom=wildcards.chrom,
+            chunk=range(chunks_dict.get(f"chr{wildcards.chrom}", 0)),
+        ),
+    output:
+        gwas_output="results/gwas/summary_stats/gwas_lmm_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
+    wildcard_constraints:
+        chrom = "|".join(map(str, range(1, 23))),
+    shell:
+        "cat {input} > {output.gwas_output}"
+
+
+rule gwas_lmm_x_chrom: 
+    """Compute GWAS for the whole X chromosome."""
+    input:
+        gwas_rscript="scripts/gwas/gwas_lmm.R",
+        metadata=config['metadata'],
+        bed="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bed",
+        discovery_test="results/gwas/intermediate_files/discover_validate_split_{parent}.txt",
+        parental_pcs=rules.compute_pcs.output.evecs,
+        phenotype_file=rules.generate_phenotypes.output.phenotype_file,
+        bim="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bim",
+        summary_stats=rules.gwas_x_chrom.output.gwas_output,
+    output:
+        gwas_output="results/gwas/summary_stats/gwas_lmm_{phenotype}_by_{parent}_{dataset_type}_23.tsv",
+    threads: 16
+    resources:
+        time="9:00:00",
+        mem_mb="100G",
+    wildcard_constraints:
+        dataset_type="discovery|test",
+        parent="mother|father",
+    shell:
+        """
+        ml gcc r/4.0.2
+        Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {input.summary_stats} {output.gwas_output}
+        """
+
+
+rule merge_chroms_lmm:
+    """Create single file for each phenotype/parent/dataset, merging all chromosomes"""
+    input:
+        expand(
+            "results/gwas/summary_stats/gwas_lmm_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
+            chrom=range(1, 24),
+        ),
+    output:
+        merged_file="results/gwas/summary_stats/gwas_lmm_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
+    shell:
+        "cat {input} | gzip > {output.merged_file}"
+
