@@ -116,11 +116,8 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
   # bayes factor qc
   ploidy_calls <- ploidy_calls[ploidy_calls$bf_max > bayes_factor_cutoff, ]
   
-  # Add column that checks whether the max posterior is greater than threshold
-  ploidy_calls <- ploidy_calls %>%
-    mutate(high_prob = pmax(`0`, `1m`, `1p`, `2`, `3m`, `3p`) > min_prob)
   # Keep only chromosomes with sufficiently high probability cn call
-  ploidy_calls <- ploidy_calls[ploidy_calls$high_prob == TRUE, ]
+  ploidy_calls <- ploidy_calls[ploidy_calls$post_max > min_prob, ]
   
   # Keep only chromosomes that are not affected by post-QC segmental aneu
   # Add column that makes ID of mother-father-child-chrom in whole chr 
@@ -133,6 +130,10 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
                                 segmental_calls$chrom)
   # Remove from ploidy calls any chromosomes in segmentals 
   ploidy_calls <- ploidy_calls[!ploidy_calls$uid %in% segmental_calls$uid,]
+  
+  # Filter mosaic embryos 
+  ploidy_calls <- ploidy_calls[(ploidy_calls$post_bph_noncentro >= 0.252) | 
+                                 (ploidy_calls$post_bph_centro >= 0.252), ]
   
   return(ploidy_calls)
 }
