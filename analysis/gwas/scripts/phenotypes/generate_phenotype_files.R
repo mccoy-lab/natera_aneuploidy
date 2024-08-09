@@ -49,6 +49,14 @@ min_ploidy <- as.numeric(args[11])
 # output file name
 out_fname <- args[12]
 
+# assign chromosome variable if phenotype is single-chromosome aneuploidy 
+if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
+  # extract the chr number 
+  chromosome <- as.integer(gsub("[^0-9]", "", phenotype))
+} else {
+  chromosome <- NULL
+}
+
 
 # Function to filter embryos by quality
 filter_data <- function(ploidy_calls, parent, segmental_calls, 
@@ -126,12 +134,13 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
   return(ploidy_calls)
 }
 
-# create phenotypes for trais, both aneuploidy and metadata-based 
+# create phenotypes for traits, both aneuploidy and metadata-based 
 # (maternal meiotic aneuploidy, triploidy, haploidy, embryo count, maternal age)  
 make_phenotype <- function(metadata, parent, phenotype, ploidy_calls, 
                            segmental_calls, bayes_factor_cutoff = 2, 
                            filter_day_5 = TRUE, nullisomy_threshold = 5, 
-                           max_meiotic = 5, min_ploidy = 15) {
+                           max_meiotic = 5, min_ploidy = 15, 
+                           chromosome = NULL) {
   
   # assign all members of each family to the same mother, across casefile IDs 
   metadata_mothers <- metadata %>%
@@ -163,11 +172,12 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
       cn <- "1p"
     } else if (phenotype == "haploidy" & parent == "father") {
       cn <- "1m"
-    } else if (phenotype == "maternal_meiotic_aneuploidy") {
+    } else if (phenotype == "maternal_meiotic_aneuploidy" | 
+               grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
       cn <- c("3m", "1p")
     } else if (phenotype == "complex_aneuploidy") {
       cn <- c("0", "1m", "1p", "3m", "3p")
-    }
+    } 
     
     # filter karyohmm data (quality control, day 5, posterior probabilities)
     ploidy_calls <- filter_data(ploidy_calls, parent, segmental_calls, 
@@ -194,6 +204,12 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
                coalesce(visit_id_mother, visit_id_father, visit_id_child)) %>%
       dplyr::select(-visit_id_mother, -visit_id_father, -visit_id_child)
     
+    # if phenotype is single-chromosome, keep only ploidy calls from that chr
+    if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
+      ploidy_calls <- ploidy_calls[as.integer(sub("chr", "", 
+                                          ploidy_calls$chrom)) == chromosome, ]
+    }
+    
     # count number of aneuploid and euploid embryos in each visit 
     result <- ploidy_calls %>%
       group_by(mother, father, child, visit_id) %>%
@@ -204,6 +220,9 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
           phenotype == "maternal_meiotic_aneuploidy" ~ 
             ifelse(num_affected > 0 & num_affected <= max_meiotic, 
                    "aneu_true", "aneu_false"),
+          grepl("^chr[0-9]+_aneuploidy$", phenotype) ~ 
+            ifelse(num_affected == 1, 
+                   "aneu_true", "aneu_false"),
           phenotype == "complex_aneuploidy" ~ 
             ifelse(num_affected > 0 & unique_bf_max_cat >= 2, 
                    "aneu_true", "aneu_false"),
@@ -212,7 +231,8 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
         )
       ) %>%
       count(visit_id, is_ploidy) %>%
-      pivot_wider(names_from = is_ploidy, values_from = n, values_fill = list(n = 0))
+      pivot_wider(names_from = is_ploidy, values_from = n, 
+                  values_fill = list(n = 0))
     
     # track parental age at each visit 
     age_produced <- child_data %>%
@@ -257,9 +277,9 @@ metadata <- fread(metadata)
 
 # Run phenotype 
 pheno_by_parent <- make_phenotype(metadata, parent, phenotype, ploidy_calls, 
-                                  segmental_calls, bayes_factor_cutoff = 2, 
-                                  filter_day_5 = TRUE, nullisomy_threshold = 5, 
-                                  max_meiotic = 5, min_ploidy = 15)
+                                  segmental_calls, bayes_factor_cutoff, 
+                                  filter_day_5, nullisomy_threshold, 
+                                  max_meiotic, min_ploidy, chromosome)
 
 # Write phenotype info to file
 write.csv(pheno_by_parent, out_fname, row.names = FALSE)
