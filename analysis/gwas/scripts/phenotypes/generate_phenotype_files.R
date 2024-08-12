@@ -162,7 +162,8 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     arrange(mother_id, patient_age) %>%
     group_by(mother_id) %>%
     mutate(visit_id = dense_rank(patient_age)) %>%
-    ungroup()
+    ungroup() %>%
+    distinct(array, .keep_all = TRUE)
   
   # count number of visits per mother 
   num_visits <- child_data %>%
@@ -181,7 +182,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
       cn <- "1p"
     } else if (phenotype == "haploidy" & parent == "father") {
       cn <- "1m"
-    } else if (phenotype == "maternal_meiotic_aneuploidy" | 
+    } else if (grepl("maternal_meiotic_aneuploidy", phenotype) | 
                grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
       cn <- c("3m", "1p")
     } else if (phenotype == "complex_aneuploidy") {
@@ -196,23 +197,11 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     
     # create a lookup table for array and visit_id
     visit_lookup <- child_data %>%
-      dplyr::select(array, visit_id) %>%
-      distinct()
+      dplyr::select(array, visit_id)
     
     # add visit number to each embryo
     ploidy_calls <- ploidy_calls %>%
-      left_join(visit_lookup, by = c("mother" = "array")) %>%
-      rename(visit_id_mother = visit_id) %>%
-      left_join(visit_lookup, by = c("father" = "array")) %>%
-      rename(visit_id_father = visit_id) %>%
-      left_join(visit_lookup, by = c("child" = "array")) %>%
-      rename(visit_id_child = visit_id)
-    
-    # combine the visit_id columns across family members
-    ploidy_calls <- ploidy_calls %>%
-      mutate(visit_id = 
-               coalesce(visit_id_mother, visit_id_father, visit_id_child)) %>%
-      dplyr::select(-visit_id_mother, -visit_id_father, -visit_id_child)
+      left_join(visit_lookup, by = c("child" = "array"))
     
     # if phenotype is single-chromosome, keep only ploidy calls from that chr
     if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
