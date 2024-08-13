@@ -61,7 +61,7 @@ if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
 }
 
 
-# Function to filter embryos by quality
+# Function to filter ploidy calls by quality for aneuploidy phenotypes 
 filter_data <- function(ploidy_calls, parent, segmental_calls, 
                         bayes_factor_cutoff = 2, filter_day_5 = TRUE, 
                         nullisomy_threshold = 5, 
@@ -212,11 +212,12 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     # count number of aneuploid and euploid embryos in each visit 
     result <- ploidy_calls %>%
       group_by(mother, father, child, visit_id) %>%
-      summarise(num_affected = sum(bf_max_cat %in% cn), unique_bf_max_cat = 
+      summarise(num_affected = sum(bf_max_cat %in% cn), 
+                unique_bf_max_cat = 
                   n_distinct(bf_max_cat[bf_max_cat %in% cn])) %>%
       mutate(
         is_ploidy = case_when(
-          phenotype == "maternal_meiotic_aneuploidy" ~ 
+          grepl("maternal_meiotic_aneuploidy", phenotype) ~ 
             ifelse(num_affected > 0 & num_affected <= max_meiotic, 
                    "aneu_true", "aneu_false"),
           grepl("^chr[0-9]+_aneuploidy$", phenotype) ~ 
