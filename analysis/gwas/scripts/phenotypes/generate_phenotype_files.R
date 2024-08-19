@@ -156,9 +156,25 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     mutate(mother_id = ifelse(family_position == "mother", array, NA)) %>%
     fill(mother_id, .direction = "downup")
   
+  # if values for embryo or father ages were NA, fill age from mother 
+  # associated with that casefileID
+  metadata_mothers <- metadata_mothers %>%
+    group_by(casefile_id) %>%
+    mutate(
+      patient_age = ifelse(family_position %in% c("child", "father") & 
+                             is.na(patient_age) & egg_donor != "yes", 
+                           patient_age[family_position == "mother"], 
+                           patient_age),
+      partner_age = ifelse(family_position %in% c("child", "father") & 
+                             is.na(partner_age) & sperm_donor != "yes", 
+                           partner_age[family_position == "mother"], 
+                           partner_age)
+    ) %>%
+    ungroup()
+  
   # assign visit and keep only day 5 embryos
   child_data <- metadata_mothers %>%
-    filter(family_position == 'child', sample_scale == 'few_cells') %>%
+    filter(family_position == "child", sample_scale == "few_cells") %>%
     arrange(mother_id, patient_age) %>%
     group_by(mother_id) %>%
     mutate(visit_id = dense_rank(patient_age)) %>%
