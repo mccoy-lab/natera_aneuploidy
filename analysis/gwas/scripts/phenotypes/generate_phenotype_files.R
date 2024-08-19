@@ -61,7 +61,7 @@ if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
 }
 
 
-# Function to filter embryos by quality
+# Function to filter ploidy calls by quality for aneuploidy phenotypes 
 filter_data <- function(ploidy_calls, parent, segmental_calls, 
                         bayes_factor_cutoff = 2, filter_day_5 = TRUE, 
                         nullisomy_threshold = 5, 
@@ -156,13 +156,30 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     mutate(mother_id = ifelse(family_position == "mother", array, NA)) %>%
     fill(mother_id, .direction = "downup")
   
+  # if values for embryo or father ages were NA, fill age from mother 
+  # associated with that casefileID
+  metadata_mothers <- metadata_mothers %>%
+    group_by(casefile_id) %>%
+    mutate(
+      patient_age = ifelse(family_position %in% c("child", "father") & 
+                             is.na(patient_age) & egg_donor != "yes", 
+                           patient_age[family_position == "mother"], 
+                           patient_age),
+      partner_age = ifelse(family_position %in% c("child", "father") & 
+                             is.na(partner_age) & sperm_donor != "yes", 
+                           partner_age[family_position == "mother"], 
+                           partner_age)
+    ) %>%
+    ungroup()
+  
   # assign visit and keep only day 5 embryos
   child_data <- metadata_mothers %>%
-    filter(family_position == 'child', sample_scale == 'few_cells') %>%
+    filter(family_position == "child", sample_scale == "few_cells") %>%
     arrange(mother_id, patient_age) %>%
     group_by(mother_id) %>%
     mutate(visit_id = dense_rank(patient_age)) %>%
-    ungroup()
+    ungroup() %>%
+    distinct(array, .keep_all = TRUE)
   
   # count number of visits per mother 
   num_visits <- child_data %>%
@@ -181,7 +198,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
       cn <- "1p"
     } else if (phenotype == "haploidy" & parent == "father") {
       cn <- "1m"
-    } else if (phenotype == "maternal_meiotic_aneuploidy" | 
+    } else if (grepl("maternal_meiotic_aneuploidy", phenotype) | 
                grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
       cn <- c("3m", "1p")
     } else if (phenotype == "complex_aneuploidy") {
@@ -196,23 +213,11 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     
     # create a lookup table for array and visit_id
     visit_lookup <- child_data %>%
-      dplyr::select(array, visit_id) %>%
-      distinct()
+      dplyr::select(array, visit_id)
     
     # add visit number to each embryo
     ploidy_calls <- ploidy_calls %>%
-      left_join(visit_lookup, by = c("mother" = "array")) %>%
-      rename(visit_id_mother = visit_id) %>%
-      left_join(visit_lookup, by = c("father" = "array")) %>%
-      rename(visit_id_father = visit_id) %>%
-      left_join(visit_lookup, by = c("child" = "array")) %>%
-      rename(visit_id_child = visit_id)
-    
-    # combine the visit_id columns across family members
-    ploidy_calls <- ploidy_calls %>%
-      mutate(visit_id = 
-               coalesce(visit_id_mother, visit_id_father, visit_id_child)) %>%
-      dplyr::select(-visit_id_mother, -visit_id_father, -visit_id_child)
+      left_join(visit_lookup, by = c("child" = "array"))
     
     # if phenotype is single-chromosome, keep only ploidy calls from that chr
     if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
@@ -223,11 +228,12 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     # count number of aneuploid and euploid embryos in each visit 
     result <- ploidy_calls %>%
       group_by(mother, father, child, visit_id) %>%
-      summarise(num_affected = sum(bf_max_cat %in% cn), unique_bf_max_cat = 
+      summarise(num_affected = sum(bf_max_cat %in% cn), 
+                unique_bf_max_cat = 
                   n_distinct(bf_max_cat[bf_max_cat %in% cn])) %>%
       mutate(
         is_ploidy = case_when(
-          phenotype == "maternal_meiotic_aneuploidy" ~ 
+          grepl("maternal_meiotic_aneuploidy", phenotype) ~ 
             ifelse(num_affected > 0 & num_affected <= max_meiotic, 
                    "aneu_true", "aneu_false"),
           grepl("^chr[0-9]+_aneuploidy$", phenotype) ~ 
