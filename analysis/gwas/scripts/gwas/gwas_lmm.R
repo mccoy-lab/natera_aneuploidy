@@ -17,7 +17,7 @@ library(countreg)
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/subsets/spectrum_imputed_chr21_rehead_filter_cpra_18.bed" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_mother.txt" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/parental_genotypes_pcs/parental_genotypes.eigenvec" \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/haploidy_by_mother.csv" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/chr22_aneuploidy_by_mother.csv" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/subsets/spectrum_imputed_chr21_rehead_filter_cpra_18.bim" \
 # "discovery" \ # dataset_type
 # "haploidy" \ # phenotype_name
@@ -31,7 +31,7 @@ args <- commandArgs(trailingOnly = TRUE)
 # metadata for all years
 metadata <- args[1]
 # parental genotypes as described
-#https://github.com/mccoy-lab/natera_spectrum/tree/main/genotyping
+# https://github.com/mccoy-lab/natera_spectrum/tree/main/genotyping
 bed <- args[2]
 # discovery vs. test split for applicable parent
 discovery_test <- args[3]
@@ -279,6 +279,7 @@ discovery_test <- fread(discovery_test)
 pcs <- fread(pcs)
 colnames(pcs)[1] <- "array"
 phenotype <- fread(phenotype)
+colnames(phenotype)[1] <- "mother"
 bim <- fread(bim) %>%
   setnames(., c("chr", "snp_id", "drop", "pos", "ref", "alt"))
 gwas_summary_stats <- fread(gwas_summary_stats)
