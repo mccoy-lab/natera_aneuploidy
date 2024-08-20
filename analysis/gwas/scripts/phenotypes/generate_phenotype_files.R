@@ -33,8 +33,8 @@ segmental_calls <- args[2]
 parent <- args[3]
 # metadata to filter for day5 embryos
 metadata <- args[4]
-# phenotype
-phenotype <- args[5]
+# phenotype name
+phenotype_name <- args[5]
 # whether to keep only day 5 embryos
 filter_day_5 <- as.logical(args[6])
 # minimum bayes factor for filtering
@@ -53,9 +53,9 @@ filter_mosaics <- args[12]
 out_fname <- args[13]
 
 # assign chromosome variable if phenotype is single-chromosome aneuploidy 
-if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
+if (grepl("^chr[0-9]+_aneuploidy$", phenotype_name)) {
   # extract the chr number 
-  chromosome <- as.integer(gsub("[^0-9]", "", phenotype))
+  chromosome <- as.integer(gsub("[^0-9]", "", phenotype_name))
 } else {
   chromosome <- NULL
 }
@@ -144,7 +144,7 @@ filter_data <- function(ploidy_calls, parent, segmental_calls,
 
 # create phenotypes for traits, both aneuploidy and metadata-based 
 # (maternal meiotic aneuploidy, triploidy, haploidy, embryo count, maternal age)  
-make_phenotype <- function(metadata, parent, phenotype, ploidy_calls, 
+make_phenotype <- function(metadata, parent, phenotype_name, ploidy_calls, 
                            segmental_calls, bayes_factor_cutoff = 2, 
                            filter_day_5 = TRUE, nullisomy_threshold = 5, 
                            max_meiotic = 5, min_ploidy = 15, 
@@ -188,20 +188,20 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
     ungroup()
   
   # for aneuploidy phenotypes, count aneuploid/euploid embryos per visit
-  if (grepl("ploidy", phenotype)) {
+  if (grepl("ploidy", phenotype_name)) {
     # select ploidy status based on phenotype and parent 
-    if (phenotype == "triploidy" & parent == "mother") {
+    if (phenotype_name == "triploidy" & parent == "mother") {
       cn <- "3m"
-    } else if (phenotype == "triploidy" & parent == "father") {
+    } else if (phenotype_name == "triploidy" & parent == "father") {
       cn <- "3p"
-    } else if (phenotype == "haploidy" & parent == "mother") {
+    } else if (phenotype_name == "haploidy" & parent == "mother") {
       cn <- "1p"
-    } else if (phenotype == "haploidy" & parent == "father") {
+    } else if (phenotype_name == "haploidy" & parent == "father") {
       cn <- "1m"
-    } else if (grepl("maternal_meiotic_aneuploidy", phenotype) | 
-               grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
+    } else if (grepl("maternal_meiotic_aneuploidy", phenotype_name) | 
+               grepl("^chr[0-9]+_aneuploidy$", phenotype_name)) {
       cn <- c("3m", "1p")
-    } else if (phenotype == "complex_aneuploidy") {
+    } else if (phenotype_name == "complex_aneuploidy") {
       cn <- c("0", "1m", "1p", "3m", "3p")
     } 
     
@@ -220,7 +220,7 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
       left_join(visit_lookup, by = c("child" = "array"))
     
     # if phenotype is single-chromosome, keep only ploidy calls from that chr
-    if (grepl("^chr[0-9]+_aneuploidy$", phenotype)) {
+    if (grepl("^chr[0-9]+_aneuploidy$", phenotype_name)) {
       ploidy_calls <- ploidy_calls[as.integer(sub("chr", "", 
                                           ploidy_calls$chrom)) == chromosome, ]
     }
@@ -233,13 +233,13 @@ make_phenotype <- function(metadata, parent, phenotype, ploidy_calls,
                   n_distinct(bf_max_cat[bf_max_cat %in% cn])) %>%
       mutate(
         is_ploidy = case_when(
-          grepl("maternal_meiotic_aneuploidy", phenotype) ~ 
+          grepl("maternal_meiotic_aneuploidy", phenotype_name) ~ 
             ifelse(num_affected > 0 & num_affected <= max_meiotic, 
                    "aneu_true", "aneu_false"),
-          grepl("^chr[0-9]+_aneuploidy$", phenotype) ~ 
+          grepl("^chr[0-9]+_aneuploidy$", phenotype_name) ~ 
             ifelse(num_affected == 1, 
                    "aneu_true", "aneu_false"),
-          phenotype == "complex_aneuploidy" ~ 
+          phenotype_name == "complex_aneuploidy" ~ 
             ifelse(num_affected > 0 & unique_bf_max_cat >= 2, 
                    "aneu_true", "aneu_false"),
           TRUE ~ 
@@ -292,7 +292,7 @@ segmental_calls <- fread(segmental_calls)
 metadata <- fread(metadata)
 
 # Run phenotype 
-pheno_by_parent <- make_phenotype(metadata, parent, phenotype, ploidy_calls, 
+pheno_by_parent <- make_phenotype(metadata, parent, phenotype_name, ploidy_calls, 
                                   segmental_calls, bayes_factor_cutoff, 
                                   filter_day_5, nullisomy_threshold, 
                                   max_meiotic, min_ploidy, filter_mosaics, 
