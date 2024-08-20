@@ -163,7 +163,8 @@ make_model <- function(phenotype_name) {
   }
   
   # Set formula string to include both parental ages, both donor statuses, PCs, 
-  # and response variable (omit patient_age as covariate when maternal age is phenotype)
+  # and response variable (omit patient_age as a covariate when maternal 
+  # age is the phenotype)
   formula_string <- paste0(response_variable, " ~ (1 | array) + PC1 + PC2 + PC3 + ",
                            "PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + PC11 + ", 
                            "PC12 + PC13 + PC14 + PC15 + PC16 + PC17 + PC18 + ",
@@ -194,7 +195,7 @@ make_model <- function(phenotype_name) {
 # Calculate GWAS at each genomic site
 gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
                           bed_dataset_indices, metadata, phenotype_name, 
-                          parent) {
+                          parent, model) {
   
   # Get characteristics for each site
   snp_name <- colnames(bed)[snp_index]
@@ -206,7 +207,6 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
                parent)
   
   # Make GWAS model
-  model <- make_model(phenotype_name)
   formula_string <- model$formula_string
   family <- model$family
   m1 <- glmer(formula_string, family = family, nAGQ = 0, data = gt) %>%
@@ -250,6 +250,9 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs,
   # Keep only bim sites to match bed sites
   bim_dataset <- filter_bim(bed_dataset, bim)
   
+  # Make GWAS model
+  model <- make_model(phenotype_name)
+  
   # Calculate GWAS across each site
   gwas_results <- pbmclapply(1:ncol(bed_dataset),
                              function(x) gwas_per_site(x, bed_dataset, 
@@ -257,7 +260,8 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs,
                                                        phenotype,
                                                        bed_dataset_indices,
                                                        metadata, 
-                                                       phenotype_name, parent),
+                                                       phenotype_name, parent, 
+                                                       model),
                              mc.cores = threads)
   # Bind output across all sites
   gwas_results_dt <-
@@ -287,7 +291,8 @@ gwas_summary_stats <- fread(gwas_summary_stats)
 
 # conduct GWAS across all sites
 gwas_results_dt <- run_gwas(dataset_type, discovery_test, metadata, bed, bim,
-                            pcs, phenotype, phenotype_name, parent, threads)
+                            pcs, phenotype, phenotype_name, parent, threads, 
+                            model)
 
 # write to file
 write.table(gwas_results_dt, out_fname, append = FALSE, sep = "\t", dec = ".",
