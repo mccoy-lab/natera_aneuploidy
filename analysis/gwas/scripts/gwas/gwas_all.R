@@ -128,7 +128,7 @@ make_model <- function(phenotype_name) {
 
 # Function to pre-process genotype info for each site
 get_gt <- function(bed, bed_dataset_indices, snp_index, metadata, 
-                   phenotype, pcs, parent) {
+                   phenotype, pcs, parent, phenotype_name) {
   
   # Make genotype file
   gt <- data.table(names(bed[bed_dataset_indices, snp_index]),
@@ -145,8 +145,30 @@ get_gt <- function(bed, bed_dataset_indices, snp_index, metadata,
     stop("Invalid parent value. It should be either 'mother' or 'father'.")
   }
   
-  # Include only first visit from each patient for the linear model 
-  phenotype <- phenotype[phenotype$visit_id == 1,]
+  # Merge information across visits for the same mother for the linear model 
+  if (grepl("ploidy", phenotype_name)) {
+    phenotype <- phenotype %>%
+      group_by(mother) %>% 
+      summarise(
+        aneu_true = sum(aneu_true),
+        aneu_false = sum(aneu_false), 
+        total_embryos = sum(total_embryos), 
+        num_visits = first(num_visits),
+        patient_age_cycle = (sum(patient_age_cycle * total_embryos) / sum(total_embryos)) / num_visits,
+        partner_age_cycle = (sum(partner_age_cycle * total_embryos) / sum(total_embryos)) / num_visits, 
+        array = first(array)
+      )
+  } else {
+    phenotype <- phenotype %>%
+      group_by(mother) %>% 
+      summarise(
+        num_embryos = sum(num_embryos), 
+        num_visits = first(num_visits),
+        patient_age_cycle = (sum(patient_age_cycle * num_embryos) / sum(num_embryos)) / num_visits,
+        partner_age_cycle = (sum(partner_age_cycle * num_embryos) / sum(num_embryos)) / num_visits,
+        array = first(array)
+      )
+  }
   
   # Add phenotype and pcs to gt info 
   gt <- merge(gt, metadata, by = "array") %>%
@@ -175,7 +197,7 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
   
   # Get genotype info for each site
   gt <- get_gt(bed, bed_dataset_indices, snp_index, metadata, phenotype, pcs,
-               parent)
+               parent, phenotype_name)
   
   # Make GWAS model
   formula_string <- model$formula_string
