@@ -365,7 +365,7 @@ rule run_gwas_lmm_autosome_subset:
         parental_pcs=rules.compute_pcs.output.evecs,
         phenotype_file=rules.generate_phenotypes.output.phenotype_file,
         bim=rules.bed_split_vcf.output.bim,
-        summary_stats=rules.run_gwas_subset.output.gwas_output,
+        summary_stats=rules.run_gwas_autosome_subset.output.gwas_output,
     output:
         gwas_output=temp("results/gwas/summary_stats/subset_gwas_lmm_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv"),
     threads: 16
