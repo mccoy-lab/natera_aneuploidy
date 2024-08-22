@@ -59,7 +59,7 @@ chroms = range(1, 24)
 rule all:
     input:
         expand(
-            "results/gwas/summary_stats/gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
+            "results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
             phenotype=phenotypes,
             parent=parents,
             dataset_type=dataset_type,
@@ -365,9 +365,9 @@ rule run_gwas_lmm_autosome_subset:
         parental_pcs=rules.compute_pcs.output.evecs,
         phenotype_file=rules.generate_phenotypes.output.phenotype_file,
         bim=rules.bed_split_vcf.output.bim,
-        summary_stats=rules.run_gwas_subset.output.gwas_output,
+        summary_stats=rules.run_gwas_autosome_subset.output.gwas_output,
     output:
-        gwas_output=temp("results/gwas/summary_stats/subset_gwas_lmm_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv"),
+        gwas_output=temp("results/gwas/summary_stats/lmm_subset_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv"),
     threads: 16
     resources:
         time="0:30:00",
@@ -387,7 +387,7 @@ rule merge_lmm_subsets:
     """Create single file for GWAS LMM for each chromosome, merging all subsets"""
     input:
         lambda wildcards: expand(
-            "results/gwas/summary_stats/subset_gwas_lmm_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{chrom}}_{chunk}.tsv",
+            "results/gwas/summary_stats/lmm_subset_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{chrom}}_{chunk}.tsv",
             phenotype=wildcards.phenotype,
             parent=wildcards.parent,
             dataset_type=wildcards.dataset_type,
@@ -395,7 +395,7 @@ rule merge_lmm_subsets:
             chunk=range(chunks_dict.get(f"chr{wildcards.chrom}", 0)),
         ),
     output:
-        gwas_output="results/gwas/summary_stats/gwas_lmm_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
+        gwas_output="results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
     wildcard_constraints:
         chrom = "|".join(map(str, range(1, 23))),
     shell:
@@ -414,7 +414,7 @@ rule gwas_lmm_x_chrom:
         bim="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bim",
         summary_stats=rules.gwas_x_chrom.output.gwas_output,
     output:
-        gwas_output="results/gwas/summary_stats/gwas_lmm_{phenotype}_by_{parent}_{dataset_type}_23.tsv",
+        gwas_output="results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_23.tsv",
     threads: 16
     resources:
         time="9:00:00",
@@ -433,11 +433,11 @@ rule merge_chroms_lmm:
     """Create single file for each phenotype/parent/dataset, merging all chromosomes"""
     input:
         expand(
-            "results/gwas/summary_stats/gwas_lmm_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
+            "results/gwas/summary_stats/lmm_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
             chrom=range(1, 24),
         ),
     output:
-        merged_file="results/gwas/summary_stats/gwas_lmm_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
+        merged_file="results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
     shell:
         "cat {input} | gzip > {output.merged_file}"
 

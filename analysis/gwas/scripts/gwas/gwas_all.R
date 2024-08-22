@@ -76,44 +76,6 @@ discovery_test_split <- function(dataset_type, discovery_test, metadata, bed) {
   return(bed_dataset)
 }
 
-
-# Function to pre-process genotype info for each site
-get_gt <- function(bed, bed_dataset_indices, snp_index, metadata, 
-                   phenotype, pcs, parent) {
-  
-  # Make genotype file
-  gt <- data.table(names(bed[bed_dataset_indices, snp_index]),
-                   unname(bed[bed_dataset_indices, snp_index])) %>%
-    setnames(., c("array", "alt_count")) %>%
-    .[, array := sub("(.*?_.*?)_.*", "\\1", array)]
-  
-  # Set array column to be the parent of interest 
-  if (parent == "mother") {
-    phenotype[, array := mother]
-  } else if (parent == "father") {
-    phenotype[, array := father]
-  } else {
-    stop("Invalid parent value. It should be either 'mother' or 'father'.")
-  }
-  
-  # Include only first visit from each patient for the linear model 
-  phenotype <- phenotype[phenotype$visit_id == 1,]
-  
-  # Add phenotype and pcs to gt info 
-  gt <- merge(gt, metadata, by = "array") %>%
-    merge(phenotype, by = "array") %>%
-    merge(pcs, by = "array") 
-  
-  # Assign egg and sperm donor ages 
-  # get average egg donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7530253/
-  # get average sperm donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9118971/#:~:text=Donors%20were%20aged%2027%20years,aged%2030%20years%20and%20younger.
-  gt[egg_donor == "yes", patient_age_cycle := as.numeric(25)]
-  gt[sperm_donor == "yes", partner_age_cycle := as.numeric(27)]
-  
-  return(gt)
-}
-
-
 # Function to make GWAS model based on phenotype
 make_model <- function(phenotype_name) {
   
@@ -158,16 +120,75 @@ make_model <- function(phenotype_name) {
       gsub("alt_count \\+ scale\\(patient_age_cycle\\)", 
            "alt_count * scale(patient_age_cycle)", formula_string)
   }
-   
+  
   # Return model for use in GWAS
   return(list(formula_string = formula_string, family = family))
+}
+
+
+# Function to pre-process genotype info for each site
+get_gt <- function(bed, bed_dataset_indices, snp_index, metadata, 
+                   phenotype, pcs, parent, phenotype_name) {
+  
+  # Make genotype file
+  gt <- data.table(names(bed[bed_dataset_indices, snp_index]),
+                   unname(bed[bed_dataset_indices, snp_index])) %>%
+    setnames(., c("array", "alt_count")) %>%
+    .[, array := sub("(.*?_.*?)_.*", "\\1", array)]
+  
+  # Set array column to be the parent of interest 
+  if (parent == "mother") {
+    phenotype[, array := mother]
+  } else if (parent == "father") {
+    phenotype[, array := father]
+  } else {
+    stop("Invalid parent value. It should be either 'mother' or 'father'.")
+  }
+  
+  # Merge information across visits for the same mother for the linear model 
+  if (grepl("ploidy", phenotype_name)) {
+    phenotype <- phenotype %>%
+      group_by(mother) %>% 
+      summarise(
+        aneu_true = sum(aneu_true),
+        aneu_false = sum(aneu_false), 
+        total_embryos = sum(total_embryos), 
+        num_visits = first(num_visits),
+        patient_age_cycle = (sum(patient_age_cycle * total_embryos) / sum(total_embryos)) / num_visits,
+        partner_age_cycle = (sum(partner_age_cycle * total_embryos) / sum(total_embryos)) / num_visits, 
+        array = first(array)
+      )
+  } else {
+    phenotype <- phenotype %>%
+      group_by(mother) %>% 
+      summarise(
+        num_embryos = sum(num_embryos), 
+        num_visits = first(num_visits),
+        patient_age_cycle = (sum(patient_age_cycle * num_embryos) / sum(num_embryos)) / num_visits,
+        partner_age_cycle = (sum(partner_age_cycle * num_embryos) / sum(num_embryos)) / num_visits,
+        array = first(array)
+      )
+  }
+  
+  # Add phenotype and pcs to gt info 
+  gt <- merge(gt, metadata, by = "array") %>%
+    merge(phenotype, by = "array") %>%
+    merge(pcs, by = "array") 
+  
+  # Assign egg and sperm donor ages 
+  # get average egg donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7530253/
+  # get average sperm donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9118971/#:~:text=Donors%20were%20aged%2027%20years,aged%2030%20years%20and%20younger.
+  gt[egg_donor == "yes", patient_age_cycle := as.numeric(25)]
+  gt[sperm_donor == "yes", partner_age_cycle := as.numeric(27)]
+  
+  return(gt)
 }
 
 
 # Calculate GWAS at each genomic site
 gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
                           bed_dataset_indices, metadata, phenotype_name, 
-                          parent) {
+                          parent, model) {
   
   # Get characteristics for each site
   snp_name <- colnames(bed)[snp_index]
@@ -176,10 +197,9 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
   
   # Get genotype info for each site
   gt <- get_gt(bed, bed_dataset_indices, snp_index, metadata, phenotype, pcs,
-               parent)
+               parent, phenotype_name)
   
   # Make GWAS model
-  model <- make_model(phenotype_name)
   formula_string <- model$formula_string
   family <- model$family
   m1 <- glm(formula_string, family = family, data = gt) %>%
@@ -217,13 +237,17 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs,
   # Get indices to execute function
   bed_dataset_indices <- 1:nrow(bed_dataset)
   
+  # Make GWAS model
+  model <- make_model(phenotype_name)
+  
   # Calculate GWAS across each site
   gwas_results <- pbmclapply(1:ncol(bed_dataset),
                              function(x) gwas_per_site(x, bed_dataset, bim,
                                                        pcs, phenotype,
                                                        bed_dataset_indices,
                                                        metadata, 
-                                                       phenotype_name, parent),
+                                                       phenotype_name, parent, 
+                                                       model), 
                              mc.cores = threads)
   # Bind output across all sites
   gwas_results_dt <-
@@ -245,13 +269,15 @@ discovery_test <- fread(discovery_test)
 pcs <- fread(pcs)
 colnames(pcs)[1] <- "array"
 phenotype <- fread(phenotype)
+colnames(phenotype)[1] <- "mother"
 bim <- fread(bim) %>%
   setnames(., c("chr", "snp_id", "drop", "pos", "ref", "alt"))
 
 
 # conduct GWAS across all sites
 gwas_results_dt <- run_gwas(dataset_type, discovery_test, metadata, bed, bim,
-                            pcs, phenotype, phenotype_name, parent, threads)
+                            pcs, phenotype, phenotype_name, parent, threads,
+                            model)
 
 # write to file
 write.table(gwas_results_dt, out_fname, append = FALSE, sep = "\t", dec = ".",
