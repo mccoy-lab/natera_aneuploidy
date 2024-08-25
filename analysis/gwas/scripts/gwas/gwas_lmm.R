@@ -234,35 +234,46 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
 
 # Run GWAS across dataset
 run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs, 
-                     phenotype, phenotype_name, parent, threads = 32) {
+                     phenotype, phenotype_name, parent, threads = 32, model) {
   
   # Subset bed file corresponding to correct dataset type
   bed_dataset <- discovery_test_split(dataset_type, discovery_test, 
                                       metadata, bed)
   
   # Keep only bed sites with p-values below threshold
-  bed_dataset <- filter_bed(gwas_summary_stats, bed_dataset, 
-                            alpha_threshold = 0.05)
+  #bed_dataset <- filter_bed(gwas_summary_stats, bed_dataset, 
+  #                          alpha_threshold = 0.05)
   
   # Get indices to execute function
   bed_dataset_indices <- 1:nrow(bed_dataset)
   
   # Keep only bim sites to match bed sites
-  bim_dataset <- filter_bim(bed_dataset, bim)
+  #bim_dataset <- filter_bim(bed_dataset, bim)
+  bim_dataset <- bim
   
   # Make GWAS model
   model <- make_model(phenotype_name)
   
   # Calculate GWAS across each site
-  gwas_results <- pbmclapply(1:ncol(bed_dataset),
-                             function(x) gwas_per_site(x, bed_dataset, 
-                                                       bim_dataset, pcs, 
+  # gwas_results <- pbmclapply(1:ncol(bed_dataset),
+  #                            function(x) gwas_per_site(x, bed_dataset,
+  #                                                      bim_dataset, pcs,
+  #                                                      phenotype,
+  #                                                      bed_dataset_indices,
+  #                                                      metadata,
+  #                                                      phenotype_name, parent,
+  #                                                      model),
+  #                            mc.cores = threads)
+  gwas_results <- pbmclapply(20:40,
+                             function(x) gwas_per_site(x, bed_dataset,
+                                                       bim_dataset, pcs,
                                                        phenotype,
                                                        bed_dataset_indices,
-                                                       metadata, 
-                                                       phenotype_name, parent, 
+                                                       metadata,
+                                                       phenotype_name, parent,
                                                        model),
                              mc.cores = threads)
+  
   # Bind output across all sites
   gwas_results_dt <-
     rbindlist(gwas_results[unlist(map(gwas_results, is.data.table))]) %>%
