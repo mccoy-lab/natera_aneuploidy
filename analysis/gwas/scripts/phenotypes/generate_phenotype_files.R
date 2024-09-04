@@ -258,7 +258,7 @@ make_phenotype <- function(metadata, parent, phenotype_name, ploidy_calls,
       ungroup()
     
     # group by family 
-    result2 <- result %>%
+    mother_summary <- result %>%
       group_by(mother, father, visit_id) %>%
       summarise(
         aneu_true = sum(aneu_true),     
@@ -283,7 +283,10 @@ make_phenotype <- function(metadata, parent, phenotype_name, ploidy_calls,
     # count number of visits per mother 
     mother_summary <- mother_summary %>%
       left_join(num_visits, by = "mother_id")
+    colnames(mother_summary)[1] <- "mother"
   }
+  
+  return(mother_summary)
 }
 
 # Read in embryos and metadata
