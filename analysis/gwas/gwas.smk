@@ -2,7 +2,7 @@
 
 # Usage: conda activate natera-aneuploidy-gwas \ ml snakemake
 # Usage on dev node: nohup snakemake -p --cores 48 -j 12 --snakefile gwas.smk > nohup_date.out 2>&1 &
-# Usage on rockfish: nohup snakemake -p --snakefile gwas.smk -j 200 --profile ~/code/rockfish_smk_profile/ &
+# Usage on rockfish: nohup snakemake -p --snakefile gwas.smk -j 600 --profile ~/code/rockfish_smk_profile/ &
 # Optional: add -n for a dry run
 # Executed from /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
 
@@ -11,29 +11,29 @@ configfile: "config.yaml"
 
 # Dictionary of number of files to chunk each vcf into in `split`
 chunks_dict = {
-    "chr1": 60,
-    "chr2": 60,
-    "chr3": 60,
-    "chr4": 60,
-    "chr5": 60,
-    "chr6": 60,
-    "chr7": 60,
-    "chr8": 60,
-    "chr9": 60,
-    "chr10": 60,
-    "chr11": 60,
-    "chr12": 60,
-    "chr13": 60,
-    "chr14": 60,
-    "chr15": 50,
-    "chr16": 40,
-    "chr17": 40,
-    "chr18": 40,
-    "chr19": 30,
-    "chr20": 30,
-    "chr21": 20,
-    "chr22": 20,
-    "chr23": 60,
+    "chr1": 600,
+    "chr2": 600,
+    "chr3": 600,
+    "chr4": 600,
+    "chr5": 600,
+    "chr6": 600,
+    "chr7": 480,
+    "chr8": 480,
+    "chr9": 240,
+    "chr10": 480,
+    "chr11": 480,
+    "chr12": 480,
+    "chr13": 240,
+    "chr14": 240,
+    "chr15": 200,
+    "chr16": 160,
+    "chr17": 160,
+    "chr18": 160,
+    "chr19": 120,
+    "chr20": 120,
+    "chr21": 40,
+    "chr22": 80,
+    "chr23": 240,
 }
 
 # Parameters pipeline will run on
@@ -51,7 +51,6 @@ phenotypes = [
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
 chroms = range(1, 24)
-#chroms = range(20, 22)
 
 # shell.prefix("set -o pipefail; ")
 
@@ -87,8 +86,7 @@ rule vcf2pgen:
         log=temp("results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.log"),
     threads: 24
     wildcard_constraints:
-        #chrom = "|".join(map(str, range(1, 23))),
-        chrom = "|".join(map(str, range(19, 20))),
+        chrom = "|".join(map(str, range(1, 23))),
     resources:
     	mem_mb="100G",
     params:
@@ -181,7 +179,7 @@ rule discovery_validate_split:
         "Rscript --vanilla {input.discovery_validate_R} {input.metadata} {input.fam_file} {input.king_to_remove} {output.metadata_weighted_ages} {output.discovery_validate_maternal} {output.discovery_validate_paternal}"
 
 
-# -------- 2. Subset genetic data for each chromosome to decrease computation time -------- #
+# -------- 2. Subset genetic data for each autosome to decrease computation time -------- #
 rule get_chrom_pos:
     input:
         input_vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
@@ -191,8 +189,7 @@ rule get_chrom_pos:
         mem_mb="2G",
     threads: 1
     wildcard_constraints:
-        #chrom = "|".join(map(str, range(1, 23))),
-        chrom = "|".join(map(str, range(19, 20))),
+        chrom = "|".join(map(str, range(1, 24))),
     shell:
         "bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.chrom_mapfile}"
 
@@ -209,8 +206,7 @@ rule make_vcf_regions:
         nchunks=lambda wildcards: chunks_dict[f"chr{wildcards.chrom}"],
     threads: 1
     wildcard_constraints:
-        #chrom = "|".join(map(str, range(1, 23))),
-        chrom = "|".join(map(str, range(19, 20))),
+        chrom = "|".join(map(str, range(1, 24))),
     shell:
         "python3 {input.get_regions} {params.nchunks} {input.chrom_mapfile} {output.regions_file}"
 
@@ -232,8 +228,7 @@ rule bed_split_vcf:
         outfix="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}",
     threads: 16
     wildcard_constraints:
-        #chrom = "|".join(map(str, range(1, 23))),
-        chrom = "|".join(map(str, range(19, 20))),
+        chrom = "|".join(map(str, range(1, 24))),
     shell:
         """
         region=$(awk -v n={wildcards.chunk} "NR==n+1 {{print}}" {input.regions_file})
@@ -256,7 +251,7 @@ rule generate_phenotypes:
         phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy|chr16_aneuploidy|chr21_aneuploidy|chr22_aneuploidy|maternal_meiotic_aneuploidy_age_interaction",
         parent="mother|father",
     resources:
-        time="0:30:00",
+        time="0:10:00",
         mem_mb="10G",
     params:
         filter_day_5="TRUE",
@@ -374,16 +369,14 @@ rule run_gwas_lmm_autosome_subset:
         bim=rules.bed_split_vcf.output.bim,
     output:
         gwas_output=temp("results/gwas/summary_stats/lmm_subset_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv"),
-    threads: 48
+    threads: 16
     resources:
-        time="2:00:00",
-        mem_mb=1500000,
-        disk_mb=1500000,
+        time="1:30:00",
+        mem_mb=191488,
     wildcard_constraints:
         dataset_type="discovery|test",
         parent="mother|father",
-        #chrom = "|".join(map(str, range(1, 23))),
-        chrom = "|".join(map(str, range(19, 20))),
+        chrom = "|".join(map(str, range(1, 24))),
     shell:
         """
         ml gcc r/4.3.0
@@ -404,37 +397,35 @@ rule merge_lmm_subsets:
     output:
         gwas_output="results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
     wildcard_constraints:
-        #chrom = "|".join(map(str, range(1, 23))),
-        chrom = "|".join(map(str, range(19, 20))),
+        chrom = "|".join(map(str, range(1, 24))),
     shell:
         "cat {input} > {output.gwas_output}"
 
 
-rule gwas_lmm_x_chrom: 
-    """Compute GWAS for the whole X chromosome."""
-    input:
-        gwas_rscript="scripts/gwas/gwas_lmm_chunks.R",
-        metadata=config['metadata'],
-        bed="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bed",
-        discovery_test="results/gwas/intermediate_files/discover_validate_split_{parent}.txt",
-        parental_pcs=rules.compute_pcs.output.evecs,
-        phenotype_file=rules.generate_phenotypes.output.phenotype_file,
-        bim="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bim",
-    output:
-        gwas_output="results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_23.tsv",
-    threads: 48
-    resources:
-        time="24:00:00",
-        mem_mb=1500000,
-        disk_mb=1500000,
-    wildcard_constraints:
-        dataset_type="discovery|test",
-        parent="mother|father",
-    shell:
-        """
-        ml gcc r/4.3.0
-        Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}
-        """
+# rule gwas_lmm_x_chrom: 
+#     """Compute GWAS for the whole X chromosome."""
+#     input:
+#         gwas_rscript="scripts/gwas/gwas_lmm_chunks.R",
+#         metadata=config['metadata'],
+#         bed="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bed",
+#         discovery_test="results/gwas/intermediate_files/discover_validate_split_{parent}.txt",
+#         parental_pcs=rules.compute_pcs.output.evecs,
+#         phenotype_file=rules.generate_phenotypes.output.phenotype_file,
+#         bim="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bim",
+#     output:
+#         gwas_output="results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_23.tsv",
+#     threads: 16
+#     resources:
+#         time="36:00:00",
+#         mem_mb=191488,
+#     wildcard_constraints:
+#         dataset_type="discovery|test",
+#         parent="mother|father",
+#     shell:
+#         """
+#         ml gcc r/4.3.0
+#         Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}
+#         """
 
 
 rule merge_chroms_lmm:
@@ -442,7 +433,7 @@ rule merge_chroms_lmm:
     input:
         expand(
             "results/gwas/summary_stats/lmm_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
-            chrom=range(19, 20),
+            chrom=range(1, 24),
         ),
     output:
         merged_file="results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
