@@ -376,7 +376,7 @@ rule run_gwas_lmm_autosome_subset:
         gwas_output=temp("results/gwas/summary_stats/lmm_subset_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv"),
     threads: 48
     resources:
-        time="3:30:00",
+        time="2:00:00",
         mem_mb=1500000,
         disk_mb=1500000,
     wildcard_constraints:
