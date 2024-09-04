@@ -169,9 +169,6 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
                           parent, model) {
   
   # Get characteristics for each site
-  
-  print("into gwas_per_site")
-  
   snp_name <- colnames(bed)[snp_index]
   snp_pos <- bim[snp_index]$pos
   
@@ -179,15 +176,13 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
   gt <- get_gt(bed, bed_dataset_indices, snp_index, metadata, phenotype, pcs,
                parent)
   
-  print("made gt!")
-  
   # Make GWAS model
   formula_string <- model$formula_string
   family <- model$family
-  m1 <- glmer(formula_string, family = family, nAGQ = 0, data = gt) %>%
+  m1 <- glmer(formula_string, family = family, nAGQ = 0, 
+              control = glmerControl(optimizer = "bobyqa"),
+              data = gt) %>%
     summary()
-  
-  print("made m1")
   
   # Get info for GWAS output
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
@@ -204,8 +199,6 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
                        t = unlist(coef[term == "alt_count", 4]),
                        p.value = unlist(coef[term == "alt_count", 5]),
                        af = alt_af)
-  
-  print("made output")
   
   # Return GWAS for a given site
   return(output)
@@ -243,7 +236,7 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs,
   
   # Calculate GWAS across each chunk of sites
   snp_indices <- 1:ncol(bed_dataset)
-  snp_chunks <- split(snp_indices, ceiling(seq_along(snp_indices) / 75))
+  snp_chunks <- split(snp_indices, ceiling(seq_along(snp_indices) / 100))
   
   # Run GWAS on each chunk 
   gwas_results <- pbmclapply(snp_chunks,
