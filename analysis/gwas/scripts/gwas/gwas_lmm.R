@@ -23,7 +23,6 @@ library(countreg)
 # "haploidy" \ # phenotype_name
 # "mother" \ # parent
 # 16 \ # number of threads
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/summary_stats/gwas_haploidy_by_mother_discovery_total.tsv.gz" \ # gwas summary stats from regular glm 
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/gwas_lmm_haploidy_by_mother_discovery_9.tsv"
 
 # get command line arguments
@@ -49,10 +48,8 @@ phenotype_name <- args[8]
 parent <- args[9]
 # number of threads to use in mc.cores for GWAS
 threads <- as.numeric(args[10])
-# gwas summary stats file 
-gwas_summary_stats <- args[11]
 # output file name
-out_fname <- args[12]
+out_fname <- args[11]
 
 
 # Subset data to include only discovery or test
@@ -79,32 +76,6 @@ discovery_test_split <- function(dataset_type, discovery_test, metadata, bed) {
   
   # Return bed file subset by dataset type
   return(bed_dataset)
-}
-
-
-# Filter the summary stats and the bed file to only include sites with p < 0.05 
-filter_bed <- function(gwas_summary_stats, bed_dataset, alpha_threshold = 0.05) {
-  # Keep only sites with p-values less than or equal to 0.05 (~5% of data) 
-  gwas_summary_stats_sig <- gwas_summary_stats[gwas_summary_stats$p.value <= 
-                                                 alpha_threshold]
-  
-  # Keep sites from bed file that are in the significant snps 
-  cols_to_keep <- gwas_summary_stats_sig$snp
-  cols_to_keep <- cols_to_keep[cols_to_keep %in% colnames(bed_dataset)]
-  filtered_bed_dataset <- bed_dataset[, cols_to_keep]
-  
-  return(filtered_bed_dataset)
-}
-
-
-# Filter bim file to only contain the sites from the bed file 
-filter_bim <- function(bed_dataset, bim) {
-  # Get list of sites in bed file 
-  snp_ids_in_bed <- sub("_.*", "", colnames(bed_dataset))
-  # Keep only matching sites in bim
-  filtered_bim <- bim[snp_id %in% snp_ids_in_bed]
-  
-  return(filtered_bim)
 }
 
 
@@ -199,7 +170,6 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
   
   # Get characteristics for each site
   snp_name <- colnames(bed)[snp_index]
-  snp_chr <- bim[snp_index]$chr
   snp_pos <- bim[snp_index]$pos
   
   # Get genotype info for each site
@@ -240,15 +210,8 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs,
   bed_dataset <- discovery_test_split(dataset_type, discovery_test, 
                                       metadata, bed)
   
-  # Keep only bed sites with p-values below threshold
-  bed_dataset <- filter_bed(gwas_summary_stats, bed_dataset, 
-                            alpha_threshold = 0.05)
-  
   # Get indices to execute function
   bed_dataset_indices <- 1:nrow(bed_dataset)
-  
-  # Keep only bim sites to match bed sites
-  bim_dataset <- filter_bim(bed_dataset, bim)
   
   # Make GWAS model
   model <- make_model(phenotype_name)
@@ -256,7 +219,7 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs,
   # Calculate GWAS across each site
   gwas_results <- pbmclapply(1:ncol(bed_dataset),
                              function(x) gwas_per_site(x, bed_dataset, 
-                                                       bim_dataset, pcs, 
+                                                       bim, pcs, 
                                                        phenotype,
                                                        bed_dataset_indices,
                                                        metadata, 
@@ -286,13 +249,10 @@ phenotype <- fread(phenotype)
 colnames(phenotype)[1] <- "mother"
 bim <- fread(bim) %>%
   setnames(., c("chr", "snp_id", "drop", "pos", "ref", "alt"))
-gwas_summary_stats <- fread(gwas_summary_stats)
-
 
 # conduct GWAS across all sites
 gwas_results_dt <- run_gwas(dataset_type, discovery_test, metadata, bed, bim,
-                            pcs, phenotype, phenotype_name, parent, threads, 
-                            model)
+                            pcs, phenotype, phenotype_name, parent, threads)
 
 # write to file
 write.table(gwas_results_dt, out_fname, append = FALSE, sep = "\t", dec = ".",
