@@ -223,6 +223,7 @@ rule bed_split_vcf:
         log="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.log",
     resources:
         mem_mb="3G",
+        time="0:30:00",
     params:
         nchunks=lambda wildcards: chunks_dict[f"chr{wildcards.chrom}"],
         outfix="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}",
@@ -233,7 +234,7 @@ rule bed_split_vcf:
         """
         region=$(awk -v n={wildcards.chunk} "NR==n+1 {{print}}" {input.regions_file})
         bcftools view -r $region -Ob {input.input_vcf} > {output.bcf}
-        plink2 --memory 9000 --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
+        plink --memory 9000 --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
         """
 
 
