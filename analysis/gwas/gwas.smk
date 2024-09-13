@@ -68,7 +68,7 @@ rule all:
     input:
         expand(
             "results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype="embryo_count",
+            phenotype="maternal_meiotic_aneuploidy",
             parent="mother",
             dataset_type=dataset_type,
         ),
