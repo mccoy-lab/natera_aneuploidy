@@ -315,32 +315,6 @@ rule merge_lmm_subsets:
         "cat {input} > {output.gwas_output}"
 
 
-# rule gwas_lmm_x_chrom: 
-#     """Compute GWAS for the whole X chromosome."""
-#     input:
-#         gwas_rscript="scripts/gwas/gwas_lmm_chunks.R",
-#         metadata=config['metadata'],
-#         bed="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bed",
-#         discovery_test="results/gwas/intermediate_files/discover_validate_split_{parent}.txt",
-#         parental_pcs=rules.compute_pcs.output.evecs,
-#         phenotype_file=rules.generate_phenotypes.output.phenotype_file,
-#         bim="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr23_rehead_filter_plink_cpra.bim",
-#     output:
-#         gwas_output="results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_23.tsv",
-#     threads: 16
-#     resources:
-#         time="36:00:00",
-#         mem_mb=191488,
-#     wildcard_constraints:
-#         dataset_type="discovery|test",
-#         parent="mother|father",
-#     shell:
-#         """
-#         ml gcc r/4.3.0
-#         Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}
-#         """
-
-
 rule merge_chroms_lmm:
     """Create single file for each phenotype/parent/dataset, merging all chromosomes"""
     input:
