@@ -26,10 +26,9 @@ metadata <- fread(metadata)
 fam <- fread(fam) 
 king_related_arrays <- fread(king_related_arrays)
 
-# Aggregate Across Families
 # remove duplicate individuals  
 metadata <- metadata %>%
-  distinct(array, .keep_all = TRUE)
+  distinct(.keep_all = TRUE)
 
 # apply same array ID to all individuals (partner, child) associated with each 
 # mother, across different casefiles 
