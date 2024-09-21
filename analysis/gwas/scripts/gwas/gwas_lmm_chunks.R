@@ -15,7 +15,7 @@ library(countreg)
 # Usage: /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/glmmer.R \
 # "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/subsets/spectrum_imputed_chr21_rehead_filter_cpra_18.bed" \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_mother.txt" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/intermediate_files/discover_validate_split_mother.txt" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/parental_genotypes_pcs/parental_genotypes.eigenvec" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/chr22_aneuploidy_by_mother.csv" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/subsets/spectrum_imputed_chr21_rehead_filter_cpra_18.bim" \
@@ -64,7 +64,7 @@ discovery_test_split <- function(dataset_type, discovery_test, metadata, bed) {
     stop("Invalid 'dataset_type' argument.")
   }
   
-  # Get caseIDs belonging to mothers in dataset type
+  # Get arrays belonging to mothers in dataset type
   metadata_set <- metadata[metadata$array %in% dataset$array,]
   # add column for array_array to match rownames of bed
   metadata_set$array_array <- paste0(metadata_set$array, "_",
@@ -101,10 +101,15 @@ get_gt <- function(bed, bed_dataset_indices, snp_index, metadata,
     stop("Invalid parent value. It should be either 'mother' or 'father'.")
   }
   
-  # Add phenotype and pcs to gt info 
-  gt <- phenotype %>%
-    left_join(pcs, by = "array") %>% 
-    left_join(gt, by = "array")
+  # Keep only cycles from mothers that are in the discovery set 
+  phenotype_discovery <- phenotype[phenotype$array %in% 
+                                     discovery_test[is_discovery == TRUE]$array,]
+  
+  # Merge pcs for each phenotype 
+  merged_with_pcs <- merge(phenotype_discovery, pcs, by = "array", all.x = TRUE)
+  
+  # Merge in the gt info 
+  gt <- merge(merged_with_pcs, gt, by = "array", all.x = TRUE)
   
   # Assign egg and sperm donor ages 
   # get average egg donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7530253/
