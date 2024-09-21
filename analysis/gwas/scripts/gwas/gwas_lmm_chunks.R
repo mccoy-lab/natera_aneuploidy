@@ -87,7 +87,10 @@ get_gt <- function(bed, bed_dataset_indices, snp_index, metadata,
   gt <- data.table(names(bed[bed_dataset_indices, snp_index]),
                    unname(bed[bed_dataset_indices, snp_index])) %>%
     setnames(., c("array", "alt_count")) %>%
-    .[, array := sub("(.*?_.*?)_.*", "\\1", array)]
+    # Apply different rules based on the presence of "CYTO12AB" in the array
+    .[, array := ifelse(grepl("CYTO12AB", array),
+                        sub("(.*?_.*?_.*?)_.*", "\\1", array),  # Regex for CYTO12AB cases
+                        sub("(.*?_.*?)_.*", "\\1", array))]    # Regex for other cases
   
   # Set array column to be the parent of interest 
   if (parent == "mother") {
@@ -99,9 +102,9 @@ get_gt <- function(bed, bed_dataset_indices, snp_index, metadata,
   }
   
   # Add phenotype and pcs to gt info 
-  gt <- merge(gt, metadata, by = "array") %>%
-    merge(phenotype, by = "array") %>%
-    merge(pcs, by = "array") 
+  gt <- phenotype %>%
+    left_join(pcs, by = "array") %>% 
+    left_join(gt, by = "array")
   
   # Assign egg and sperm donor ages 
   # get average egg donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7530253/
