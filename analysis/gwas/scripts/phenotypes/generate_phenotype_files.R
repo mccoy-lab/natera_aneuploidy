@@ -279,9 +279,7 @@ make_phenotype <- function(metadata, parent, phenotype_name, ploidy_calls,
     mother_summary <- child_data %>%
       group_by(mother_id, visit_id) %>%
       summarise(
-        num_embryos = n(), # Count number of children per visit
-        patient_age_cycle = first(patient_age),
-        partner_age_cycle = first(partner_age) # Capture ages for the visit
+        num_embryos = n() # Count number of children per visit
       ) %>%
       left_join(num_visits, by = c("mother_id" = "mother_id")) %>%
       left_join(age_produced, 
