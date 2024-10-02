@@ -68,7 +68,7 @@ rule all:
     input:
         expand(
             "results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype="maternal_meiotic_aneuploidy",
+            phenotype="embryo_count",
             parent="mother",
             dataset_type=dataset_type,
         ),
@@ -285,7 +285,7 @@ rule run_gwas_lmm_autosome_subset:
     threads: 16
     resources:
         time="0:50:00",
-        mem_mb=191488,
+        mem_mb=61440,
     wildcard_constraints:
         dataset_type="discovery|test",
         parent="mother|father",
