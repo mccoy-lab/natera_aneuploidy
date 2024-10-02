@@ -285,7 +285,7 @@ rule run_gwas_lmm_autosome_subset:
     threads: 16
     resources:
         time="0:50:00",
-        mem_mb=61440,
+        mem_mb="60G",
     wildcard_constraints:
         dataset_type="discovery|test",
         parent="mother|father",
