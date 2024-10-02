@@ -153,7 +153,7 @@ make_model <- function(phenotype_name) {
                            "PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + PC11 + ", 
                            "PC12 + PC13 + PC14 + PC15 + PC16 + PC17 + PC18 + ",
                            "PC19 + PC20 + (egg_donor == 'yes') + ",
-                           "(sperm_donor == 'yes') + factor(year) + ", 
+                           "(sperm_donor == 'yes') + ", 
                            "scale(partner_age_cycle) + alt_count", 
                            collapse = "")
   
@@ -193,7 +193,7 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
   formula_string <- model$formula_string
   family <- model$family
   m1 <- glmer(formula_string, family = family, nAGQ = 0, 
-              control = glmerControl(optimizer = "bobyqa"),
+              control = glmerControl(optimizer = "nloptwrap"),
               data = gt) %>%
     summary()
   
@@ -235,7 +235,7 @@ gwas_per_chunk <- function(snp_indices, bed, bim, pcs, phenotype,
 
 # Run GWAS across dataset
 run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs, 
-                     phenotype, phenotype_name, parent, dataset_type, 
+                     phenotype, phenotype_name, parent, 
                      threads = 32) {
   
   # Subset bed file corresponding to correct dataset type
@@ -288,7 +288,7 @@ bim <- fread(bim) %>%
 
 # conduct GWAS across all sites
 gwas_results_dt <- run_gwas(dataset_type, discovery_test, metadata, bed, bim,
-                            pcs, phenotype, phenotype_name, parent, dataset_type,
+                            pcs, phenotype, phenotype_name, parent,
                             threads)
 
 # write to file
