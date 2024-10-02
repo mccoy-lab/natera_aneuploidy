@@ -234,7 +234,7 @@ rule bed_split_vcf:
         """
         region=$(awk -v n={wildcards.chunk} "NR==n+1 {{print}}" {input.regions_file})
         bcftools view -r $region -Ob {input.input_vcf} > {output.bcf}
-        plink --memory 9000 --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
+        plink --memory 3000 --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
         """
 
 
