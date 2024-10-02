@@ -6,7 +6,6 @@ library(tidyr)
 # ./discovery_test_split.R \
 # "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv" \
 # "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_total.norm.b38.fam" \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/spectrum_metadata_weighted_ages.tsv" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/king_result.king.cutoff.out.id" \ 
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/metadata_weighted_ages.txt" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discovery_test_split_mother.txt" \
@@ -26,7 +25,6 @@ metadata <- fread(metadata)
 fam <- fread(fam) 
 king_related_arrays <- fread(king_related_arrays)
 
-# Aggregate Across Families
 # remove duplicate individuals  
 metadata <- metadata %>%
   distinct(array, .keep_all = TRUE)

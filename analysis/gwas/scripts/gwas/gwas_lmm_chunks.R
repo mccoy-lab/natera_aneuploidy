@@ -15,7 +15,7 @@ library(countreg)
 # Usage: /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/glmmer.R \
 # "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv"
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/subsets/spectrum_imputed_chr21_rehead_filter_cpra_18.bed" \
-# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/discover_validate_split_mother.txt" \
+# "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/intermediate_files/discover_validate_split_mother.txt" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/parental_genotypes_pcs/parental_genotypes.eigenvec" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/phenotypes/chr22_aneuploidy_by_mother.csv" \
 # "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/subsets/spectrum_imputed_chr21_rehead_filter_cpra_18.bim" \
@@ -64,7 +64,7 @@ discovery_test_split <- function(dataset_type, discovery_test, metadata, bed) {
     stop("Invalid 'dataset_type' argument.")
   }
   
-  # Get caseIDs belonging to mothers in dataset type
+  # Get arrays belonging to mothers in dataset type
   metadata_set <- metadata[metadata$array %in% dataset$array,]
   # add column for array_array to match rownames of bed
   metadata_set$array_array <- paste0(metadata_set$array, "_",
@@ -81,13 +81,16 @@ discovery_test_split <- function(dataset_type, discovery_test, metadata, bed) {
 
 # Function to pre-process genotype info for each site
 get_gt <- function(bed, bed_dataset_indices, snp_index, metadata, 
-                   phenotype, pcs, parent) {
+                   phenotype, pcs, parent, dataset_type) {
   
   # Make genotype file
   gt <- data.table(names(bed[bed_dataset_indices, snp_index]),
                    unname(bed[bed_dataset_indices, snp_index])) %>%
     setnames(., c("array", "alt_count")) %>%
-    .[, array := sub("(.*?_.*?)_.*", "\\1", array)]
+    # Apply different rules based on the presence of "CYTO12AB" in the array
+    .[, array := ifelse(grepl("CYTO12AB", array),
+                        sub("(.*?_.*?_.*?)_.*", "\\1", array),  # Regex for CYTO12AB cases
+                        sub("(.*?_.*?)_.*", "\\1", array))]    # Regex for other cases
   
   # Set array column to be the parent of interest 
   if (parent == "mother") {
@@ -98,10 +101,20 @@ get_gt <- function(bed, bed_dataset_indices, snp_index, metadata,
     stop("Invalid parent value. It should be either 'mother' or 'father'.")
   }
   
-  # Add phenotype and pcs to gt info 
-  gt <- merge(gt, metadata, by = "array") %>%
-    merge(phenotype, by = "array") %>%
-    merge(pcs, by = "array") 
+  # Keep only cycles from mothers that are in the discovery set 
+  if (dataset_type == "discovery") {
+    phenotype <- phenotype[phenotype$array %in% 
+                                       discovery_test[is_discovery == TRUE]$array,]
+  } else {
+    phenotype <- phenotype[phenotype$array %in% 
+                             discovery_test[is_discovery == FALSE]$array,]
+  }
+  
+  # Merge pcs for each phenotype 
+  merged_with_pcs <- merge(phenotype, pcs, by = "array", all.x = TRUE)
+  
+  # Merge in the gt info 
+  gt <- merge(merged_with_pcs, gt, by = "array", all.x = TRUE)
   
   # Assign egg and sperm donor ages 
   # get average egg donor age from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7530253/
@@ -139,8 +152,8 @@ make_model <- function(phenotype_name) {
   formula_string <- paste0(response_variable, " ~ (1 | array) + PC1 + PC2 + PC3 + ",
                            "PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + PC11 + ", 
                            "PC12 + PC13 + PC14 + PC15 + PC16 + PC17 + PC18 + ",
-                           "PC19 + PC20 + is.na(egg_donor) + ",
-                           "is.na(sperm_donor) + factor(year) + ", 
+                           "PC19 + PC20 + (egg_donor == 'yes') + ",
+                           "(sperm_donor == 'yes') + ", 
                            "scale(partner_age_cycle) + alt_count", 
                            collapse = "")
   
@@ -166,7 +179,7 @@ make_model <- function(phenotype_name) {
 # Calculate GWAS at each genomic site
 gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
                           bed_dataset_indices, metadata, phenotype_name, 
-                          parent, model) {
+                          parent, model, dataset_type) {
   
   # Get characteristics for each site
   snp_name <- colnames(bed)[snp_index]
@@ -174,12 +187,14 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
   
   # Get genotype info for each site
   gt <- get_gt(bed, bed_dataset_indices, snp_index, metadata, phenotype, pcs,
-               parent)
+               parent, dataset_type)
   
   # Make GWAS model
   formula_string <- model$formula_string
   family <- model$family
-  m1 <- glmer(formula_string, family = family, nAGQ = 0, data = gt) %>%
+  m1 <- glmer(formula_string, family = family, nAGQ = 0, 
+              control = glmerControl(optimizer = "nloptwrap"),
+              data = gt) %>%
     summary()
   
   # Get info for GWAS output
@@ -202,9 +217,26 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
   return(output)
 }
 
+
+# Define a function to process a chunk of SNPs
+gwas_per_chunk <- function(snp_indices, bed, bim, pcs, phenotype,
+                           bed_dataset_indices, metadata, phenotype_name, 
+                           parent, model, dataset_type) {
+  chunk_results <- lapply(snp_indices, function(snp_index) {
+    gwas_per_site(snp_index, bed, bim, pcs, phenotype, 
+                  bed_dataset_indices, metadata, 
+                  phenotype_name, parent, model, dataset_type)
+  })
+  
+  # Combine the results for all SNPs in this chunk
+  return(rbindlist(chunk_results))
+}
+
+
 # Run GWAS across dataset
 run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs, 
-                     phenotype, phenotype_name, parent, threads = 32) {
+                     phenotype, phenotype_name, parent, 
+                     threads = 32) {
   
   # Subset bed file corresponding to correct dataset type
   bed_dataset <- discovery_test_split(dataset_type, discovery_test, 
@@ -216,15 +248,19 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs,
   # Make GWAS model
   model <- make_model(phenotype_name)
   
-  # Calculate GWAS across each site
-  gwas_results <- pbmclapply(1:ncol(bed_dataset),
-                             function(x) gwas_per_site(x, bed_dataset, 
-                                                       bim, pcs, 
-                                                       phenotype,
-                                                       bed_dataset_indices,
-                                                       metadata, 
-                                                       phenotype_name, parent, 
-                                                       model),
+  # Calculate GWAS across each chunk of sites
+  snp_indices <- 1:ncol(bed_dataset)
+  snp_chunks <- split(snp_indices, ceiling(seq_along(snp_indices) / 100))
+  
+  # Run GWAS on each chunk 
+  gwas_results <- pbmclapply(snp_chunks,
+                             function(chunk) gwas_per_chunk(chunk, bed_dataset, 
+                                                            bim, pcs, 
+                                                            phenotype,
+                                                            bed_dataset_indices,
+                                                            metadata, 
+                                                            phenotype_name, parent, 
+                                                            model, dataset_type),
                              mc.cores = threads)
   # Bind output across all sites
   gwas_results_dt <-
@@ -246,13 +282,14 @@ discovery_test <- fread(discovery_test)
 pcs <- fread(pcs)
 colnames(pcs)[1] <- "array"
 phenotype <- fread(phenotype)
-colnames(phenotype)[1] <- "mother"
 bim <- fread(bim) %>%
   setnames(., c("chr", "snp_id", "drop", "pos", "ref", "alt"))
 
+
 # conduct GWAS across all sites
 gwas_results_dt <- run_gwas(dataset_type, discovery_test, metadata, bed, bim,
-                            pcs, phenotype, phenotype_name, parent, threads)
+                            pcs, phenotype, phenotype_name, parent,
+                            threads)
 
 # write to file
 write.table(gwas_results_dt, out_fname, append = FALSE, sep = "\t", dec = ".",

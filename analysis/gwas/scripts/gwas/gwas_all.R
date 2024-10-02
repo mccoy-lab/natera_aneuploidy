@@ -276,8 +276,7 @@ bim <- fread(bim) %>%
 
 # conduct GWAS across all sites
 gwas_results_dt <- run_gwas(dataset_type, discovery_test, metadata, bed, bim,
-                            pcs, phenotype, phenotype_name, parent, threads,
-                            model)
+                            pcs, phenotype, phenotype_name, parent, threads)
 
 # write to file
 write.table(gwas_results_dt, out_fname, append = FALSE, sep = "\t", dec = ".",
