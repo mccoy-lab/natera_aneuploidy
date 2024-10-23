@@ -180,40 +180,34 @@ rule discovery_validate_split:
 
 
 # -------- 2. Subset genetic data for each autosome to decrease computation time -------- #
-rule get_chrom_pos:
+rule get_chrom_pos_and_make_vcf_regions:
     input:
         input_vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
-    output:
-        chrom_mapfile="results/gwas/subsets/spectrum_imputed_chr{chrom}_chrom_pos.txt",
-    resources:
-        mem_mb="2G",
-    threads: 1
-    wildcard_constraints:
-        chrom = "|".join(map(str, range(1, 24))),
-    shell:
-        "bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.chrom_mapfile}"
-
-
-rule make_vcf_regions:
-    input:
-        chrom_mapfile=rules.get_chrom_pos.output.chrom_mapfile,
         get_regions="scripts/gwas/get_regions.py",
     output:
+        chrom_mapfile="results/gwas/subsets/spectrum_imputed_chr{chrom}_chrom_pos.txt",
         regions_file="results/gwas/subsets/spectrum_imputed_chr{chrom}_regions.txt",
     resources:
-        mem_mb="2G",
+    	time="0:30:00",
+        mem_mb="4G",
     params:
         nchunks=lambda wildcards: chunks_dict[f"chr{wildcards.chrom}"],
     threads: 1
     wildcard_constraints:
         chrom = "|".join(map(str, range(1, 24))),
     shell:
-        "python3 {input.get_regions} {params.nchunks} {input.chrom_mapfile} {output.regions_file}"
+    	"""
+    	# Extract chrom and pos
+        bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.chrom_mapfile}
+
+        # Get regions
+        python3 {input.get_regions} {params.nchunks} {input.chrom_mapfile} {output.regions_file}
+        """
 
 
 rule bed_split_vcf:
     input:
-        regions_file=rules.make_vcf_regions.output.regions_file,
+        regions_file=rules.get_chrom_pos_and_make_vcf_regions.output.regions_file,
         input_vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
     output:
         bcf="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bcf",
