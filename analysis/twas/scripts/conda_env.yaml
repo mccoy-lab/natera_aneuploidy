@@ -1,0 +1,17 @@
+name: metaxcan-env
+channels:
+  - defaults
+  - conda-forge
+  - bioconda
+dependencies:
+  - bgen_reader=3.0.2
+  - cyvcf2=0.20.0
+  - h5py=2.10.0
+  - git
+  - numpy=1.18.1
+  - patsy
+  - python=3.7
+  - pandas=0.25.3
+  - pyliftover=0.4.1 
+  - scipy=1.4.1
+  - statsmodels=0.11.1
