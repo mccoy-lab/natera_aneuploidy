@@ -66,6 +66,7 @@ rule call_ibd:
     input:
         vcf=lambda wildcards: vcf_dict[wildcards.chrom],
         genmap="results/genmaps/genmap.{chrom}.GRCh38.corrected.map",
+        hap_ibd="bin/hap-ibd.jar",
     output:
         ibd="results/natera_parents.{chrom}.ibd.gz",
         hbd="results/natera_parents.{chrom}.hbd.gz",
@@ -75,7 +76,7 @@ rule call_ibd:
     resources:
         mem_mb="16G",
     shell:
-        "java -Xmx16g -jar bin/hap-ibd.jar gt={input.vcf} map={input.genmap} out={params.outfix} nthreads={threads}"
+        "java -Xmx16g -jar {input.hap_ibd} gt={input.vcf} map={input.genmap} out={params.outfix} nthreads={threads}"
 
 
 rule refine_ends:
@@ -84,11 +85,14 @@ rule refine_ends:
         vcf=lambda wildcards: vcf_dict[wildcards.chrom],
         genmap="results/genmaps/genmap.{chrom}.GRCh38.corrected.map",
         ibd="results/natera_parents.{chrom}.ibd.gz",
+        ibd_ends="bin/ibd-ends.jar",
     output:
         ibd="results/natera_parents.{chrom}.refined_endpoints.ibd.gz",
     params:
         seed=42,
         outfix=lambda wildcards: f"results/natera_parents.{wildcards.chrom}.refined_endpoints",
     threads: 8
+    resources:
+        mem_mb="16G",
     shell:
-        "java -jar bin/ibd-ends.jar gt={input.vcf} ibd={input.ibd} map={input.genmap} out={params.outfix} seed={params.seed} nthreads={threads}"
+        "java -Xmx16g -jar {input.ibd_ends} gt={input.vcf} ibd={input.ibd} map={input.genmap} out={params.outfix} seed={params.seed} nthreads={threads}"
