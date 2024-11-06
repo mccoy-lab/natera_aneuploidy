@@ -22,10 +22,6 @@ for i, c in enumerate(range(1, 23)):
     )
 
 
-# Read in the aggregate metadata file
-# meta_df = pd.read_csv(metadata_file)
-
-
 rule all:
     input:
         expand(
@@ -38,11 +34,13 @@ rule download_hapIBD:
     output:
         "bin/hap-ibd.jar",
         "bin/ibd-ends.jar",
+        "bin/ibd-cluster.jar",
     shell:
         """
         mkdir -p bin/
         wget https://faculty.washington.edu/browning/hap-ibd.jar -O bin/hap-ibd.jar
         wget https://faculty.washington.edu/browning/ibd-ends.jar -O bin/ibd-ends.jar
+        wget https://faculty.washington.edu/browning/ibd-cluster.jar -O bin/ibd-cluster.jar
         """
 
 
@@ -96,3 +94,20 @@ rule refine_ends:
         mem_mb="16G",
     shell:
         "java -Xmx16g -jar {input.ibd_ends} gt={input.vcf} ibd={input.ibd} map={input.genmap} out={params.outfix} seed={params.seed} nthreads={threads}"
+
+
+rule ibd_cluster:
+    """Run IBD-clustering using the IBD-cluster method of Browning & Browning 2023."""
+    input:
+        vcf=lambda wildcards: vcf_dict[wildcards.chrom],
+        genmap="results/genmaps/genmap.{chrom}.GRCh38.corrected.map",
+        ibd_cluster="bin/ibd-cluster.jar",
+    output:
+        ibdclust="results/natera_parents.{wildcards.chrom}.ibd_cluster.ibdclust.gz",
+    threads: 8
+    resources:
+        mem_mb="16G",
+    params:
+        outfix=lambda wildcards: f"results/natera_parents.{wildcards.chrom}.ibd_cluster",
+    shell:
+        "java -Xmx16g -jar {input.ibd_cluster} gt={input.vcf} map={input.genmap} nthreads={threads} out={params.outfix}"
