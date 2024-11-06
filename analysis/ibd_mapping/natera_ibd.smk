@@ -1,31 +1,28 @@
 #!python3
 
 # ------- Workflow for looking at IBD-based mapping in the Natera dataset ------- #
-
-import numpy as np
-import pandas as pd
-
 import pickle, gzip
 from pathlib import Path
 from io import StringIO
 
 
-# ---- Parameters for inference in Natera Data ---- #
-metadata_file = "../../data/spectrum_metadata_merged.csv"
-
-# Create the VCF data dictionary for each chromosome ...
-vcf_dict = {}
-chroms = [f"chr{i}" for i in range(1, 23)]
-for i, c in enumerate(range(1, 23)):
-    vcf_dict[chroms[i]] = (
-        f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/eagle_phased_hg38/natera_parents.b38.chr{c}.vcf.gz"
-    )
+configfile: "config.yaml"
 
 
-rule all:
+rule call_ibd_total:
+    """Call and refine IBD segments across parents."""
     input:
         expand(
             "results/natera_parents.{chrom}.refined_endpoints.ibd.gz",
+            chrom=[f"chr{i}" for i in range(1, 23)],
+        ),
+
+
+rule call_ibd_clusters_total:
+    """Estimate IBD clusters within data to use for downstream association testing."""
+    input:
+        expand(
+            "results/natera_parents.{chrom}.ibd_cluster.ibdclust.gz",
             chrom=[f"chr{i}" for i in range(1, 23)],
         ),
 
@@ -62,7 +59,7 @@ rule download_genmaps:
 rule call_ibd:
     """Call IBD segments across all pairwise samples."""
     input:
-        vcf=lambda wildcards: vcf_dict[wildcards.chrom],
+        vcf=lambda wildcards: config["vcf"][wildcards.chrom],
         genmap="results/genmaps/genmap.{chrom}.GRCh38.corrected.map",
         hap_ibd="bin/hap-ibd.jar",
     output:
@@ -80,7 +77,7 @@ rule call_ibd:
 rule refine_ends:
     """Refine the ending placements of IBD-segments."""
     input:
-        vcf=lambda wildcards: vcf_dict[wildcards.chrom],
+        vcf=lambda wildcards: config["vcf"][wildcards.chrom],
         genmap="results/genmaps/genmap.{chrom}.GRCh38.corrected.map",
         ibd="results/natera_parents.{chrom}.ibd.gz",
         ibd_ends="bin/ibd-ends.jar",
@@ -99,11 +96,11 @@ rule refine_ends:
 rule ibd_cluster:
     """Run IBD-clustering using the IBD-cluster method of Browning & Browning 2023."""
     input:
-        vcf=lambda wildcards: vcf_dict[wildcards.chrom],
+        vcf=lambda wildcards: config["vcf"][wildcards.chrom],
         genmap="results/genmaps/genmap.{chrom}.GRCh38.corrected.map",
         ibd_cluster="bin/ibd-cluster.jar",
     output:
-        ibdclust="results/natera_parents.{wildcards.chrom}.ibd_cluster.ibdclust.gz",
+        ibdclust="results/natera_parents.{chrom}.ibd_cluster.ibdclust.gz",
     threads: 8
     resources:
         mem_mb="16G",
