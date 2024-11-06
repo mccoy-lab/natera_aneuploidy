@@ -14,7 +14,7 @@ rule call_ibd_total:
     input:
         expand(
             "results/natera_parents.{chrom}.refined_endpoints.ibd.gz",
-            chrom=[f"chr{i}" for i in range(1, 23)],
+            chrom=config["vcf"].keys(),
         ),
 
 
@@ -23,7 +23,7 @@ rule call_ibd_clusters_total:
     input:
         expand(
             "results/natera_parents.{chrom}.ibd_cluster.ibdclust.gz",
-            chrom=[f"chr{i}" for i in range(1, 23)],
+            chrom=config["vcf"].keys(),
         ),
 
 
@@ -45,7 +45,7 @@ rule download_genmaps:
     output:
         expand(
             "results/genmaps/genmap.{chrom}.GRCh38.corrected.map",
-            chrom=[f"chr{x}" for x in range(1, 23)],
+            chrom=config["vcf"].keys(),
         ),
     shell:
         """
@@ -105,6 +105,7 @@ rule ibd_cluster:
     resources:
         mem_mb="16G",
     params:
+        min_maf=0.01,
         outfix=lambda wildcards: f"results/natera_parents.{wildcards.chrom}.ibd_cluster",
     shell:
-        "java -Xmx16g -jar {input.ibd_cluster} gt={input.vcf} map={input.genmap} nthreads={threads} out={params.outfix}"
+        "java -Xmx16g -jar {input.ibd_cluster} gt={input.vcf} map={input.genmap} min-maf={params.min_maf} nthreads={threads} out={params.outfix}"
