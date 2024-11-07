@@ -106,6 +106,19 @@ rule ibd_cluster:
         mem_mb="16G",
     params:
         min_maf=0.01,
+        length=3,
         outfix=lambda wildcards: f"results/natera_parents.{wildcards.chrom}.ibd_cluster",
     shell:
-        "java -Xmx16g -jar {input.ibd_cluster} gt={input.vcf} map={input.genmap} min-maf={params.min_maf} nthreads={threads} out={params.outfix}"
+        "java -Xmx16g -jar {input.ibd_cluster} gt={input.vcf} map={input.genmap} min-maf={params.min_maf} length={params.length} nthreads={threads} out={params.outfix}"
+
+rule ibdclust_to_tped:
+    """Convert IBD clusters to TPED format."""
+    input:
+        ibd_clust=rules.ibd_cluster.output.ibdclust
+    output:
+        tped="results/natera_parents.{chrom}.ibd_cluster.tped",
+        tfam="results/natera_parents.{chrom}.ibd_cluster.tfam"
+    params:
+       clique_size = 5 
+    script:
+        "scripts/ibdclust_to_tped.py"
