@@ -36,7 +36,10 @@ if __name__ == "__main__":
                     info = line.split("\t")[:3]
                     genos = line.rstrip().split("\t")[3:]
                     tped_str = identify_ibd_clusters(
-                        genos, clique_size=int(snakemake.params["clique_size"])
+                        genos,
+                        clique_size=int(snakemake.params["clique_size"]),
+                        max_clique_size=int(snakemake.params["max_clique_size"]),
+                        max_n_cliques=int(snakemake.params["max_n_cliques"]),
                     )
                     for j, s in enumerate(tped_str):
                         assert len(s.split("\t")) == 2 * len(header)

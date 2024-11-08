@@ -121,14 +121,17 @@ rule ibdclust_to_tped:
         tfam=temp("results/natera_parents.{chrom}.ibd_cluster.tfam"),
     params:
         clique_size=5,
+        max_clique_size=100,
+        max_n_cliques=50,
     script:
         "scripts/ibdclust_to_tped.py"
 
 
 rule tped_to_bed:
+    """Convert tped to bed files."""
     input:
-        tped=temp("results/natera_parents.{chrom}.ibd_cluster.tped"),
-        tfam=temp("results/natera_parents.{chrom}.ibd_cluster.tfam"),
+        tped="results/natera_parents.{chrom}.ibd_cluster.tped",
+        tfam="results/natera_parents.{chrom}.ibd_cluster.tfam",
     output:
         "results/natera_parents.{chrom}.ibd_cluster.bed",
         "results/natera_parents.{chrom}.ibd_cluster.bim",
