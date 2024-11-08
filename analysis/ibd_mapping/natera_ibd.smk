@@ -22,7 +22,7 @@ rule call_ibd_clusters_total:
     """Estimate IBD clusters within data to use for downstream association testing."""
     input:
         expand(
-            "results/natera_parents.{chrom}.ibd_cluster.ibdclust.gz",
+            "results/natera_parents.{chrom}.ibd_cluster.bed",
             chrom=config["vcf"].keys(),
         ),
 
@@ -111,14 +111,29 @@ rule ibd_cluster:
     shell:
         "java -Xmx16g -jar {input.ibd_cluster} gt={input.vcf} map={input.genmap} min-maf={params.min_maf} length={params.length} nthreads={threads} out={params.outfix}"
 
+
 rule ibdclust_to_tped:
     """Convert IBD clusters to TPED format."""
     input:
-        ibd_clust=rules.ibd_cluster.output.ibdclust
+        ibd_clust=rules.ibd_cluster.output.ibdclust,
     output:
-        tped="results/natera_parents.{chrom}.ibd_cluster.tped",
-        tfam="results/natera_parents.{chrom}.ibd_cluster.tfam"
+        tped=temp("results/natera_parents.{chrom}.ibd_cluster.tped"),
+        tfam=temp("results/natera_parents.{chrom}.ibd_cluster.tfam"),
     params:
-       clique_size = 5 
+        clique_size=5,
     script:
         "scripts/ibdclust_to_tped.py"
+
+
+rule tped_to_bed:
+    input:
+        tped=temp("results/natera_parents.{chrom}.ibd_cluster.tped"),
+        tfam=temp("results/natera_parents.{chrom}.ibd_cluster.tfam"),
+    output:
+        "results/natera_parents.{chrom}.ibd_cluster.bed",
+        "results/natera_parents.{chrom}.ibd_cluster.bim",
+        "results/natera_parents.{chrom}.ibd_cluster.fam",
+    params:
+        outfix=lambda wildcards: f"results/natera_parents.{wildcards.chrom}.ibd_cluster",
+    shell:
+        "plink --tped {input.tped} --tfam {input.tfam} --make-bed --out {params.outfix}"
