@@ -21,10 +21,7 @@ rule call_ibd_total:
 rule call_ibd_clusters_total:
     """Estimate IBD clusters within data to use for downstream association testing."""
     input:
-        expand(
-            "results/natera_parents.{chrom}.ibd_cluster.bed",
-            chrom=config["vcf"].keys(),
-        ),
+        "results/natera_parents.autosomes.ibd_clusters.bed",
 
 
 rule download_hapIBD:
@@ -133,10 +130,66 @@ rule tped_to_bed:
         tped="results/natera_parents.{chrom}.ibd_cluster.tped",
         tfam="results/natera_parents.{chrom}.ibd_cluster.tfam",
     output:
-        "results/natera_parents.{chrom}.ibd_cluster.bed",
-        "results/natera_parents.{chrom}.ibd_cluster.bim",
-        "results/natera_parents.{chrom}.ibd_cluster.fam",
+        temp("results/natera_parents.{chrom}.ibd_cluster.bed"),
+        temp("results/natera_parents.{chrom}.ibd_cluster.bim"),
+        temp("results/natera_parents.{chrom}.ibd_cluster.fam"),
     params:
         outfix=lambda wildcards: f"results/natera_parents.{wildcards.chrom}.ibd_cluster",
+    resources:
+        mem_mb="8G",
+    threads: 8
     shell:
-        "plink --tped {input.tped} --tfam {input.tfam} --make-bed --out {params.outfix}"
+        "plink --tped {input.tped} --tfam {input.tfam} --memory 8000 --threads {threads} --make-bed --out {params.outfix}"
+
+
+rule create_mergelist:
+    """Merge all autosomal BED files."""
+    input:
+        bedfiles=expand(
+            "results/natera_parents.{chrom}.ibd_cluster.bed",
+            chrom=config["vcf"].keys(),
+        ),
+        bimfiles=expand(
+            "results/natera_parents.{chrom}.ibd_cluster.bim",
+            chrom=config["vcf"].keys(),
+        ),
+        famfiles=expand(
+            "results/natera_parents.{chrom}.ibd_cluster.fam",
+            chrom=config["vcf"].keys(),
+        ),
+    output:
+        bfile_merge=temp("results/natera_parents.merge.autosomes.files.txt"),
+    run:
+        with open(output["bfile_merge"], "w+") as out:
+            for chrom in config["vcf"].keys():
+                out.write(
+                    f"results/natera_parents.{chrom}.ibd_cluster.bed results/natera_parents.{chrom}.ibd_cluster.bim results/natera_parents.{chrom}.ibd_cluster.fam\n"
+                )
+
+
+rule merge_bfile:
+    input:
+        bedfiles=expand(
+            "results/natera_parents.{chrom}.ibd_cluster.bed",
+            chrom=config["vcf"].keys(),
+        ),
+        bimfiles=expand(
+            "results/natera_parents.{chrom}.ibd_cluster.bim",
+            chrom=config["vcf"].keys(),
+        ),
+        famfiles=expand(
+            "results/natera_parents.{chrom}.ibd_cluster.fam",
+            chrom=config["vcf"].keys(),
+        ),
+        bfile_merge="results/natera_parents.merge.autosomes.files.txt",
+    output:
+        bed="results/natera_parents.autosomes.ibd_clusters.bed",
+        bim="results/natera_parents.autosomes.ibd_clusters.bim",
+        fam="results/natera_parents.autosomes.ibd_clusters.fam",
+    params:
+        outfix="results/natera_parents.autosomes.ibd_clusters",
+    threads: 12
+    resources:
+        mem_mb="8G",
+    shell:
+        "plink --bed {input.bedfiles[0]} --bim {input.bimfiles[0]} --fam {input.famfiles[0]} --threads {threads} --memory 8000 --merge-list {input.bfile_merge} --make-bed --out {params.outfix}"
