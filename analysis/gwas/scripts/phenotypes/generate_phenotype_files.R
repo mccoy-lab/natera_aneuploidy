@@ -5,6 +5,12 @@ library(data.table)
 library(tidyr)
 library(dplyr)
 
+# =================
+# author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
+# email: scarios1@jhu.edu
+# 2024
+# =================
+
 # Usage:
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/generate_phenotype_files.R \
 # /data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz \

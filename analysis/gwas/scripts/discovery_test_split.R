@@ -2,6 +2,12 @@ library(data.table)
 library(dplyr)
 library(tidyr)
 
+# =================
+# author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
+# email: scarios1@jhu.edu
+# 2024
+# =================
+
 # Usage: 
 # ./discovery_test_split.R \
 # "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadata_merged.csv" \
