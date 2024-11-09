@@ -72,7 +72,10 @@ rule call_ibd:
 
 
 rule refine_ends:
-    """Refine the ending placements of IBD-segments."""
+    """Refine the ending placements of IBD-segments to improve resolution beyond SNP array density. 
+    The ibd-ends program estimates a probability distribution for each endpoint of an identity-by-descent (IBD) segment. 
+    The input IBD segments for the ibd-ends program are output IBD segments from the hap-ibd program.
+    """
     input:
         vcf=lambda wildcards: config["vcf"][wildcards.chrom],
         genmap="results/genmaps/genmap.{chrom}.GRCh38.corrected.map",
@@ -91,7 +94,10 @@ rule refine_ends:
 
 
 rule ibd_cluster:
-    """Run IBD-clustering using the IBD-cluster method of Browning & Browning 2023."""
+    """Run IBD-clustering using the IBD-cluster method of Browning & Browning 2024.
+    
+    DOI: https://doi.org/10.1016/j.ajhg.2024.02.015
+    """
     input:
         vcf=lambda wildcards: config["vcf"][wildcards.chrom],
         genmap="results/genmaps/genmap.{chrom}.GRCh38.corrected.map",
