@@ -1,6 +1,12 @@
 ## For top hits from regular model, run GWAS again using a linear mixed model
 ## GWAS for phenotypes from Natera
 
+# =================
+# author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
+# email: scarios1@jhu.edu
+# 2024
+# =================
+
 # load libraries
 library(data.table)
 library(BEDMatrix)

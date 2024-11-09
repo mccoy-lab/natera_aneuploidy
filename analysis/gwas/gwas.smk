@@ -6,6 +6,12 @@
 # Optional: add -n for a dry run
 # Executed from /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
 
+# =================
+# author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
+# email: scarios1@jhu.edu
+# 2024
+# =================
+
 # -------- Parameters ------- #
 configfile: "config.yaml"
 

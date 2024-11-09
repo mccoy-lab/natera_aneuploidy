@@ -2,6 +2,12 @@
 # divides the data into a specified number of chunks, and writes the chunk information to an output file. 
 # Each chunk includes the chromosome and position range for the lines in that chunk.
 
+# =================
+# author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
+# email: scarios1@jhu.edu
+# 2024
+# =================
+
 # Usage:
 #     python3 create_chunks.py <num_chunks> <input_mapfile> <outfilename>
 
