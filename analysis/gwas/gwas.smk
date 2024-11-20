@@ -2,7 +2,7 @@
 
 # Usage: conda activate natera-aneuploidy-gwas \ ml snakemake
 # Usage on dev node: nohup snakemake -p --cores 48 -j 12 --snakefile gwas.smk > nohup_date.out 2>&1 &
-# Usage on rockfish: nohup snakemake -p --snakefile gwas.smk -j 600 --profile ~/code/rockfish_smk_profile/ &
+# Usage on rockfish: nohup snakemake -p --snakefile gwas.smk -j 600 --profile ~/code/rockfish_smk_profile/ --batch merge_lmm_subsets=1/4 &
 # Optional: add -n for a dry run
 # Executed from /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/
 
@@ -49,10 +49,17 @@ phenotypes = [
     "maternal_meiotic_aneuploidy",
     "haploidy",
     "triploidy",
+    "chr15_aneuploidy",
     "chr16_aneuploidy",
     "chr21_aneuploidy",
     "chr22_aneuploidy",
     "maternal_meiotic_aneuploidy_age_interaction"
+]
+single_chr_phenotypes = [
+	"chr15_aneuploidy",
+    "chr16_aneuploidy",
+    "chr21_aneuploidy",
+    "chr22_aneuploidy"
 ]
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
@@ -74,7 +81,7 @@ rule all:
     input:
         expand(
             "results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype="embryo_count",
+            phenotype=single_chr_phenotypes,
             parent="mother",
             dataset_type=dataset_type,
         ),
@@ -207,7 +214,7 @@ rule get_chrom_pos_and_make_vcf_regions:
         bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.chrom_mapfile}
 
         # Get regions
-        python3 {input.get_regions} {params.nchunks} {input.chrom_mapfile} {output.regions_file}
+        python3 {input.get_regions} {params.nchunks} {output.chrom_mapfile} {output.regions_file}
         """
 
 
@@ -215,6 +222,7 @@ rule bed_split_vcf:
     input:
         regions_file=rules.get_chrom_pos_and_make_vcf_regions.output.regions_file,
         input_vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
+        plink_bcf="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/plink_bcf.sh"
     output:
         bcf="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bcf",
         bed="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bed",
@@ -234,7 +242,7 @@ rule bed_split_vcf:
         """
         region=$(awk -v n={wildcards.chunk} "NR==n+1 {{print}}" {input.regions_file})
         bcftools view -r $region -Ob {input.input_vcf} > {output.bcf}
-        plink --memory 3000 --bcf {output.bcf} --double-id --allow-extra-chr --make-bed --out {params.outfix}
+        bash {input.plink_bcf} {output.bcf} {params.outfix}
         """
 
 
@@ -249,7 +257,7 @@ rule generate_phenotypes:
     output:
         phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
     wildcard_constraints:
-        phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy|chr16_aneuploidy|chr21_aneuploidy|chr22_aneuploidy|maternal_meiotic_aneuploidy_age_interaction",
+        phenotype="embryo_count|maternal_age|maternal_meiotic_aneuploidy|haploidy|triploidy|chr15_aneuploidy|chr16_aneuploidy|chr21_aneuploidy|chr22_aneuploidy|maternal_meiotic_aneuploidy_age_interaction",
         parent="mother|father",
     resources:
         time="0:10:00",
