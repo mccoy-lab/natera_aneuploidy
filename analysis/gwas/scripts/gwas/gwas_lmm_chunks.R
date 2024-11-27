@@ -295,12 +295,19 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs,
                                                             model, dataset_type),
                              mc.cores = threads)
   # Bind output across all sites
-  gwas_results_dt <-
-    rbindlist(gwas_results[unlist(map(gwas_results, is.data.table))]) %>%
-    .[!is.na(p.value)] %>%
-    .[, c("snp_id", "effect_allele") := tstrsplit(snp, "_", fixed = TRUE)] %>%
-    merge(., bim[, -"snp_id"], by = "pos") %>%
-    setorder(., p.value)
+  # If age interaction model, only rbind
+  if (grepl("age_interaction", phenotype_name)) {
+    gwas_results_dt <- rbindlist(gwas_results[unlist(map(gwas_results, is.data.table))]) %>%
+      setorder(., p.value_comparison)
+  } else {
+    # For other phenotypes, bind with other information  
+    gwas_results_dt <-
+      rbindlist(gwas_results[unlist(map(gwas_results, is.data.table))]) %>%
+      .[!is.na(p.value)] %>%
+      .[, c("snp_id", "effect_allele") := tstrsplit(snp, "_", fixed = TRUE)] %>%
+      merge(., bim[, -"snp_id"], by = "pos") %>%
+      setorder(., p.value)
+  }
   
   # Return GWAS output across all sites
   return(gwas_results_dt)
