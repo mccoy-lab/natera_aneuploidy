@@ -61,6 +61,8 @@ single_chr_phenotypes = [
     "chr21_aneuploidy",
     "chr22_aneuploidy"
 ]
+
+phenotype = "maternal_meiotic_aneuploidy_age_interaction"
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
 chroms = range(1, 24)
@@ -81,7 +83,7 @@ rule all:
     input:
         expand(
             "results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype=single_chr_phenotypes,
+            phenotype=phenotype,
             parent="mother",
             dataset_type=dataset_type,
         ),
