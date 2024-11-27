@@ -202,10 +202,10 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
   # Make GWAS model
   formula_string <- model$formula_string
   family <- model$family
-  m1 <- glmer(formula_string, family = family, nAGQ = 0, 
-              control = glmerControl(optimizer = "nloptwrap"),
-              data = gt) %>%
-    summary()
+  model1 <- glmer(formula_string, family = family, nAGQ = 0, 
+                  control = glmerControl(optimizer = "nloptwrap"),
+                  data = gt)
+  m1 <- model1 %>% summary()
   
   # Get info for GWAS output
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
