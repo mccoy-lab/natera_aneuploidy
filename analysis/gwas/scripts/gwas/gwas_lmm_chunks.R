@@ -169,16 +169,20 @@ make_model <- function(phenotype_name) {
                              collapse = "")
   }
   
-  # If the phenotype includes "age_interaction", change the alt_count and 
-  # maternal age to be interacting 
+  # If the phenotype includes "age_interaction", create another formula in 
+  # which there's an interaction effect between age and alt_count 
   if (grepl("age_interaction", phenotype_name)) {
-    formula_string <- 
+    formula_string2 <- 
       gsub("alt_count \\+ scale\\(patient_age_cycle\\)", 
            "alt_count * scale(patient_age_cycle)", formula_string)
+  } else {
+    # if not age interaction just keep formula_string2 as is
+    formula_string2 <- formula_string
   }
   
-  # Return model for use in GWAS
-  return(list(formula_string = formula_string, family = family))
+  # Return model for use in GWAS, including age interaction formula if necessary
+  return(list(formula_string = formula_string, family = family,
+              formula_string2 = formula_string2))
 }
 
 
