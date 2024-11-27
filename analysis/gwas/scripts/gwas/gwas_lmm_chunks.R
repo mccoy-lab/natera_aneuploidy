@@ -244,6 +244,7 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
                          pos = snp_pos,
                          p.value_age_interaction = unlist(coef2[term == "alt_count:scale(patient_age_cycle)", 5]),
                          p.value_comparison = model_comparison[2,8])
+  }
   
   # Return GWAS for a given site
   return(output)
@@ -282,7 +283,8 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs,
   
   # Calculate GWAS across each chunk of sites
   snp_indices <- 1:ncol(bed_dataset)
-  snp_chunks <- split(snp_indices, ceiling(seq_along(snp_indices) / 100))
+  #snp_chunks <- split(snp_indices, ceiling(seq_along(snp_indices) / 100))
+  snp_chunks <- c(1:3)
   
   # Run GWAS on each chunk 
   gwas_results <- pbmclapply(snp_chunks,
@@ -333,3 +335,4 @@ gwas_results_dt <- run_gwas(dataset_type, discovery_test, metadata, bed, bim,
 # write to file
 write.table(gwas_results_dt, out_fname, append = FALSE, sep = "\t", dec = ".",
             row.names = FALSE, col.names = FALSE, quote = FALSE)
+
