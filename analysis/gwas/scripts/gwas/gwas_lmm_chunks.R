@@ -219,13 +219,6 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
                        p.value = unlist(coef[term == "alt_count", 5]),
                        af = alt_af)
   
-  # For age interaction, get the statistics from that test specifically
-  if (phenotype_name == "maternal_meiotic_aneuploidy_age_interaction") {
-       output$age_interaction_beta <- unlist(coef[term == "alt_count:scale(patient_age_cycle)", 2])
-       output$age_interaction_se <- unlist(coef[term == "alt_count:scale(patient_age_cycle)", 3])
-       output$age_interaction_t <- unlist(coef[term == "alt_count:scale(patient_age_cycle)", 4])
-       output$age_interaction_p.value <- unlist(coef[term == "alt_count:scale(patient_age_cycle)", 5])
-   }
   
   # Return GWAS for a given site
   return(output)
