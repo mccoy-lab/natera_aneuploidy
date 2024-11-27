@@ -223,6 +223,27 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
                        p.value = unlist(coef[term == "alt_count", 5]),
                        af = alt_af)
   
+  # For age interaction, do the GWAS for the age interaction model as well, 
+  # then do the ANOVA to compare the models and bind the output 
+  if (grepl("age_interaction", phenotype_name)) {
+    # Make GWAS model for age interaction 
+    formula_string2 <- model$formula_string2
+    model2 <- glmer(formula_string2, family = family, nAGQ = 0, 
+                    control = glmerControl(optimizer = "nloptwrap"),
+                    data = gt) 
+    m2 <- model2 %>% 
+      summary()
+    # Get p-value for age-altcount interaction 
+    coef2 <- data.table(term = rownames(m2$coefficients), m2$coefficients)
+    
+    # Run ANOVA to compare the two models 
+    model_comparison <- anova(model1, model2)
+    
+    # Output the data 
+    output <- data.table(snp = snp_name,
+                         pos = snp_pos,
+                         p.value_age_interaction = unlist(coef2[term == "alt_count:scale(patient_age_cycle)", 5]),
+                         p.value_comparison = model_comparison[2,8])
   
   # Return GWAS for a given site
   return(output)
