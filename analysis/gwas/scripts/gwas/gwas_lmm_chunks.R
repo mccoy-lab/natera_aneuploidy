@@ -283,8 +283,7 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs,
   
   # Calculate GWAS across each chunk of sites
   snp_indices <- 1:ncol(bed_dataset)
-  #snp_chunks <- split(snp_indices, ceiling(seq_along(snp_indices) / 100))
-  snp_chunks <- c(1:3)
+  snp_chunks <- split(snp_indices, ceiling(seq_along(snp_indices) / 100))
   
   # Run GWAS on each chunk 
   gwas_results <- pbmclapply(snp_chunks,
