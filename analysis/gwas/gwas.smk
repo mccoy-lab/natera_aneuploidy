@@ -77,7 +77,7 @@ chroms = range(1, 24)
 #             "results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
 #             phenotype=phenotypes,
 #             parent=parents,
-#             dataset_type=dataset_type,
+#             dataset_type="discovery",
 #         ),
 rule all:
     input:
@@ -85,7 +85,7 @@ rule all:
             "results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
             phenotype=phenotype,
             parent="mother",
-            dataset_type=dataset_type,
+            dataset_type="discovery",
         ),
 
 
@@ -93,7 +93,7 @@ rule all:
 rule vcf2pgen:
     """Convert imputed VCF files to PGEN format for use in KING and PCA"""
     input:
-        input_vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
+        input_vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/spectrum_imputed_chr{chrom}_rehead_filter.cpra.vcf.gz",
     output:
         pgen=temp("results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.pgen"),
         psam=temp("results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.psam"),
@@ -166,7 +166,7 @@ rule king_related_individuals:
         psam=rules.merge_full_pgen.output.psam,
         pvar=rules.merge_full_pgen.output.pvar,
     output:
-        king_include=temp("results/gwas/intermediate_files/king_result.king.cutoff.in.id"),
+        king_include="results/gwas/intermediate_files/king_result.king.cutoff.in.id",
         king_exclude="results/gwas/intermediate_files/king_result.king.cutoff.out.id",
     resources:
         time="6:00:00",
@@ -197,7 +197,7 @@ rule discovery_validate_split:
 # -------- 2. Subset genetic data for each autosome to decrease computation time -------- #
 rule get_chrom_pos_and_make_vcf_regions:
     input:
-        input_vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
+        input_vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/spectrum_imputed_chr{chrom}_rehead_filter.cpra.vcf.gz",
         get_regions="scripts/gwas/get_regions.py",
     output:
         chrom_mapfile="results/gwas/subsets/spectrum_imputed_chr{chrom}_chrom_pos.txt",
@@ -223,7 +223,7 @@ rule get_chrom_pos_and_make_vcf_regions:
 rule bed_split_vcf:
     input:
         regions_file=rules.get_chrom_pos_and_make_vcf_regions.output.regions_file,
-        input_vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101823_cpra/spectrum_imputed_chr{chrom}_rehead_filter_cpra.vcf.gz",
+        input_vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/spectrum_imputed_chr{chrom}_rehead_filter.cpra.vcf.gz",
         plink_bcf="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/plink_bcf.sh"
     output:
         bcf="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bcf",
