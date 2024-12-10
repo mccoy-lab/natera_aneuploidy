@@ -169,16 +169,20 @@ make_model <- function(phenotype_name) {
                              collapse = "")
   }
   
-  # If the phenotype includes "age_interaction", change the alt_count and 
-  # maternal age to be interacting 
+  # If the phenotype includes "age_interaction", create another formula in 
+  # which there's an interaction effect between age and alt_count 
   if (grepl("age_interaction", phenotype_name)) {
-    formula_string <- 
+    formula_string2 <- 
       gsub("alt_count \\+ scale\\(patient_age_cycle\\)", 
            "alt_count * scale(patient_age_cycle)", formula_string)
+  } else {
+    # if not age interaction just keep formula_string2 as is
+    formula_string2 <- formula_string
   }
   
-  # Return model for use in GWAS
-  return(list(formula_string = formula_string, family = family))
+  # Return model for use in GWAS, including age interaction formula if necessary
+  return(list(formula_string = formula_string, family = family,
+              formula_string2 = formula_string2))
 }
 
 
@@ -198,10 +202,10 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
   # Make GWAS model
   formula_string <- model$formula_string
   family <- model$family
-  m1 <- glmer(formula_string, family = family, nAGQ = 0, 
-              control = glmerControl(optimizer = "nloptwrap"),
-              data = gt) %>%
-    summary()
+  model1 <- glmer(formula_string, family = family, nAGQ = 0, 
+                  control = glmerControl(optimizer = "nloptwrap"),
+                  data = gt)
+  m1 <- model1 %>% summary()
   
   # Get info for GWAS output
   coef <- data.table(term = rownames(m1$coefficients), m1$coefficients)
@@ -219,13 +223,28 @@ gwas_per_site <- function(snp_index, bed, bim, pcs, phenotype,
                        p.value = unlist(coef[term == "alt_count", 5]),
                        af = alt_af)
   
-  # For age interaction, get the statistics from that test specifically
-  if (phenotype_name == "maternal_meiotic_aneuploidy_age_interaction") {
-       output$age_interaction_beta <- unlist(coef[term == "alt_count:scale(patient_age_cycle)", 2])
-       output$age_interaction_se <- unlist(coef[term == "alt_count:scale(patient_age_cycle)", 3])
-       output$age_interaction_t <- unlist(coef[term == "alt_count:scale(patient_age_cycle)", 4])
-       output$age_interaction_p.value <- unlist(coef[term == "alt_count:scale(patient_age_cycle)", 5])
-   }
+  # For age interaction, do the GWAS for the age interaction model as well, 
+  # then do the ANOVA to compare the models and bind the output 
+  if (grepl("age_interaction", phenotype_name)) {
+    # Make GWAS model for age interaction 
+    formula_string2 <- model$formula_string2
+    model2 <- glmer(formula_string2, family = family, nAGQ = 0, 
+                    control = glmerControl(optimizer = "nloptwrap"),
+                    data = gt) 
+    m2 <- model2 %>% 
+      summary()
+    # Get p-value for age-altcount interaction 
+    coef2 <- data.table(term = rownames(m2$coefficients), m2$coefficients)
+    
+    # Run ANOVA to compare the two models 
+    model_comparison <- anova(model1, model2)
+    
+    # Output the data 
+    output <- data.table(snp = snp_name,
+                         pos = snp_pos,
+                         p.value_age_interaction = unlist(coef2[term == "alt_count:scale(patient_age_cycle)", 5]),
+                         p.value_comparison = model_comparison[2,8])
+  }
   
   # Return GWAS for a given site
   return(output)
@@ -277,12 +296,19 @@ run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs,
                                                             model, dataset_type),
                              mc.cores = threads)
   # Bind output across all sites
-  gwas_results_dt <-
-    rbindlist(gwas_results[unlist(map(gwas_results, is.data.table))]) %>%
-    .[!is.na(p.value)] %>%
-    .[, c("snp_id", "effect_allele") := tstrsplit(snp, "_", fixed = TRUE)] %>%
-    merge(., bim[, -"snp_id"], by = "pos") %>%
-    setorder(., p.value)
+  # If age interaction model, only rbind
+  if (grepl("age_interaction", phenotype_name)) {
+    gwas_results_dt <- rbindlist(gwas_results[unlist(map(gwas_results, is.data.table))]) %>%
+      setorder(., p.value_comparison)
+  } else {
+    # For other phenotypes, bind with other information  
+    gwas_results_dt <-
+      rbindlist(gwas_results[unlist(map(gwas_results, is.data.table))]) %>%
+      .[!is.na(p.value)] %>%
+      .[, c("snp_id", "effect_allele") := tstrsplit(snp, "_", fixed = TRUE)] %>%
+      merge(., bim[, -"snp_id"], by = "pos") %>%
+      setorder(., p.value)
+  }
   
   # Return GWAS output across all sites
   return(gwas_results_dt)
@@ -297,7 +323,7 @@ pcs <- fread(pcs)
 colnames(pcs)[1] <- "array"
 phenotype <- fread(phenotype)
 bim <- fread(bim) %>%
-  setnames(., c("chr", "snp_id", "drop", "pos", "ref", "alt"))
+  setnames(., c("chr", "snp_id", "drop", "pos", "a1", "a2"))
 
 
 # conduct GWAS across all sites
@@ -308,3 +334,4 @@ gwas_results_dt <- run_gwas(dataset_type, discovery_test, metadata, bed, bim,
 # write to file
 write.table(gwas_results_dt, out_fname, append = FALSE, sep = "\t", dec = ".",
             row.names = FALSE, col.names = FALSE, quote = FALSE)
+
