@@ -22,7 +22,7 @@ rule rename_summary_stats:
 	input:
 		summary_stats=lambda wildcards: config["summary_stats"][wildcards.name]["file"]
 	outputs:
-		summary_stats_renamed="/results/intermediate_files/" # can be made temp 
+		summary_stats_renamed=temp(lambda wildcards: f"/results/intermediate_files/{wildcards.name}_renamed_summary_stats.tsv")
 	params:
 		filetype=lambda wildcards: config["summary_stats"][wildcards.name]["type"],
 	run:
@@ -46,8 +46,8 @@ rule cpra2rsid:
 		dbsnp=config["dbsnp"],
 		dictionary=rules.process_dbsnp.output.cpra2rsid_info,
 	output:
-		summary_stats_cpra_intermediate=
-		summary_stats_cpra="/results/intermediate_files/"
+		summary_stats_cpra_intermediate=temp(lambda wildcards: f"/results/intermediate_files/{wildcards.name}_summary_stats_cpra_intermediate.tsv")
+		summary_stats_cpra=lambda wildcards: f"/results/intermediate_files/{wildcards.name}_summary_stats_cpra.tsv"
 	run:
 		if params.filetype in {"recombination", "aneuploidy"}:
 			shell('python3 {input.cpra2rsid_exec} --sumstats {input.summary_stats} --dbsnp {input.dbsnp} --dictionary {input.dictionary} --output {output.summary_stats_cpra_intermediate}')
@@ -65,7 +65,7 @@ rule create_ldscores:
 		ldsc_exec=config["ldsc_exec"],
 		imputed_parents=config["imputed_parents"],
 	output:
-		ld_score="/results/intermediate_files/" # once for each chromosome (maybe use as an outfix)
+		ld_score=lambda wildcards: f"/results/ld_scores/LDscore.{wildcards.chrom}"
 	# output: LD scores for all chromosomes 
 	params:
 		window=1000
