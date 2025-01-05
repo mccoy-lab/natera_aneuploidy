@@ -3,6 +3,11 @@
 
 configfile: "config.yaml"
 
+# Create all heritability and genetic correlation results 
+rule all:
+    input:
+        "results/test/genetic_correlation_merged.txt"
+
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
 
@@ -102,12 +107,10 @@ rule munge_summary_stats:
 		"""
 
 
-# -------- Step 3: Calculate heritability and genetic correlation on all summary stats ------- #
+# -------- Step 3: Calculate heritability on all summary stats ------- #
 
-# run heritability on each summary stat 
-# could make two different rules, one to use the calculated and one to use the downloaded 
-# but i think i can define the ld scores in the config
 rule heritability:
+	"""Calculate heritability of each trait."""
 	input:
 		ldsc_exec=config["ldsc_exec"],
 		summary_stats=rules.munge_summary_stats.output.summary_stats_munged,
@@ -125,32 +128,66 @@ rule heritability:
 		"""
 
 
-# run genetic correlation for aneuploidy and recombination 
-rule gc_aneu_recomb: 
-	# input: summary stats (output from munged)
-	# input: calculated LD scores
-	# output: one file for each run 
-	shell:
-		"""
-		# aneu; rec1; rec2; rec3
-		# rec1; rec2; rec3
-		# rec2; rec3
-		"""
+# -------- Step 4: Calculate genetic correlation on relevant pairs of summary stats ------- #
+
+from itertools import combinations
+
+# Create pairings for each set of summary stats based on population 
+def pairwise_comparisons(config, population_filter):
+    # Filter traits based on the specified population
+    traits = [
+        trait for trait, details in config["summary_stats"].items()
+        if details["population"] == population_filter
+    ]
+    
+    # Generate all pairwise combinations
+    pairwise = list(combinations(traits, 2))
+    
+    # Skip pairings where both traits have population "European"
+    # and both types are "aneuploidy" or "recombination"
+    if population_filter == "European":
+        pairwise = [
+            (t1, t2) for t1, t2 in pairwise
+            if not (
+                config["summary_stats"][t1]["type"] in {"aneuploidy", "recombination"} and
+                config["summary_stats"][t2]["type"] in {"aneuploidy", "recombination"}
+            )
+        ]
+    return pairwise
 
 
-# run genetic correlation for other traits 
-# this will use the GWAS on European only 
-rule gc_published: 
-	# input: summary stats (output from munged)
-	# input: downloaded LD scores 
-	# output: one file for each run
-	shell:
-		"""
-		# aneu; PL1; PL2; infert1
-		# recomb; PL1; PL2; infert1
-		# PL1; PL2; infert1
-		# PL2; infert1
-		"""
+# Generate pairwise comparisons for each population
+# Natera summary stats (population all)
+pairwise_all = pairwise_comparisons(config, "All")
+# Pairings between published and with European-specific subsets of Natera 
+pairwise_european = pairwise_comparisons(config, "European")
+
+
+rule pairwise_genetic_correlation:
+    input:
+        trait1_file=lambda wildcards: config["summary_stats"][wildcards.trait1]["file"],
+        trait2_file=lambda wildcards: config["summary_stats"][wildcards.trait2]["file"],
+        ld_scores=lambda wildcards: config["summary_stats"][wildcards.trait1]["ld_scores"]
+    output:
+        "results/test/{trait1}-{trait2}.txt"
+    shell:
+        "cat {input.trait1_file} {input.trait2_file} {input.ld_scores} > {output}"
+
+
+rule merge_genetic_correlation:
+    input:
+        # Combine outputs from the pairwise comparisons
+        expand("results/test/{trait1}-{trait2}.txt", 
+               trait1=[t1 for t1, t2 in pairwise_all], 
+               trait2=[t2 for t1, t2 in pairwise_all]) +
+        expand("results/test/{trait1}-{trait2}.txt", 
+               trait1=[t1 for t1, t2 in pairwise_european], 
+               trait2=[t2 for t1, t2 in pairwise_european])
+    output:
+        "results/test/genetic_correlation_merged.txt"
+    shell:
+        "cat {input} > {output}"
+
 
 
 
