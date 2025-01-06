@@ -2,11 +2,10 @@ dbsnp: "/scratch4/rmccoy22/abiddan1/dbsnp/dbSNP151.hg38.vcf.gz"
 cpra2rsid_exec: "/scripts/cpra2rsid.py"
 ldsc_exec: "/scratch16/rmccoy22/scarios1/sandbox/genetic_correlation/ldsc/ldsc.py"
 munge_exec: "/scratch16/rmccoy22/scarios1/sandbox/genetic_correlation/ldsc/munge_sumstats.py"
-imputed_parents: "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/plink_files/spectrum_imputed_chr22_rehead_filter_plink"
+chromosomes: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"]
+imputed_parents_template: "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/plink_files/spectrum_imputed_chr{chrom}_rehead_filter_plink"
+#imputed_parents: "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/plink_files/spectrum_imputed_chr22_rehead_filter_plink"
 allele_list: "analysis_files/w_hm3.snplist"
-#published_ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
-#published_ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.13.l2.M"
-#calculated_ld_scores: "/results/ld_scores/LDscore.@"
 published_summary_stats: "/scratch16/rmccoy22/abiddan1/prs_aneuploidy/analysis/pgs_calc/results"
 
 summary_stats:

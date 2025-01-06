@@ -84,12 +84,15 @@ rule cpra2rsid:
         fi
         """
 
+# Create LD score for each chromosome 1-23
+chromosomes = [str(i) for i in range(1, 24)]  
+
 
 rule create_ldscores: 
     """Calculate LD Scores for the Natera dataset for each chromosome."""
     input:
         ldsc_exec=config["ldsc_exec"],
-        imputed_parents=config["imputed_parents"]
+        imputed_parents=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom)
     output:
         ld_score="/results/ld_scores/LDscore.{chrom}"
     resources:
