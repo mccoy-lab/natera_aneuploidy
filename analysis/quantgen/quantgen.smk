@@ -98,7 +98,7 @@ rule create_ldscores:
     params:
         window=1000
     conda:
-        "envs/ldsc.yaml"
+        "ldsc_env.yaml"
     shell:
         """
         python2 {input.ldsc_exec} --bfile {input.imputed_parents} --l2 --ld-wind-kb {params.window} --out {output.ld_score}
@@ -123,7 +123,7 @@ rule munge_summary_stats:
         num_individuals=lambda wildcards: config["summary_stats"][wildcards.name]["N"],
         chunksize=50000
     conda:
-        "envs/ldsc.yaml"
+        "ldsc_env.yaml"
     shell: 
         """
         python2 {input.munge_exec} --sumstats {input.summary_stats} \
@@ -146,7 +146,7 @@ rule heritability:
     params:
         ld_scores=lambda wildcards: config["summary_stats"][wildcards.name]["ld_scores"]
     conda:
-        "envs/ldsc.yaml"
+        "ldsc_env.yaml"
     shell:
         """
         python2 {input.ldsc_exec} \
@@ -212,6 +212,8 @@ rule pairwise_genetic_correlation:
 		ld_scores=lambda wildcards: config["summary_stats"][wildcards.trait1]["ld_scores"]
 	output:
 		"results/test/{trait1}-{trait2}.txt"
+	conda:
+        "ldsc_env.yaml"
 	shell:
 		"cat {input.trait1_file} {input.trait2_file} {input.ld_scores} > {output}"
 
