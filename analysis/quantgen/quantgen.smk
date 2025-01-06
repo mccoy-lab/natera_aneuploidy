@@ -213,7 +213,7 @@ rule pairwise_genetic_correlation:
 	output:
 		"results/test/{trait1}-{trait2}.txt"
 	conda:
-        "ldsc_env.yaml"
+		"ldsc_env.yaml"
 	shell:
 		"cat {input.trait1_file} {input.trait2_file} {input.ld_scores} > {output}"
 
