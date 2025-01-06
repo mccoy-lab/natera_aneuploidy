@@ -1,0 +1,5 @@
+name: ldsc_env
+channels:
+  - conda-forge
+  - defaults
+prefix: /home/scarios1/miniconda3/envs/ldsc_env
