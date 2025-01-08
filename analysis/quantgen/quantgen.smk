@@ -17,7 +17,7 @@ rule process_dbsnp:
 	input: 
 		dbsnp=config["dbsnp"],
 	output:
-		cpra2rsid_info="/results/intermediate_files/dbsnp151_hg38_info.txt"
+		cpra2rsid_info="results/intermediate_files/dbsnp151_hg38_info.txt"
 	resources:
 		time="6:00:00",
 		mem_mb=1000
@@ -34,7 +34,7 @@ rule rename_summary_stats:
     input:
         summary_stats=lambda wildcards: config["summary_stats"][wildcards.name]["file"]
     output:
-        summary_stats_renamed="/results/intermediate_files/{name}_renamed_summary_stats.tsv"
+        summary_stats_renamed="results/intermediate_files/{name}_renamed_summary_stats.tsv"
     resources:
         time="1:00:00",
         mem_mb=500
@@ -58,12 +58,12 @@ rule cpra2rsid:
     For public datasets, copy existing summary stats.
     """
     input:
-        summary_stats="/results/intermediate_files/{name}_renamed_summary_stats.tsv", 
+        summary_stats="results/intermediate_files/{name}_renamed_summary_stats.tsv", 
         dbsnp=config["dbsnp"],
         dictionary=rules.process_dbsnp.output.cpra2rsid_info
     output:
-        summary_stats_cpra_intermediate=temp("/results/intermediate_files/{name}_summary_stats_cpra_intermediate.tsv"),
-        summary_stats_cpra="/results/intermediate_files/{name}_summary_stats_cpra.tsv"
+        summary_stats_cpra_intermediate=temp("results/intermediate_files/{name}_summary_stats_cpra_intermediate.tsv"),
+        summary_stats_cpra="results/intermediate_files/{name}_summary_stats_cpra.tsv"
     params:
         filetype=lambda wildcards: config["summary_stats"][wildcards.name]["type"],
         cpra2rsid_exec=config["cpra2rsid_exec"]
@@ -80,6 +80,7 @@ rule cpra2rsid:
                 cp {output.summary_stats_cpra_intermediate} {output.summary_stats_cpra};
             fi
         else
+            cp {input.summary_stats} {output.summary_stats_cpra_intermediate};
             cp {input.summary_stats} {output.summary_stats_cpra};
         fi
         """
@@ -94,7 +95,7 @@ rule create_ldscores:
         ldsc_exec=config["ldsc_exec"],
         imputed_parents=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom)
     output:
-        ld_score="/results/ld_scores/LDscore.{chrom}"
+        ld_score="results/ld_scores/LDscore.{chrom}"
     resources:
         time="2:00:00",
         mem_mb=1000
@@ -118,7 +119,7 @@ rule munge_summary_stats:
         summary_stats=rules.cpra2rsid.output.summary_stats_cpra,
         allele_list=config["allele_list"]
     output:
-        summary_stats_munged="/results/intermediate_files/{name}_munged"
+        summary_stats_munged="results/intermediate_files/{name}_munged"
     resources:
         time="0:20:00",
         mem_mb=500
@@ -210,15 +211,22 @@ pairwise_european = pairwise_comparisons(config, "European")
 rule pairwise_genetic_correlation:
 	"""Calculate genetic correlation between each pairing of traits."""
 	input:
+		ldsc_exec=config["ldsc_exec"],
 		trait1_file=lambda wildcards: config["summary_stats"][wildcards.trait1]["file"],
 		trait2_file=lambda wildcards: config["summary_stats"][wildcards.trait2]["file"],
 		ld_scores=lambda wildcards: config["summary_stats"][wildcards.trait1]["ld_scores"]
 	output:
-		"results/test/{trait1}-{trait2}.txt"
+		genetic_correlation="results/test/{trait1}-{trait2}.txt"
 	conda:
 		"ldsc_env.yaml"
 	shell:
-		"cat {input.trait1_file} {input.trait2_file} {input.ld_scores} > {output}"
+		"""
+		python2 {input.ldsc_exec} \
+		--rg {input.trait1_file};{input.trait2_file} \
+		--ref-ld-chr {input.ld_scores} \
+		--w-ld-chr {input.ld_scores} \
+		--out {output.genetic_correlation}
+		"""
 
 
 rule merge_genetic_correlation:

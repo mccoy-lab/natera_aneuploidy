@@ -1,5 +1,6 @@
 dbsnp: "/scratch4/rmccoy22/abiddan1/dbsnp/dbSNP151.hg38.vcf.gz"
-cpra2rsid_exec: "/scripts/cpra2rsid.py"
+output_dir: "results/intermediate_files"
+cpra2rsid_exec: "scripts/cpra2rsid.py"
 ldsc_exec: "/scratch16/rmccoy22/scarios1/sandbox/genetic_correlation/ldsc/ldsc.py"
 munge_exec: "/scratch16/rmccoy22/scarios1/sandbox/genetic_correlation/ldsc/munge_sumstats.py"
 imputed_parents_template: "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/plink_files/spectrum_imputed_chr{chrom}_rehead_filter_plink"
