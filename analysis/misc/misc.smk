@@ -14,12 +14,12 @@ vcf_dict_natera_parents = {}
 vcf_dict_1kg_phase3 = {}
 chroms = [f"chr{i}" for i in range(1, 23)]
 for c in chroms:
-    vcf_dict_natera_parents[
-        c
-    ] = f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/eagle_phased_hg38/natera_parents.b38.{c}.vcf.gz"
-    vcf_dict_1kg_phase3[
-        c
-    ] = f"/scratch4/rmccoy22/sharedData/populationDatasets/1KGP_phase3/GRCh38_phased_vcfs/ALL.{c}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
+    vcf_dict_natera_parents[c] = (
+        f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/eagle_phased_hg38/natera_parents.b38.{c}.vcf.gz"
+    )
+    vcf_dict_1kg_phase3[c] = (
+        f"/scratch4/rmccoy22/sharedData/populationDatasets/1KGP_phase3/GRCh38_phased_vcfs/ALL.{c}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
+    )
 
 
 localrules:
@@ -29,6 +29,7 @@ localrules:
 rule all:
     input:
         "results/pca/kg_phase3.natera_merged.grch38.autosomes.phased.snvs.eigenvec",
+        "results/pca/natera_ancestry.tsv",
         "results/ivan_validation_data/ivan_family_embryos.tsv",
         "results/ivan_validation_data/karyohmm_validation_ivan.tsv",
 
@@ -92,6 +93,19 @@ rule run_plink_pca:
     threads: 24
     shell:
         "plink2 --vcf {input.concat_vcf} --pca {params.pcs} approx --threads {threads} --out {params.outfix}"
+
+
+rule create_ancestry_table:
+    """Generate ancestry labels matching 1KG regional groupings using Nearest-Neighbors in PCA."""
+    input:
+        meta_1kg_data="data/sample_1kg_metadata.tsv",
+        natera_metadata="../../data/spectrum_metadata_merged.csv",
+        eigenvec=rules.run_plink_pca.output.eigenvec,
+        eigenval=rules.run_plink_pca.output.eigenval,
+    output:
+        ancestry_table="results/pca/natera_ancestry.tsv",
+    script:
+        "scripts/ancestry_labels.py"
 
 
 # -------- 2. Validation experiment with data from Ivan Vogel & Eva Hoffmann -------- #
