@@ -62,14 +62,18 @@ rule cpra2rsid:
         dbsnp=config["dbsnp"],
         dictionary=rules.process_dbsnp.output.cpra2rsid_info
     output:
-        summary_stats_cpra_intermediate=temp("results/intermediate_files/{name}_summary_stats_cpra_intermediate.tsv"),
+        summary_stats_cpra_intermediate="results/intermediate_files/{name}_summary_stats_cpra_intermediate.tsv",
         summary_stats_cpra="results/intermediate_files/{name}_summary_stats_cpra.tsv"
     params:
         filetype=lambda wildcards: config["summary_stats"][wildcards.name]["type"],
         cpra2rsid_exec=config["cpra2rsid_exec"]
+    threads: 1
     resources:
-        time="1:00:00",
-        mem_mb=1000
+        time="3:00:00",
+        mem_mb=128000,
+        disk_mb=200000
+    #conda:
+    #	"cpra2rsid.yaml"
     shell:
         """
         if [[ "{params.filetype}" == "recombination" || "{params.filetype}" == "aneuploidy" ]]; then
@@ -88,6 +92,14 @@ rule cpra2rsid:
 # Create LD score for each chromosome 1-23
 chromosomes = [str(i) for i in range(1, 24)]  
 
+checkpoint verify_input:
+    input:
+        imputed_parents=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom)
+    shell:
+        """
+        test -f {input}
+        """
+
 
 rule create_ldscores: 
     """Calculate LD Scores for the Natera dataset for each chromosome."""
@@ -95,17 +107,21 @@ rule create_ldscores:
         ldsc_exec=config["ldsc_exec"],
         imputed_parents=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom)
     output:
-        ld_score="results/ld_scores/LDscore.{chrom}"
+        ld_score_gz="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
+        ld_score_m="results/ld_scores/LDscore.{chrom}.l2.M",
+        ld_score_m_5_50="results/ld_scores/LDscore.{chrom}.l2.M_5_50"
+    threads: 1
     resources:
         time="2:00:00",
         mem_mb=1000
     params:
-        window=1000
+        window=1000,
+        outfix="results/ld_scores/LDscore.{chrom}"
     conda:
         "ldsc_env.yaml"
     shell:
         """
-        python2 {input.ldsc_exec} --bfile {input.imputed_parents} --l2 --ld-wind-kb {params.window} --out {output.ld_score}
+        python2 {input.ldsc_exec} --out {params.outfix} --bfile {input.imputed_parents} --l2 --ld-wind-kb {params.window} 
         """
 
 
@@ -119,20 +135,24 @@ rule munge_summary_stats:
         summary_stats=rules.cpra2rsid.output.summary_stats_cpra,
         allele_list=config["allele_list"]
     output:
-        summary_stats_munged="results/intermediate_files/{name}_munged"
+        summary_stats_munged="results/intermediate_files/{name}_munged.sumstats.gz",
+        log="results/intermediate_files/{name}_munged.log"
+    threads: 1
     resources:
         time="0:20:00",
-        mem_mb=500
+        mem_mb=4000,
+        disk_mb=5000
     params:
         num_individuals=lambda wildcards: config["summary_stats"][wildcards.name]["N"],
-        chunksize=50000
+        chunksize=50000,
+        outfix="results/intermediate_files/{name}_munged"
     conda:
         "ldsc_env.yaml"
     shell: 
         """
         python2 {input.munge_exec} --sumstats {input.summary_stats} \
         --merge-alleles {input.allele_list} \
-        --out {output.summary_stats_munged} \
+        --out {params.outfix} \
         --a1-inc --N {params.num_individuals} --chunksize {params.chunksize}
         """
 
