@@ -34,4 +34,4 @@ if __name__ == "__main__":
         pop_labels.append(cats[np.argmax(counts)])
 
     natera_df["inferred_pop"] = pop_labels
-    natera_df.to_csv(snakemake.output["ancestry_labels"], sep="\t", index=None)
+    natera_df.to_csv(snakemake.output["ancestry_table"], sep="\t", index=None)
