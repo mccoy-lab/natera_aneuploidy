@@ -224,8 +224,10 @@ rule pairwise_genetic_correlation:
 	"""Calculate genetic correlation between each pairing of traits."""
 	input:
 		ldsc_exec=config["ldsc_exec"],
-		trait1_file=lambda wildcards: config["summary_stats"][wildcards.trait1]["file"],
-		trait2_file=lambda wildcards: config["summary_stats"][wildcards.trait2]["file"],
+		trait1_file=lambda wildcards: 
+            f"results/intermediate_files/{wildcards.trait1}_munged.sumstats.gz",
+        trait2_file=lambda wildcards: 
+            f"results/intermediate_files/{wildcards.trait2}_munged.sumstats.gz",
 		ld_scores=lambda wildcards: config["summary_stats"][wildcards.trait1]["ld_scores"]
 	output:
 		genetic_correlation="results/genetic_correlation/{trait1}-{trait2}.log"
@@ -255,5 +257,7 @@ rule merge_genetic_correlation:
 	output:
 		"results/genetic_correlation_merged.txt"
 	shell:
-		"cat {input} > {output}"
-
+		"""
+		echo "p1 p2 rg se z p h2_obs h2_obs_se h2_int h2_int_se gcov_int gcov_int_se" > {output}
+		awk '/^summary_stats.*gz/' {input} >> {output}
+		"""
