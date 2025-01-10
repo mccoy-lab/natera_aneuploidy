@@ -10,7 +10,8 @@ rule all:
     input:
     	#expand("results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes),
     	"results/heritability_merged.txt",
-    	"results/genetic_correlation_merged.txt"
+    	"results/genetic_correlation_merged.txt",
+    	expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]])
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -155,9 +156,10 @@ rule heritability:
         ldsc_exec=config["ldsc_exec"],
         summary_stats=rules.munge_summary_stats.output.summary_stats_munged
     output:
-        heritability="results/heritability/{name}_heritability.txt"
+        heritability="results/heritability/{name}_heritability.log"
     params:
-        ld_scores=lambda wildcards: config["summary_stats"][wildcards.name]["ld_scores"]
+        ld_scores=lambda wildcards: config["summary_stats"][wildcards.name]["ld_scores"],
+        outfix="results/heritability/{name}_heritability"
     conda:
         "ldsc_env.yaml"
     shell:
@@ -166,14 +168,14 @@ rule heritability:
         --h2 {input.summary_stats} \
         --ref-ld-chr {params.ld_scores} \
         --w-ld-chr {params.ld_scores} \
-        --out {output.heritability}
+        --out {params.outfix}
         """
 
 
 rule merge_heritability_results:
     """Merge heritability results into a single file."""
     input:
-        logs=expand("results/heritability/{name}_heritability.txt", name=config["summary_stats"].keys())
+        logs=expand("results/heritability/{name}_heritability.log", name=config["summary_stats"].keys())
     output:
         merged="results/heritability_merged.txt"
     run:
@@ -185,12 +187,13 @@ rule merge_heritability_results:
             "lambda_gc": r"Lambda GC:\s+([\d.]+)",
             "mean_chi2": r"Mean Chi\^2:\s+([\d.]+)",
             "intercept": r"Intercept:\s+([\d.]+)\s+\(([\d.]+)\)",
+            "snps": r"After merging with regression SNP LD, (\d+) SNPs remain"
         }
 
         # Prepare to write the merged output
         with open(output.merged, "w") as outfile:
             # Write the header row
-            outfile.write("Trait\tTotal_h2\tTotal_h2_SE\tLambda_GC\tMean_Chi2\tIntercept\tIntercept_SE\n")
+            outfile.write("Trait\tTotal_h2\tTotal_h2_SE\tLambda_GC\tMean_Chi2\tIntercept\tIntercept_SE\tSNPs\n")
 
             # Iterate through each input log file
             for log_file in input.logs:
@@ -198,14 +201,15 @@ rule merge_heritability_results:
                     content = infile.read()
 
                 # Extract values using regex
-                trait = log_file.split("/")[-1].replace("_heritability.txt", "")
+                trait = log_file.split("/")[-1].replace("_heritability.log", "")
                 total_h2, total_h2_se = re.search(patterns["total_h2"], content).groups()
                 lambda_gc = re.search(patterns["lambda_gc"], content).group(1)
                 mean_chi2 = re.search(patterns["mean_chi2"], content).group(1)
                 intercept, intercept_se = re.search(patterns["intercept"], content).groups()
+                snps = re.search(patterns["snps"], content).group(1)
 
                 # Write extracted values to the output file
-                outfile.write(f"{trait}\t{total_h2}\t{total_h2_se}\t{lambda_gc}\t{mean_chi2}\t{intercept}\t{intercept_se}\n")
+                outfile.write(f"{trait}\t{total_h2}\t{total_h2_se}\t{lambda_gc}\t{mean_chi2}\t{intercept}\t{intercept_se}\t{snps}\n")
 
 
 # -------- Step 4: Calculate genetic correlation on relevant pairs of summary stats ------- #
@@ -259,7 +263,7 @@ rule pairwise_genetic_correlation:
 	shell:
 		"""
 		python2 {input.ldsc_exec} \
-		--rg {input.trait1_file};{input.trait2_file} \
+		--rg {input.trait1_file},{input.trait2_file} \
 		--ref-ld-chr {params.ld_scores} \
 		--w-ld-chr {params.ld_scores} \
 		--out {params.outfix}
@@ -276,11 +280,13 @@ rule merge_genetic_correlation:
 			trait1=[t1 for t1, t2 in pairwise_european],
 			trait2=[t2 for t1, t2 in pairwise_european])
 	output:
-		"results/genetic_correlation_merged.txt"
+		intermediate=temp("results/genetic_correlation_merged_space.txt"),
+		merged="results/genetic_correlation_merged.txt"
 	shell:
 		"""
-		echo "p1 p2 rg se z p h2_obs h2_obs_se h2_int h2_int_se gcov_int gcov_int_se" > {output}
-		awk '/^summary_stats.*gz/' {input} >> {output}
+		echo "p1 p2 rg se z p h2_obs h2_obs_se h2_int h2_int_se gcov_int gcov_int_se" > {output.intermediate}
+		awk '/^p1/{{flag=1; next}} flag && !/^Analysis finished|^Total time elapsed/{{print; flag=0}}' {input} >> {output.intermediate}
+		awk -v OFS="\t" '$1=$1' {output.intermediate} > {output.merged}
 		"""
 
 
@@ -290,7 +296,7 @@ rule pheWAS:
     input:
         summary_stats_cpra=expand("results/intermediate_files/{name}_summary_stats_cpra.tsv", name=config["summary_stats"].keys())
     output:
-        merged_results="results/pheWAS_results_{params.rsid}.tsv"
+        merged_results="results/pheWAS_results_{rsid}.tsv"
     params:
         rsid=config["rsid"]
     shell:

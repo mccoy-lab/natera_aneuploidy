@@ -6,32 +6,36 @@ munge_exec: "/scratch16/rmccoy22/scarios1/sandbox/genetic_correlation/ldsc/munge
 imputed_parents_template: "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/plink_files/spectrum_imputed_chr{chrom}_rehead_filter_plink"
 allele_list: "analysis_files/w_hm3.snplist"
 published_summary_stats: "/scratch16/rmccoy22/abiddan1/prs_aneuploidy/analysis/pgs_calc/results"
-rsid: "rs12160956"
+rsid: "rs6006737"
 
 summary_stats:
   maternal_meiotic_aneuploidy_by_mother:
     file: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/summary_stats/lmm_gwas_maternal_meiotic_aneuploidy_by_mother_discovery_total.tsv.gz"
     type: "aneuploidy"
     N: 12000
-    ld_scores: "/results/ld_scores/LDscore.@"
+    #ld_scores: "/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "All"
   mean_crossovers_by_mother:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.MeanCO.glm.linear"
     type: "recombination"
     N: 14788
-    ld_scores: "/results/ld_scores/LDscore.@"
+    #ld_scores: "/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "All"
   telomere_distance_by_mother:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.TelomereDist.glm.linear"
     type: "recombination"
     N: 14776
-    ld_scores: "/results/ld_scores/LDscore.@"
+    #ld_scores: "/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "All"
   centromere_distance_by_mother:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.CentromereDist.glm.linear"
     type: "recombination"
     N: 14875
-    ld_scores: "/results/ld_scores/LDscore.@"
+    #ld_scores: "/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "All"
   # maternal_meiotic_aneuploidy_by_mother_eur:
   #   file: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/summary_stats/lmm_gwas_maternal_meiotic_aneuploidy_by_mother_discovery_total.tsv.gz"
@@ -61,47 +65,47 @@ summary_stats:
     file: "/scratch16/rmccoy22/abiddan1/prs_aneuploidy/analysis/pgs_calc/results/ovarian_aging_pgs.reprogen.ANM.rsids.true.tsv"
     type: "reprogen2021" 
     N: 200000
-    ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
   age_at_menarche_reproGen:
     file: "/scratch16/rmccoy22/abiddan1/prs_aneuploidy/analysis/pgs_calc/results/age_at_menarche_reproGen.rsids.true.tsv"
     type: "reprogen2024"
     N: 503943
-    ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
   all_cause_female:
     file: "/scratch16/rmccoy22/abiddan1/prs_aneuploidy/analysis/pgs_calc/results/all_cause_female.rsids.true.tsv"
     type: "venkatesh2024"
     N: 366090
-    ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
   anatomical_female:
     file: "/scratch16/rmccoy22/abiddan1/prs_aneuploidy/analysis/pgs_calc/results/anatomical_female.rsids.true.tsv"
     type: "venkatesh2024"
     N: 319411
-    ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
   anovulatory_female:
     file: "/scratch16/rmccoy22/abiddan1/prs_aneuploidy/analysis/pgs_calc/results/anovulatory_female.rsids.true.tsv"
     type: "venkatesh2024"
     N: 195950
-    ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
   idiopathic_exclusion_female:
     file: "/scratch16/rmccoy22/abiddan1/prs_aneuploidy/analysis/pgs_calc/results/idiopathic_exclusion_female.rsids.true.tsv"
     type: "venkatesh2024"
     N: 430388
-    ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
   idiopathic_inclusion_female:
     file: "/scratch16/rmccoy22/abiddan1/prs_aneuploidy/analysis/pgs_calc/results/idiopathic_inclusion_female.rsids.true.tsv"
     type: "venkatesh2024"
     N: 292276 
-    ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
   male_infertility:
     file: "/scratch16/rmccoy22/abiddan1/prs_aneuploidy/analysis/pgs_calc/results/male_infertility.rsids.true.tsv"
     type: "venkatesh2024"
     N: 244567
-    ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
