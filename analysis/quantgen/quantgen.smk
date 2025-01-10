@@ -248,10 +248,10 @@ rule pairwise_genetic_correlation:
 rule merge_genetic_correlation:
 	"""Merge genetic correlation results for the relevant pairings."""
 	input:
-		expand("results/genetic_correlation/{trait1}-{trait2}.txt",
+		expand("results/genetic_correlation/{trait1}-{trait2}.log",
 			trait1=[t1 for t1, t2 in pairwise_all],
 			trait2=[t2 for t1, t2 in pairwise_all]) +
-		expand("results/genetic_correlation/{trait1}-{trait2}.txt",
+		expand("results/genetic_correlation/{trait1}-{trait2}.log",
 			trait1=[t1 for t1, t2 in pairwise_european],
 			trait2=[t2 for t1, t2 in pairwise_european])
 	output:
