@@ -176,13 +176,39 @@ rule heritability:
 rule merge_heritability_results:
     """Merge heritability results into a single file."""
     input:
-        expand("results/heritability/{name}_heritability.txt", name=config["summary_stats"].keys())
+        logs=expand("results/heritability/{name}_heritability.txt", name=config["summary_stats"].keys())
     output:
         merged="results/heritability_merged.txt"
-    shell:
-        """
-        cat {input} > {output.merged}
-        """
+    run:
+        import re
+
+        # Define the regex patterns to extract relevant values
+        patterns = {
+            "total_h2": r"Total Observed scale h2:\s+([\d.]+)\s+\(([\d.]+)\)",
+            "lambda_gc": r"Lambda GC:\s+([\d.]+)",
+            "mean_chi2": r"Mean Chi\^2:\s+([\d.]+)",
+            "intercept": r"Intercept:\s+([\d.]+)\s+\(([\d.]+)\)",
+        }
+
+        # Prepare to write the merged output
+        with open(output.merged, "w") as outfile:
+            # Write the header row
+            outfile.write("Trait\tTotal_h2\tTotal_h2_SE\tLambda_GC\tMean_Chi2\tIntercept\tIntercept_SE\n")
+
+            # Iterate through each input log file
+            for log_file in input.logs:
+                with open(log_file, "r") as infile:
+                    content = infile.read()
+
+                # Extract values using regex
+                trait = log_file.split("/")[-1].replace("_heritability.txt", "")
+                total_h2, total_h2_se = re.search(patterns["total_h2"], content).groups()
+                lambda_gc = re.search(patterns["lambda_gc"], content).group(1)
+                mean_chi2 = re.search(patterns["mean_chi2"], content).group(1)
+                intercept, intercept_se = re.search(patterns["intercept"], content).groups()
+
+                # Write extracted values to the output file
+                outfile.write(f"{trait}\t{total_h2}\t{total_h2_se}\t{lambda_gc}\t{mean_chi2}\t{intercept}\t{intercept_se}\n")
 
 
 # -------- Step 4: Calculate genetic correlation on relevant pairs of summary stats ------- #
