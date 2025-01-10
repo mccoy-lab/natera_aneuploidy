@@ -228,7 +228,9 @@ rule pairwise_genetic_correlation:
 		trait2_file=lambda wildcards: config["summary_stats"][wildcards.trait2]["file"],
 		ld_scores=lambda wildcards: config["summary_stats"][wildcards.trait1]["ld_scores"]
 	output:
-		genetic_correlation="results/genetic_correlation/{trait1}-{trait2}.txt"
+		genetic_correlation="results/genetic_correlation/{trait1}-{trait2}.log"
+	params:
+		outfix="results/genetic_correlation/{trait1}-{trait2}"
 	conda:
 		"ldsc_env.yaml"
 	shell:
@@ -237,7 +239,7 @@ rule pairwise_genetic_correlation:
 		--rg {input.trait1_file};{input.trait2_file} \
 		--ref-ld-chr {input.ld_scores} \
 		--w-ld-chr {input.ld_scores} \
-		--out {output.genetic_correlation}
+		--out {params.outfix}
 		"""
 
 
