@@ -8,12 +8,9 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results 
 rule all:
     input:
-    expand(
-            "results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes
-        ),
-        "results/genetic_correlation_merged.txt",
-        "results/merged_heritability_results.txt",
-        
+    	#expand("results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes),
+    	"results/heritability_merged.txt",
+    	"results/genetic_correlation_merged.txt"
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -250,14 +247,12 @@ rule pairwise_genetic_correlation:
 	"""Calculate genetic correlation between each pairing of traits."""
 	input:
 		ldsc_exec=config["ldsc_exec"],
-		trait1_file=lambda wildcards: 
-            f"results/intermediate_files/{wildcards.trait1}_munged.sumstats.gz",
-        trait2_file=lambda wildcards: 
-            f"results/intermediate_files/{wildcards.trait2}_munged.sumstats.gz",
-		ld_scores=lambda wildcards: config["summary_stats"][wildcards.trait1]["ld_scores"]
+		trait1_file=lambda wildcards: f"results/intermediate_files/{wildcards.trait1}_munged.sumstats.gz",
+		trait2_file=lambda wildcards: f"results/intermediate_files/{wildcards.trait2}_munged.sumstats.gz",
 	output:
 		genetic_correlation="results/genetic_correlation/{trait1}-{trait2}.log"
 	params:
+		ld_scores=lambda wildcards: config["summary_stats"][wildcards.trait1]["ld_scores"],
 		outfix="results/genetic_correlation/{trait1}-{trait2}"
 	conda:
 		"ldsc_env.yaml"
@@ -265,8 +260,8 @@ rule pairwise_genetic_correlation:
 		"""
 		python2 {input.ldsc_exec} \
 		--rg {input.trait1_file};{input.trait2_file} \
-		--ref-ld-chr {input.ld_scores} \
-		--w-ld-chr {input.ld_scores} \
+		--ref-ld-chr {params.ld_scores} \
+		--w-ld-chr {params.ld_scores} \
 		--out {params.outfix}
 		"""
 
