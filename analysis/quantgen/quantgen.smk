@@ -8,11 +8,12 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results 
 rule all:
     input:
-        # "results/genetic_correlation_merged.txt",
-        # "results/merged_heritability_results.txt",
-        expand(
+    expand(
             "results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes
-        )
+        ),
+        "results/genetic_correlation_merged.txt",
+        "results/merged_heritability_results.txt",
+        
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -97,17 +98,11 @@ rule create_ldscores:
     """Calculate LD Scores for the Natera dataset for each chromosome."""
     input:
         ldsc_exec=config["ldsc_exec"],
-        # imputed_parents_files=lambda wildcards: [
-        #     f"{config['imputed_parents_template'].format(chrom=wildcards.chrom)}.{ext}" for ext in ["bed", "bim", "fam"]
-        # ]
-        #imputed_parents=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom)
     output:
         ld_score_gz="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
-        # ld_score_M="results/ld_scores/LDscore.{chrom}.l2.M",
-        # ld_score_M_5_50="results/ld_scores/LDscore.{chrom}.l2.M_5_50",
-        # ld_score_log="results/ld_scores/LDscore.{chrom}.log"
+    threads: 32
     resources:
-        time="8:00:00",
+        time="20:00:00",
         mem_mb=128000,
         disk_mb=200000
     params:
@@ -183,7 +178,7 @@ rule merge_heritability_results:
     input:
         expand("results/heritability/{name}_heritability.txt", name=config["summary_stats"].keys())
     output:
-        merged="results/merged_heritability_results.txt"
+        merged="results/heritability_merged.txt"
     shell:
         """
         cat {input} > {output.merged}
@@ -205,8 +200,8 @@ def pairwise_comparisons(config, population_filter):
     # Generate all pairwise combinations
     pairwise = list(combinations(traits, 2))
     
-    # Skip pairings where both traits have population "European"
-    # and both types are "aneuploidy" or "recombination"
+    # Skip pairings for European subsets of aneuploidy and recombination
+    # (compare these traits only for population All)
     if population_filter == "European":
         pairwise = [
             (t1, t2) for t1, t2 in pairwise
@@ -221,7 +216,7 @@ def pairwise_comparisons(config, population_filter):
 # Generate pairwise comparisons for each population
 # Natera summary stats (population all)
 pairwise_all = pairwise_comparisons(config, "All")
-# Pairings between published and with European-specific subsets of Natera 
+# Pairings between published summary stats and European-specific subsets of Natera
 pairwise_european = pairwise_comparisons(config, "European")
 
 
