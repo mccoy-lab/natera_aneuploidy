@@ -287,3 +287,29 @@ rule merge_genetic_correlation:
 		echo "p1 p2 rg se z p h2_obs h2_obs_se h2_int h2_int_se gcov_int gcov_int_se" > {output}
 		awk '/^summary_stats.*gz/' {input} >> {output}
 		"""
+
+
+# -------- Step 5: Conduct pheWAS on traits in this analysis.------- #
+rule pheWAS:
+    """Extract lines matching a given RSID from summary stats files and merge them into a single table."""
+    input:
+        summary_stats_cpra=expand("results/intermediate_files/{name}_summary_stats_cpra.tsv", name=config["summary_stats"].keys())
+    output:
+        merged_results="results/pheWAS_results_{params.rsid}.tsv"
+    params:
+        rsid=config["rsid"]
+    shell:
+        """
+        # Create an empty file for the merged results
+        echo -e "File\tExtracted_Line" > {output.merged_results}
+
+        # Loop through all input files and extract the line containing the RSID
+        for file in {input.summary_stats_cpra}; do
+            # Extract the line containing the RSID
+            result=$(grep "{params.rsid}" ${{file}})
+            # If a result is found, append it to the output with the filename
+            if [[ -n "$result" ]]; then
+                echo -e "$(basename ${{file}})\t$result" >> {output.merged_results}
+            fi
+        done
+        """
