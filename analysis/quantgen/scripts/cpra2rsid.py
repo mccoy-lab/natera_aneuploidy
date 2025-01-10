@@ -8,7 +8,6 @@ def build_rsid_dict(af_tsv_fp):
     """Function to build a dictionary of rsids."""
     cpra2rsid = {}
     with gzip.open(af_tsv_fp, "rt") as fp:
-        #for line in tqdm(fp, desc="Building RSID dictionary"):
         for line in fp:
             [chrom, pos, ref, alts, rsid] = line.rstrip().split()
             for a in alts.split(","):
@@ -78,9 +77,6 @@ def main():
         print("Loading RSID dictionary from file...")
         rsid_dict = load_rsid_dict(args.dictionary)
 
-    # # Build the RSID dictionary
-    # rsid_dict = build_rsid_dict(args.dbsnp)
-
     # Open the output file for writing
     with open(args.output, "w+") as out:
         # Open the input summary statistics file
@@ -89,21 +85,14 @@ def main():
             out.write(header + "\tRSID\n")  # Add RSID column header
             # Process each line in the summary statistics file
             for line in sumstats:
-            #for line in tqdm(sumstats, desc="Processing summary stats"):
                 columns = line.split()
                 cpra = columns[0].rstrip()  # Get the CPRA from the first column
                 cpra_splt = cpra.split(":")  # Split the CPRA into components
                 # Construct the alternate CPRA format
                 cpra_alt = f"{cpra_splt[0]}:{cpra_splt[1]}:{cpra_splt[3]}:{cpra_splt[2]}"
                 
-                # Debugging: Print cpra and cpra_alt to check if they're formatted correctly
-                print(f"CPRA: {cpra}, CPRA_ALT: {cpra_alt}")
-                
                 # Get RSID from dictionary
                 rsid = cpra2rsid(cpra, cpra_alt, rsid_dict)
-                
-                # Debugging: Check if the RSID is being correctly retrieved
-                print(f"RSID for {cpra}: {rsid}")
                 
                 # Write the original line and the corresponding RSID
                 out.write(line.rstrip() + "\t" + rsid + "\n")
