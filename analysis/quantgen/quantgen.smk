@@ -3,11 +3,16 @@
 
 configfile: "config.yaml"
 
+chromosomes = [str(i) for i in range(1, 24)]
+
 # Create all heritability and genetic correlation results 
 rule all:
     input:
-        "results/test/genetic_correlation_merged.txt",
-        "results/merged_heritability_results.txt"
+        # "results/genetic_correlation_merged.txt",
+        # "results/merged_heritability_results.txt",
+        expand(
+            "results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes
+        )
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -72,8 +77,6 @@ rule cpra2rsid:
         time="3:00:00",
         mem_mb=128000,
         disk_mb=200000
-    #conda:
-    #	"cpra2rsid.yaml"
     shell:
         """
         if [[ "{params.filetype}" == "recombination" || "{params.filetype}" == "aneuploidy" ]]; then
@@ -89,39 +92,33 @@ rule cpra2rsid:
         fi
         """
 
-# Create LD score for each chromosome 1-23
-chromosomes = [str(i) for i in range(1, 24)]  
-
-checkpoint verify_input:
-    input:
-        imputed_parents=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom)
-    shell:
-        """
-        test -f {input}
-        """
-
 
 rule create_ldscores: 
     """Calculate LD Scores for the Natera dataset for each chromosome."""
     input:
         ldsc_exec=config["ldsc_exec"],
-        imputed_parents=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom)
+        # imputed_parents_files=lambda wildcards: [
+        #     f"{config['imputed_parents_template'].format(chrom=wildcards.chrom)}.{ext}" for ext in ["bed", "bim", "fam"]
+        # ]
+        #imputed_parents=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom)
     output:
         ld_score_gz="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
-        ld_score_m="results/ld_scores/LDscore.{chrom}.l2.M",
-        ld_score_m_5_50="results/ld_scores/LDscore.{chrom}.l2.M_5_50"
-    threads: 1
+        # ld_score_M="results/ld_scores/LDscore.{chrom}.l2.M",
+        # ld_score_M_5_50="results/ld_scores/LDscore.{chrom}.l2.M_5_50",
+        # ld_score_log="results/ld_scores/LDscore.{chrom}.log"
     resources:
-        time="2:00:00",
-        mem_mb=1000
+        time="8:00:00",
+        mem_mb=128000,
+        disk_mb=200000
     params:
         window=1000,
+        imputed_parents_prefix=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom),
         outfix="results/ld_scores/LDscore.{chrom}"
     conda:
         "ldsc_env.yaml"
     shell:
         """
-        python2 {input.ldsc_exec} --out {params.outfix} --bfile {input.imputed_parents} --l2 --ld-wind-kb {params.window} 
+        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.imputed_parents_prefix} --l2 --ld-wind-kb {params.window} 
         """
 
 
@@ -236,7 +233,7 @@ rule pairwise_genetic_correlation:
 		trait2_file=lambda wildcards: config["summary_stats"][wildcards.trait2]["file"],
 		ld_scores=lambda wildcards: config["summary_stats"][wildcards.trait1]["ld_scores"]
 	output:
-		genetic_correlation="results/test/{trait1}-{trait2}.txt"
+		genetic_correlation="results/genetic_correlation/{trait1}-{trait2}.txt"
 	conda:
 		"ldsc_env.yaml"
 	shell:
@@ -252,14 +249,14 @@ rule pairwise_genetic_correlation:
 rule merge_genetic_correlation:
 	"""Merge genetic correlation results for the relevant pairings."""
 	input:
-		expand("results/test/{trait1}-{trait2}.txt",
+		expand("results/genetic_correlation/{trait1}-{trait2}.txt",
 			trait1=[t1 for t1, t2 in pairwise_all],
 			trait2=[t2 for t1, t2 in pairwise_all]) +
-		expand("results/test/{trait1}-{trait2}.txt",
+		expand("results/genetic_correlation/{trait1}-{trait2}.txt",
 			trait1=[t1 for t1, t2 in pairwise_european],
 			trait2=[t2 for t1, t2 in pairwise_european])
 	output:
-		"results/test/genetic_correlation_merged.txt"
+		"results/genetic_correlation_merged.txt"
 	shell:
 		"cat {input} > {output}"
 
