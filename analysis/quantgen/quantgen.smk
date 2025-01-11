@@ -8,7 +8,7 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results 
 rule all:
     input:
-    	#expand("results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes),
+    	expand("results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes),
     	"results/heritability_merged.txt",
     	"results/genetic_correlation_merged.txt",
     	expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]])
@@ -98,11 +98,10 @@ rule create_ldscores:
         ldsc_exec=config["ldsc_exec"],
     output:
         ld_score_gz="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
-    threads: 32
     resources:
-        time="20:00:00",
+        time="24:00:00",
         mem_mb=128000,
-        disk_mb=200000
+        disk_mb=128000
     params:
         window=1000,
         imputed_parents_prefix=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom),
