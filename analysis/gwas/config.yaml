@@ -3,3 +3,5 @@ metadata: "/data/rmccoy22/natera_spectrum/data/summary_metadata/spectrum_metadat
 ploidy_calls: "/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz"
 segmental_calls: "/scratch16/rmccoy22/abiddan1/natera_segmental/analysis/segmental_qc/results/tables/segmental_calls_postqc.tsv.gz"
 opticall: "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_total.norm.b38.fam"
+population: "EUR"
+assigned_pops: "/scratch16/rmccoy22/abiddan1/natera_aneuploidy/sandbox/natera_ancestry.010925.tsv"
