@@ -129,8 +129,7 @@ rule munge_summary_stats:
     threads: 1
     resources:
         time="0:20:00",
-        mem_mb=4000,
-        disk_mb=5000
+        mem_mb=128000
     params:
         num_individuals=lambda wildcards: config["summary_stats"][wildcards.name]["N"],
         chunksize=50000,
@@ -156,6 +155,9 @@ rule heritability:
         summary_stats=rules.munge_summary_stats.output.summary_stats_munged
     output:
         heritability="results/heritability/{name}_heritability.log"
+    resources:
+        time="0:05:00",
+        mem_mb=128000
     params:
         ld_scores=lambda wildcards: config["summary_stats"][wildcards.name]["ld_scores"],
         outfix="results/heritability/{name}_heritability"
@@ -177,6 +179,10 @@ rule merge_heritability_results:
         logs=expand("results/heritability/{name}_heritability.log", name=config["summary_stats"].keys())
     output:
         merged="results/heritability_merged.txt"
+    resources:
+        time="0:05:00",
+        mem_mb=4000,
+        disk_mb=5000
     run:
         import re
 
@@ -254,6 +260,9 @@ rule pairwise_genetic_correlation:
 		trait2_file=lambda wildcards: f"results/intermediate_files/{wildcards.trait2}_munged.sumstats.gz",
 	output:
 		genetic_correlation="results/genetic_correlation/{trait1}-{trait2}.log"
+	resources:
+		time="0:05:00",
+		mem_mb=128000
 	params:
 		ld_scores=lambda wildcards: config["summary_stats"][wildcards.trait1]["ld_scores"],
 		outfix="results/genetic_correlation/{trait1}-{trait2}"
@@ -281,6 +290,10 @@ rule merge_genetic_correlation:
 	output:
 		intermediate=temp("results/genetic_correlation_merged_space.txt"),
 		merged="results/genetic_correlation_merged.txt"
+	resources:
+		time="0:05:00",
+		mem_mb=4000,
+		disk_mb=5000
 	shell:
 		"""
 		echo "p1 p2 rg se z p h2_obs h2_obs_se h2_int h2_int_se gcov_int gcov_int_se" > {output.intermediate}
