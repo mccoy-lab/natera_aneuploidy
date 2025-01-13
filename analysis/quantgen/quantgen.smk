@@ -8,10 +8,10 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results 
 rule all:
     input:
-    	expand("results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes),
-    	"results/heritability_merged.txt",
-    	"results/genetic_correlation_merged.txt",
-    	expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]])
+    	expand("results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes)
+    	# "results/heritability_merged.txt",
+    	# "results/genetic_correlation_merged.txt",
+    	# expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]])
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -103,14 +103,15 @@ rule create_ldscores:
         mem_mb=128000,
         disk_mb=128000
     params:
-        window=1000,
+        outfix="results/ld_scores/LDscore.{chrom}",
         imputed_parents_prefix=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom),
-        outfix="results/ld_scores/LDscore.{chrom}"
+        window=300,
+        maf=0.05
     conda:
         "ldsc_env.yaml"
     shell:
         """
-        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.imputed_parents_prefix} --l2 --ld-wind-kb {params.window} 
+        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.imputed_parents_prefix} --l2 --ld-wind-kb {params.window} --maf 0.05
         """
 
 
