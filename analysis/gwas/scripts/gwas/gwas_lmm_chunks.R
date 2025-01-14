@@ -64,6 +64,14 @@ out_fname <- args[13]
 
 # Function to subset input parents to only specified populations
 subset_population <- function(discovery_test, assigned_pops, population) {
+  
+  # Check if input population is one of the assigned populations, or "All"
+  valid_pops <- c("All", unique(assigned_pops$inferred_pop))
+  if (!(population %in% valid_pops)) {
+    stop("Invalid 'population' argument.")
+  }
+  
+  # Subset for European population
   if (population == "EUR") {
     pop_specific <- assigned_pops[assigned_pops$inferred_pop == "EUR",]
     discovery_test <- discovery_test[discovery_test$array %in% pop_specific$IID,]
