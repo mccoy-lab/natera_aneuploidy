@@ -8,6 +8,7 @@
 #       published fertility-related traits. process input files as necessary. 
 # =================
 
+# Usage: snakemake --snakefile quantgen.smk --use-conda --profile ~/code/rockfish_smk_profile -p
 
 configfile: "config.yaml"
 
@@ -16,10 +17,9 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results 
 rule all:
     input:
-    	expand("results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes)
-    	# "results/heritability_merged.txt",
-    	# "results/genetic_correlation_merged.txt",
-    	# expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]])
+    	"results/heritability_merged.txt",
+    	"results/genetic_correlation_merged.txt",
+    	expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]])
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
