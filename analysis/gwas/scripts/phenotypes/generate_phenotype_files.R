@@ -8,7 +8,8 @@ library(dplyr)
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# 2024
+# last update: November 9, 2024 
+# aim: define phenotypes from input data for use in aneuploidy GWAS and subsequent analyses
 # =================
 
 # Usage:
