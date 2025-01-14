@@ -9,7 +9,9 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# 2024
+# last update: January 13, 2025
+# aim: run GWAS for aneuploidy phenotypes (maternal meiotic, whole genome gain/loss, single-chr aneuploidy) for both parents across discovery and test. 
+#      generate input files necessary for GWAS. 
 # =================
 
 
