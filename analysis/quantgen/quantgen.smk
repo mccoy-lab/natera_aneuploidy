@@ -3,7 +3,9 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# 2024
+# last updated: January 13, 2025
+# aim: compute heritability and genetic correlation for recombination, aneuploidy, and 
+#       published fertility-related traits. process input files as necessary. 
 # =================
 
 
