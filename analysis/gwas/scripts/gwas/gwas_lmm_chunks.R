@@ -48,19 +48,44 @@ phenotype <- args[5]
 bim <- args[6]
 # string variable noting whether to use the discovery or test set for parents
 dataset_type <- args[7]
+# file containing arrays and population assignments
+assigned_pops <- args[8]
+# string variable noting population 
+population <- args[9]
 # string variable naming the phenotype being considered (e.g., maternal_meiotic)
-phenotype_name <- args[8]
+phenotype_name <- args[10]
 # string variable noting which parent to GWAS
-parent <- args[9]
+parent <- args[11]
 # number of threads to use in mc.cores for GWAS
-threads <- as.numeric(args[10])
+threads <- as.numeric(args[12])
 # output file name
-out_fname <- args[11]
+out_fname <- args[13]
 
+
+# Function to subset input parents to only specified populations
+subset_population <- function(discovery_test, assigned_pops, population) {
+  
+  # Check if input population is one of the assigned populations, or "All"
+  valid_pops <- c("All", unique(assigned_pops$inferred_pop))
+  if (!(population %in% valid_pops)) {
+    stop("Invalid 'population' argument.")
+  }
+  
+  # Subset for European population
+  if (population == "EUR") {
+    pop_specific <- assigned_pops[assigned_pops$inferred_pop == "EUR",]
+    discovery_test <- discovery_test[discovery_test$array %in% pop_specific$IID,]
+  }
+  return(discovery_test)
+}
 
 # Subset data to include only discovery or test
-discovery_test_split <- function(dataset_type, discovery_test, metadata, bed) {
+discovery_test_split <- function(dataset_type, discovery_test, assigned_pops, 
+                                 population, metadata, bed) {
   
+  # Subset population if necessary
+  discovery_test <- subset_population(discovery_test, assigned_pops, population)
+
   # Check dataset type and subset accordingly
   if (dataset_type == "discovery") {
     dataset <- discovery_test[discovery_test$is_discovery == TRUE,]
@@ -267,13 +292,13 @@ gwas_per_chunk <- function(snp_indices, bed, bim, pcs, phenotype,
 
 
 # Run GWAS across dataset
-run_gwas <- function(dataset_type, discovery_test, metadata, bed, bim, pcs, 
-                     phenotype, phenotype_name, parent, 
-                     threads = 32) {
+run_gwas <- function(dataset_type, discovery_test, assigned_pops, population,
+                      metadata, bed, bim, pcs, phenotype, phenotype_name, parent, 
+                      threads = 32) {
   
   # Subset bed file corresponding to correct dataset type
   bed_dataset <- discovery_test_split(dataset_type, discovery_test, 
-                                      metadata, bed)
+                                      assigned_pops, population, metadata, bed)
   
   # Get indices to execute function
   bed_dataset_indices <- 1:nrow(bed_dataset)
@@ -324,10 +349,11 @@ colnames(pcs)[1] <- "array"
 phenotype <- fread(phenotype)
 bim <- fread(bim) %>%
   setnames(., c("chr", "snp_id", "drop", "pos", "a1", "a2"))
-
+assigned_pops <- fread(assigned_pops)
 
 # conduct GWAS across all sites
-gwas_results_dt <- run_gwas(dataset_type, discovery_test, metadata, bed, bim,
+gwas_results_dt <- run_gwas(dataset_type, discovery_test, assigned_pops,
+                            population, metadata, bed, bim,
                             pcs, phenotype, phenotype_name, parent,
                             threads)
 
