@@ -5,7 +5,8 @@ library(tidyr)
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# 2024
+# last update: November 9, 2024
+# aim: generate discovery/test split for input data for use in GWAS, removing related individuals and maintaining consistency across key covariates 
 # =================
 
 # Usage: 
