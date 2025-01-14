@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+ """ 
+ original author: Arjun Biddanda, Biology Dept., Johns Hopkins University 
+ modified by: Sara A. Carioscia, Biology Dept., Johns Hopkins University 
+ email: scarios1@jhu.edu 
+ last update: January 10, 2025
+ aim: Convert CPRA to rsids in Natera GWAS summary stats (aneuploidy and recombination)
+      for use in ldsc pipeline.  
+ """ 
+
 import gzip
 import argparse
 
