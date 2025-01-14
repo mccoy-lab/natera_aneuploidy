@@ -109,20 +109,20 @@ rule vcf2pgen:
 
 
 rule merge_full_pgen:
-        """Merge PGEN file from each chromosome into a consolidated PGEN file"""
-        input:
-            expand(
-                "results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.pgen",
-                chrom=range(1, 23),
-            ),
-            expand(
-                "results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.psam",
-                chrom=range(1, 23),
-            ),
-            expand(
-                "results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.pvar",
-                chrom=range(1, 23),
-            ),
+    """Merge PGEN file from each chromosome into a consolidated PGEN file"""
+    input:
+        expand(
+            "results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.pgen",
+            chrom=range(1, 23),
+        ),
+        expand(
+            "results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.psam",
+            chrom=range(1, 23),
+        ),
+        expand(
+            "results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.pvar",
+            chrom=range(1, 23),
+        ),
     output:
         tmp_merge_file=temp("results/gwas/intermediate_files/merged_pgen.txt"),
         pgen="results/gwas/intermediate_files/merged_imputed.pgen",
@@ -301,11 +301,7 @@ rule run_gwas_lmm_autosome_subset:
         assigned_pops=config["assigned_pops"],
     output:
         gwas_output=temp(
-            "results/gwas/summary_stats/"
-            + config["population"]
-            + "/lmm_subset_gwas_{phenotype}_by_{parent}_{dataset_type}_"
-            + config["population"]
-            + "_{chrom}_{chunk}.tsv"
+            "results/gwas/summary_stats/{population}/lmm_subset_gwas_{phenotype}_by_{parent}_{dataset_type}_{population}_{chrom}_{chunk}.tsv"
         ),
     threads: 16
     resources:
@@ -328,11 +324,8 @@ rule merge_lmm_subsets:
     """Create single file for GWAS LMM for each chromosome, merging all subsets"""
     input:
         lambda wildcards: expand(
-            "results/gwas/summary_stats/"
-            + config["population"]
-            + "/lmm_subset_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_"
-            + config["population"]
-            + "_{{chrom}}_{chunk}.tsv",
+            "results/gwas/summary_stats/{{population}}/lmm_subset_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{population}}_{{chrom}}_{chunk}.tsv",
+            population=config["population"],
             phenotype=wildcards.phenotype,
             parent=wildcards.parent,
             dataset_type=wildcards.dataset_type,
@@ -340,11 +333,7 @@ rule merge_lmm_subsets:
             chunk=range(chunks_dict.get(f"chr{wildcards.chrom}", 0)),
         ),
     output:
-        gwas_output="results/gwas/summary_stats/"
-        + config["population"]
-        + "/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_"
-        + config["population"]
-        + "_{chrom}.tsv",
+        gwas_output="results/gwas/summary_stats/{population}/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_{population}_{chrom}.tsv",
     wildcard_constraints:
         chrom="|".join(map(str, range(1, 24))),
     shell:
@@ -355,18 +344,10 @@ rule merge_chroms_lmm:
     """Create single file for each phenotype/parent/dataset, merging all chromosomes"""
     input:
         expand(
-            "results/gwas/summary_stats/"
-            + config["population"]
-            + "/lmm_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_"
-            + config["population"]
-            + "_{chrom}.tsv",
+            "results/gwas/summary_stats/{{population}}/lmm_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{population}}_{chrom}.tsv",
             chrom=range(1, 24),
         ),
     output:
-        merged_file="results/gwas/summary_stats/"
-        + config["population"]
-        + "/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_"
-        + config["population"]
-        + "_total.tsv.gz",
+        merged_file="results/gwas/summary_stats/{population}/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_{population}_total.tsv.gz",
     shell:
         "cat {input} | gzip > {output.merged_file}"
