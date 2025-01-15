@@ -1,7 +1,11 @@
 #!python3
 
-"""Snakefile for miscellaneous analyses in the Natera dataset """
-
+# =================
+# author: Arjun Biddanda, Biology Dept., Johns Hopkins University
+# email: abiddan1@jhu.edu
+# last update: March 14, 2024
+# aim: Miscellaneous analyses in the Natera datasets (ancestry estimation, external validation).
+# =================
 
 import numpy as np
 import pandas as pd
