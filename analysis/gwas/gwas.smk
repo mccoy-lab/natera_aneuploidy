@@ -9,11 +9,15 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# 2024
+# last update: January 13, 2025
+# aim: run GWAS for aneuploidy phenotypes (maternal meiotic, whole genome gain/loss, single-chr aneuploidy) for both parents across discovery and test. 
+#      generate input files necessary for GWAS. 
 # =================
+
 
 # -------- Parameters ------- #
 configfile: "config.yaml"
+
 
 # Dictionary of number of files to chunk each vcf into in `split`
 chunks_dict = {
@@ -53,39 +57,35 @@ phenotypes = [
     "chr16_aneuploidy",
     "chr21_aneuploidy",
     "chr22_aneuploidy",
-    "maternal_meiotic_aneuploidy_age_interaction"
+    "maternal_meiotic_aneuploidy_age_interaction",
 ]
 single_chr_phenotypes = [
-	"chr15_aneuploidy",
+    "chr15_aneuploidy",
     "chr16_aneuploidy",
     "chr21_aneuploidy",
-    "chr22_aneuploidy"
+    "chr22_aneuploidy",
 ]
 
-phenotype = "maternal_meiotic_aneuploidy_age_interaction"
+phenotype = "maternal_meiotic_aneuploidy"
 parents = ["mother", "father"]
 dataset_type = ["discovery", "test"]
 chroms = range(1, 24)
+population = config["population"]
 
 # shell.prefix("set -o pipefail; ")
 
 
 # -------- Rules section -------- #
-# rule all:
-#     input:
-#         expand(
-#             "results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-#             phenotype=phenotypes,
-#             parent=parents,
-#             dataset_type="discovery",
-#         ),
 rule all:
     input:
         expand(
-            "results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
-            phenotype=phenotype,
-            parent="mother",
-            dataset_type="discovery",
+            "results/gwas/summary_stats/"
+            + config["population"]
+            + "/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_{population}_total.tsv.gz",
+            phenotype=phenotypes,
+            parent=parents,
+            dataset_type=dataset_type,
+            population=config["population"],
         ),
 
 
@@ -101,9 +101,9 @@ rule vcf2pgen:
         log=temp("results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.log"),
     threads: 24
     wildcard_constraints:
-        chrom = "|".join(map(str, range(1, 23))),
+        chrom="|".join(map(str, range(1, 23))),
     resources:
-    	mem_mb="100G",
+        mem_mb="100G",
     params:
         outfix=lambda wildcards: f"results/gwas/intermediate_files/spectrum_imputed_chr{wildcards.chrom}",
     shell:
@@ -112,17 +112,26 @@ rule vcf2pgen:
 
 rule merge_full_pgen:
     """Merge PGEN file from each chromosome into a consolidated PGEN file"""
-     input:
-        expand("results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.pgen", chrom=range(1, 23)),
-        expand("results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.psam", chrom=range(1, 23)),
-        expand("results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.pvar", chrom=range(1, 23)),
+    input:
+        expand(
+            "results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.pgen",
+            chrom=range(1, 23),
+        ),
+        expand(
+            "results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.psam",
+            chrom=range(1, 23),
+        ),
+        expand(
+            "results/gwas/intermediate_files/spectrum_imputed_chr{chrom}.pvar",
+            chrom=range(1, 23),
+        ),
     output:
         tmp_merge_file=temp("results/gwas/intermediate_files/merged_pgen.txt"),
         pgen="results/gwas/intermediate_files/merged_imputed.pgen",
         psam="results/gwas/intermediate_files/merged_imputed.psam",
         pvar="results/gwas/intermediate_files/merged_imputed.pvar",
     params:
-        outfix="results/gwas/intermediate_files/merged_imputed"
+        outfix="results/gwas/intermediate_files/merged_imputed",
     resources:
         time="6:00:00",
         mem_mb="100G",
@@ -132,6 +141,7 @@ rule merge_full_pgen:
         for i in $(seq 1 22); do echo \"results/gwas/intermediate_files/spectrum_imputed_chr${{i}}\" ; done > {output.tmp_merge_file}
         plink2 --pmerge-list {output.tmp_merge_file} --maf 0.005 --threads {threads} --make-pgen --out {params.outfix}
         """
+
 
 # -------- 1. Generate files necessary for GWAS -------- #
 rule compute_pcs:
@@ -150,7 +160,7 @@ rule compute_pcs:
         mem_mb="50G",
     params:
         npcs=20,
-        outfix="results/gwas/intermediate_files/merged_imputed"
+        outfix="results/gwas/intermediate_files/merged_imputed",
     threads: 24
     shell:
         """
@@ -174,7 +184,7 @@ rule king_related_individuals:
     threads: 24
     params:
         king_thresh=0.125,
-        outfix="results/gwas/intermediate_files/king_result"
+        outfix="results/gwas/intermediate_files/king_result",
     shell:
         "plink2 --pgen {input.pgen} --psam {input.psam} --pvar {input.pvar} --threads {threads} --maf 0.01 --king-cutoff {params.king_thresh} --out {params.outfix}"
 
@@ -183,8 +193,8 @@ rule discovery_validate_split:
     """Split families into discovery/validation sets for use in GWAS"""
     input:
         discovery_validate_R="scripts/discovery_test_split.R",
-        metadata=config['metadata'],
-        fam_file=config['opticall'],
+        metadata=config["metadata"],
+        fam_file=config["opticall"],
         king_to_remove=rules.king_related_individuals.output.king_exclude,
     output:
         metadata_weighted_ages="results/gwas/intermediate_files/spectrum_metadata_weighted_ages.tsv",
@@ -203,16 +213,16 @@ rule get_chrom_pos_and_make_vcf_regions:
         chrom_mapfile="results/gwas/subsets/spectrum_imputed_chr{chrom}_chrom_pos.txt",
         regions_file="results/gwas/subsets/spectrum_imputed_chr{chrom}_regions.txt",
     resources:
-    	time="0:30:00",
+        time="0:30:00",
         mem_mb="4G",
     params:
         nchunks=lambda wildcards: chunks_dict[f"chr{wildcards.chrom}"],
     threads: 1
     wildcard_constraints:
-        chrom = "|".join(map(str, range(1, 24))),
+        chrom="|".join(map(str, range(1, 24))),
     shell:
-    	"""
-    	# Extract chrom and pos
+        """
+        # Extract chrom and pos
         bcftools query -f'%CHROM\t%POS\n' {input.input_vcf} > {output.chrom_mapfile}
 
         # Get regions
@@ -224,7 +234,7 @@ rule bed_split_vcf:
     input:
         regions_file=rules.get_chrom_pos_and_make_vcf_regions.output.regions_file,
         input_vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/spectrum_imputed_chr{chrom}_rehead_filter.cpra.vcf.gz",
-        plink_bcf="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/plink_bcf.sh"
+        plink_bcf="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/gwas/plink_bcf.sh",
     output:
         bcf="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bcf",
         bed="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}.bed",
@@ -239,7 +249,7 @@ rule bed_split_vcf:
         outfix="results/gwas/subsets/spectrum_imputed_chr{chrom}_rehead_filter_cpra_{chunk}",
     threads: 16
     wildcard_constraints:
-        chrom = "|".join(map(str, range(1, 24))),
+        chrom="|".join(map(str, range(1, 24))),
     shell:
         """
         region=$(awk -v n={wildcards.chunk} "NR==n+1 {{print}}" {input.regions_file})
@@ -253,9 +263,9 @@ rule generate_phenotypes:
     """Make file for each phenotype"""
     input:
         rscript="scripts/phenotypes/generate_phenotype_files.R",
-        ploidy_calls=config['ploidy_calls'],
-        segmental_calls=config['segmental_calls'],
-        metadata=config['metadata'],
+        ploidy_calls=config["ploidy_calls"],
+        segmental_calls=config["segmental_calls"],
+        metadata=config["metadata"],
     output:
         phenotype_file="results/phenotypes/{phenotype}_by_{parent}.csv",
     wildcard_constraints:
@@ -284,33 +294,40 @@ rule run_gwas_lmm_autosome_subset:
     """Run GWAS LMM for each set of parameters, using the subsetted bed files"""
     input:
         gwas_rscript="scripts/gwas/gwas_lmm_chunks.R",
-        metadata=config['metadata'],
+        metadata=config["metadata"],
         bed=rules.bed_split_vcf.output.bed,
         discovery_test="results/gwas/intermediate_files/discover_validate_split_{parent}.txt",
         parental_pcs=rules.compute_pcs.output.evecs,
         phenotype_file=rules.generate_phenotypes.output.phenotype_file,
         bim=rules.bed_split_vcf.output.bim,
+        assigned_pops=config["assigned_pops"],
     output:
-        gwas_output=temp("results/gwas/summary_stats/lmm_subset_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}_{chunk}.tsv"),
+        gwas_output=temp(
+            "results/gwas/summary_stats/{population}/lmm_subset_gwas_{phenotype}_by_{parent}_{dataset_type}_{population}_{chrom}_{chunk}.tsv"
+        ),
     threads: 16
     resources:
         time="0:50:00",
         mem_mb="60G",
+    params:
+        population=config["population"],
     wildcard_constraints:
         dataset_type="discovery|test",
         parent="mother|father",
-        chrom = "|".join(map(str, range(1, 24))),
+        chrom="|".join(map(str, range(1, 24))),
     shell:
         """
         ml gcc r/4.3.0
-        Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}
+        Rscript --vanilla {input.gwas_rscript} {input.metadata} {input.bed} {input.discovery_test} {input.parental_pcs} {input.phenotype_file} {input.bim} {wildcards.dataset_type} {input.assigned_pops} {params.population} {wildcards.phenotype} {wildcards.parent} {threads} {output.gwas_output}
         """
+
 
 rule merge_lmm_subsets:
     """Create single file for GWAS LMM for each chromosome, merging all subsets"""
     input:
         lambda wildcards: expand(
-            "results/gwas/summary_stats/lmm_subset_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{chrom}}_{chunk}.tsv",
+            "results/gwas/summary_stats/{{population}}/lmm_subset_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{population}}_{{chrom}}_{chunk}.tsv",
+            population=config["population"],
             phenotype=wildcards.phenotype,
             parent=wildcards.parent,
             dataset_type=wildcards.dataset_type,
@@ -318,9 +335,9 @@ rule merge_lmm_subsets:
             chunk=range(chunks_dict.get(f"chr{wildcards.chrom}", 0)),
         ),
     output:
-        gwas_output="results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_{chrom}.tsv",
+        gwas_output="results/gwas/summary_stats/{population}/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_{population}_{chrom}.tsv",
     wildcard_constraints:
-        chrom = "|".join(map(str, range(1, 24))),
+        chrom="|".join(map(str, range(1, 24))),
     shell:
         "cat {input} > {output.gwas_output}"
 
@@ -329,11 +346,10 @@ rule merge_chroms_lmm:
     """Create single file for each phenotype/parent/dataset, merging all chromosomes"""
     input:
         expand(
-            "results/gwas/summary_stats/lmm_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{chrom}.tsv",
+            "results/gwas/summary_stats/{{population}}/lmm_gwas_{{phenotype}}_by_{{parent}}_{{dataset_type}}_{{population}}_{chrom}.tsv",
             chrom=range(1, 24),
         ),
     output:
-        merged_file="results/gwas/summary_stats/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_total.tsv.gz",
+        merged_file="results/gwas/summary_stats/{population}/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_{population}_total.tsv.gz",
     shell:
         "cat {input} | gzip > {output.merged_file}"
-
