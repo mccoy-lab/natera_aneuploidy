@@ -74,18 +74,25 @@ population = config["population"]
 
 
 # -------- Rules section -------- #
+# rule all:
+#     input:
+#         expand(
+#             "results/gwas/summary_stats/{population}/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_{population}_total.tsv.gz",
+#             phenotype=phenotypes,
+#             parent=parents,
+#             dataset_type=dataset_type,
+#             population=config["population"],
+#         ),
+
 rule all:
     input:
         expand(
-            "results/gwas/summary_stats/"
-            + config["population"]
-            + "/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_{population}_total.tsv.gz",
-            phenotype=phenotypes,
-            parent=parents,
-            dataset_type=dataset_type,
+            "results/gwas/summary_stats/{population}/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_{population}_total.tsv.gz",
+            phenotype="maternal_meiotic_aneuploidy",
+            parent="mother",
+            dataset_type="discovery",
             population=config["population"],
         ),
-
 
 # -------- 0. Preprocess genetic data -------- #
 rule vcf2pgen:
