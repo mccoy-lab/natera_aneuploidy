@@ -1,16 +1,16 @@
-## Make phenotype file for embryos affected by aneuploidy phenotypes
+## Make phenotype file for embryos affected by aneuploidy 
+
+# =================
+# author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
+# email: scarios1@jhu.edu
+# last update: January 15, 2025
+# aim: define phenotypes from input data for use in aneuploidy GWAS and subsequent analyses
+# =================
 
 # load libraries
 library(data.table)
 library(tidyr)
 library(dplyr)
-
-# =================
-# author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
-# email: scarios1@jhu.edu
-# last update: November 9, 2024 
-# aim: define phenotypes from input data for use in aneuploidy GWAS and subsequent analyses
-# =================
 
 # Usage:
 # /scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/scripts/phenotypes/generate_phenotype_files.R \
@@ -218,6 +218,9 @@ make_phenotype <- function(metadata, parent, phenotype_name, ploidy_calls,
     } else if (grepl("maternal_meiotic_aneuploidy", phenotype_name) | 
                grepl("^chr[0-9]+_aneuploidy$", phenotype_name)) {
       cn <- c("3m", "1p")
+    } else if (phenotype_name == "paternal_meiotic_aneuploidy" & 
+               parent == "father") {
+      cn <- c("3p", "1m")
     } else if (phenotype_name == "complex_aneuploidy") {
       cn <- c("0", "1m", "1p", "3m", "3p")
     } 
@@ -252,6 +255,9 @@ make_phenotype <- function(metadata, parent, phenotype_name, ploidy_calls,
       mutate(
         is_ploidy = case_when(
           grepl("maternal_meiotic_aneuploidy", phenotype_name) ~ 
+            ifelse(num_affected > 0 & num_affected <= max_meiotic, 
+                   "aneu_true", "aneu_false"),
+          grepl("paternal_meiotic_aneuploidy", phenotype_name) ~ 
             ifelse(num_affected > 0 & num_affected <= max_meiotic, 
                    "aneu_true", "aneu_false"),
           grepl("^chr[0-9]+_aneuploidy$", phenotype_name) ~ 
