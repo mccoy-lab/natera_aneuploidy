@@ -1,5 +1,13 @@
 #!python3
 
+
+# =================
+# author: Arjun Biddanda, Biology Dept., Johns Hopkins University
+# email: abiddan1@jhu.edu
+# last update: Nov 10, 2024
+# aim: Call segmental aneuploidies on the autosomes.
+# =================
+
 import numpy as np
 import pandas as pd
 import polars as pl

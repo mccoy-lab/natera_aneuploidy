@@ -1,5 +1,14 @@
 #!python3
 
+
+# =================
+# author: Arjun Biddanda, Biology Dept., Johns Hopkins University
+# email: abiddan1@jhu.edu
+# last update: Nov 10, 2024
+# aim: Call IBD segments for draft implementation of IBD mapping.
+# =================
+
+
 # ------- Workflow for looking at IBD-based mapping in the Natera dataset ------- #
 import pickle, gzip
 from pathlib import Path

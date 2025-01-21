@@ -1,5 +1,13 @@
 #!python3
-# The main entry point of your workflow.
+
+
+# =================
+# author: Arjun Biddanda, Biology Dept., Johns Hopkins University
+# email: abiddan1@jhu.edu
+# last update: Nov 10, 2024
+# aim: evaluate accuracy of aneuploidy detection using simulations.
+# =================
+
 
 import os
 import subprocess

@@ -1,5 +1,13 @@
 #!python3
 
+# =================
+# author: Arjun Biddanda, Biology Dept., Johns Hopkins University
+# email: abiddan1@jhu.edu
+# last update: Nov 10, 2024
+# aim: Estimate aneuploidy on sex-chromosomes.
+# =================
+
+
 import numpy as np
 import pandas as pd
 import pickle, gzip
@@ -21,12 +29,12 @@ lrrs = ["none"]
 # Create the VCF data dictionary for the sex-chromosomes
 vcf_dict = {}
 chroms = ["chrX", "chrY"]
-vcf_dict[
-    "chrX"
-] = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_23.norm.b38.vcf.gz"
-vcf_dict[
-    "chrY"
-] = "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_24.norm.b38.vcf.gz"
+vcf_dict["chrX"] = (
+    "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_23.norm.b38.vcf.gz"
+)
+vcf_dict["chrY"] = (
+    "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_24.norm.b38.vcf.gz"
+)
 
 # Read in the aggregate metadata file
 meta_df = pd.read_csv(metadata_file)

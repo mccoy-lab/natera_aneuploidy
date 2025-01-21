@@ -1,5 +1,13 @@
 #!python3
 
+# =================
+# author: Arjun Biddanda, Biology Dept., Johns Hopkins University
+# email: abiddan1@jhu.edu
+# last update: March 14, 2024
+# aim: post-process autosomal aneuploidy calls (e.g BPH / SPH).
+# =================
+
+
 import numpy as np
 import pandas as pd
 

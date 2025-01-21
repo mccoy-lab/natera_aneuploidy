@@ -1,5 +1,13 @@
 #!python3
 
+# =================
+# author: Arjun Biddanda, Biology Dept., Johns Hopkins University
+# email: abiddan1@jhu.edu
+# last update: March 14, 2024
+# aim: Estimate aneuploidy across autosomes using karyoHMM.
+# =================
+
+
 import numpy as np
 import pandas as pd
 
@@ -25,9 +33,9 @@ cytosnp_map_v12 = (
 vcf_dict = {}
 chroms = [f"chr{i}" for i in range(1, 23)]
 for i, c in enumerate(range(1, 23)):
-    vcf_dict[
-        chroms[i]
-    ] = f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/eagle_phased_hg38/natera_parents.b38.chr{c}.vcf.gz"
+    vcf_dict[chroms[i]] = (
+        f"/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/eagle_phased_hg38/natera_parents.b38.chr{c}.vcf.gz"
+    )
 
 
 # Read in the aggregate metadata file

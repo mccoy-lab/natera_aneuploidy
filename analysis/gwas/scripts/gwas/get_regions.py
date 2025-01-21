@@ -1,11 +1,10 @@
-# This script reads a map file containing genomic position and chromosome (two columns) for each site in a vcf,
-# divides the data into a specified number of chunks, and writes the chunk information to an output file. 
-# Each chunk includes the chromosome and position range for the lines in that chunk.
-
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# 2024
+# last update: June 14, 2024
+# aim: This script reads a map file containing genomic position and chromosome (two columns) for each site in a vcf,
+#       divides the data into a specified number of chunks, and writes the chunk information to an output file.
+#       Each chunk includes the chromosome and position range for the lines in that chunk.
 # =================
 
 # Usage:

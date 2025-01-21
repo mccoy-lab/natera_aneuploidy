@@ -4,7 +4,7 @@
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
 # last update: January 15, 2025
-# aim: create phenotype information for each parent 
+# aim: define phenotypes from input data for use in aneuploidy GWAS and subsequent analyses
 # =================
 
 # load libraries
