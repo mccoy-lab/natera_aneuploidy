@@ -3,9 +3,9 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last updated: January 13, 2025
-# aim: compute heritability and genetic correlation for recombination, aneuploidy, and 
-#       published fertility-related traits. process input files as necessary. 
+# last updated: January 21, 2025
+# aim: Compute heritability and genetic correlation for recombination, aneuploidy, and 
+#       published fertility-related traits. Process input files as necessary. 
 # =================
 
 # Usage: snakemake --snakefile quantgen.smk --use-conda --profile ~/code/rockfish_smk_profile -p
@@ -55,9 +55,9 @@ rule rename_summary_stats:
     shell:
         """
         if [[ "{params.filetype}" == "recombination" ]]; then
-            awk 'BEGIN {{ OFS="\\t"; print "SNP", "CHR", "BP", "A1", "BETA", "SE", "P" }} NR > 1 {{ print $3, $1, $2, $6, $10, $11, $13 }}' {input.summary_stats} > {output.summary_stats_renamed};
+            awk 'BEGIN {{ OFS="\\t"; print "SNP", "A2", "A2", "BETA", "SE", "P" }} NR > 1 {{ print $3, $6, $6, $10, $11, $13 }}' {input.summary_stats} > {output.summary_stats_renamed};
         elif [[ "{params.filetype}" == "aneuploidy" ]]; then
-            zcat {input.summary_stats} | awk 'BEGIN {{ OFS="\\t"; print "SNP", "CHR", "BP", "A1", "A2", "BETA", "SE", "P" }} {{ print $8, $10, $1, $13, $12, $3, $4, $6 }}' > {output.summary_stats_renamed};
+            zcat {input.summary_stats} | awk 'BEGIN {{ OFS="\\t"; print "SNP", "A1", "A2", "BETA", "SE", "P" }} {{ print $8, $13, $12, $3, $4, $6 }}' > {output.summary_stats_renamed};
         else
             cp {input.summary_stats} {output.summary_stats_renamed};
         fi
