@@ -3,7 +3,7 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last update: January 15, 2025
+# last update: January 21, 2025
 # aim: plot proportion of each chromosome that is aneuploid, by parent of origin 
 # =================
 
@@ -16,6 +16,8 @@ library(ggplot2)
 ploidy_calls <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz")
 sex_chr <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.sex_embryos.031624.tsv.gz")
 
+# Read in segmentals for filtering
+segmental_calls <- fread("/scratch16/rmccoy22/abiddan1/natera_segmental/analysis/segmental_qc/results/tables/segmental_calls_postqc_refined.tsv.gz")
 
 # Filter data to match chromosome calls used in aneuploidy GWAS
 
@@ -29,6 +31,20 @@ ploidy_calls <- ploidy_calls[ploidy_calls$embryo_noise_3sd == FALSE, ]
 # Remove day 3 embryos 
 ploidy_calls <- ploidy_calls[ploidy_calls$day3_embryo == FALSE,]
 
+# Remove embryos with failed amplification
+# Count number of chromosomes called as nullisomies for each embryo
+count_nullisomies <- ploidy_calls %>%
+  group_by(mother, child) %>%
+  summarise(num_nullisomies = sum(bf_max_cat == "0"))
+# Identify embryos with fewer nullisomies than the threshold
+successful_amp <- count_nullisomies[count_nullisomies$num_nullisomies < 5, ]
+# Keep only embryos without failed amplification
+ploidy_calls <- ploidy_calls[ploidy_calls$child %in% successful_amp$child, ]
+
+# Keep only chrom that have probabilities for all 6 cn states
+ploidy_calls <- ploidy_calls[complete.cases(
+  ploidy_calls[,c("0", "1m", "1p", "2", "3m", "3p")]), ]
+
 # Keep only rows with bayes factor greater than the threshold for 
 # bayes factor qc 
 bayes_factor_cutoff <- 2
@@ -37,6 +53,24 @@ ploidy_calls <- ploidy_calls[ploidy_calls$bf_max > bayes_factor_cutoff, ]
 # Keep only chromosomes with sufficiently high probability cn call
 min_prob <- 0.9
 ploidy_calls <- ploidy_calls[ploidy_calls$post_max > min_prob, ]
+
+# Keep only chromosomes that are not affected by post-QC segmental aneu
+# Add column that makes ID of mother-father-child-chrom in whole chr 
+ploidy_calls$uid <- paste0(ploidy_calls$mother, "+", ploidy_calls$father, "+",
+                           ploidy_calls$child, "+", ploidy_calls$chrom)
+# Add column that makes ID of mother-father-child-chrom in segmental
+segmental_calls$uid <- paste0(segmental_calls$mother, "+", 
+                              segmental_calls$father, "+", 
+                              segmental_calls$child, "+", 
+                              segmental_calls$chrom)
+# Remove from ploidy calls any chromosomes in segmentals 
+ploidy_calls <- ploidy_calls[!ploidy_calls$uid %in% segmental_calls$uid,]
+
+# Remove trisomies that are likely mosaic 
+ploidy_calls <- ploidy_calls[!(ploidy_calls$bf_max_cat %in% c("3m", "3p") & 
+                                 (ploidy_calls$post_bph_centro < 0.340 & 
+                                    ploidy_calls$post_bph_noncentro < 0.340)), ]
+
 
 # Get number of children present after filtering, for determining proportion
 num_embryos <- length(unique(ploidy_calls$child))
