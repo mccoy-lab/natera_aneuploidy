@@ -41,6 +41,21 @@ successful_amp <- count_nullisomies[count_nullisomies$num_nullisomies < 5, ]
 # Keep only embryos without failed amplification
 ploidy_calls <- ploidy_calls[ploidy_calls$child %in% successful_amp$child, ]
 
+# Remove embryos with whole-genome gain or loss
+count_trisomies <- ploidy_calls %>%
+  group_by(mother, child) %>%
+  summarise(num_trisomies = sum(bf_max_cat %in% c("3m", "3p")))
+count_monosomies <- ploidy_calls %>%
+  group_by(mother, child) %>%
+  summarise(num_monosomies = sum(bf_max_cat %in% c("1m", "1p")))
+# Identify embryos with fewer mono/trisomies than the threshold for 
+# maternal meiotic aneuploidy 
+non_triploid <- count_monosomies[count_monosomies$num_monosomies <= 5, ]
+non_haploid <- count_trisomies[count_trisomies$num_trisomies <= 5, ]
+# Keep only embryos without whole-genome gain or loss
+ploidy_calls <- ploidy_calls[ploidy_calls$child %in% non_triploid$child, ]
+ploidy_calls <- ploidy_calls[ploidy_calls$child %in% non_haploid$child, ]
+
 # Keep only chrom that have probabilities for all 6 cn states
 ploidy_calls <- ploidy_calls[complete.cases(
   ploidy_calls[,c("0", "1m", "1p", "2", "3m", "3p")]), ]
@@ -127,6 +142,11 @@ sex_chr_clean <- sex_chr %>%
       status %in% c("gain_paternal", "loss_paternalY") ~ "paternal"
     )
   )
+
+# Remove from sex chromosome info embryos that were triploid or haploid 
+sex_chr_clean <- sex_chr_clean[sex_chr_clean$child %in% non_triploid$child, ]
+sex_chr_clean <- sex_chr_clean[sex_chr_clean$child %in% non_haploid$child, ]
+
 
 # Combine autosomes and sex chromosomes
 combined_data <- bind_rows(autosomes_clean, sex_chr_clean)
