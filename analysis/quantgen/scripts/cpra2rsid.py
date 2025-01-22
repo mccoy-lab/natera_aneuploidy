@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
- """ 
- original author: Arjun Biddanda, Biology Dept., Johns Hopkins University 
- modified by: Sara A. Carioscia, Biology Dept., Johns Hopkins University 
- email: scarios1@jhu.edu 
- last update: January 10, 2025
- aim: Convert CPRA to rsids in Natera GWAS summary stats (aneuploidy and recombination)
-      for use in ldsc pipeline.  
- """ 
+""" 
+original author: Arjun Biddanda, Biology Dept., Johns Hopkins University 
+modified by: Sara A. Carioscia, Biology Dept., Johns Hopkins University 
+email: scarios1@jhu.edu 
+last update: January 10, 2025
+aim: Convert CPRA to rsids in Natera GWAS summary stats (aneuploidy and recombination)
+  for use in ldsc pipeline.  
+"""
 
 import gzip
 import argparse
@@ -98,7 +98,7 @@ def main():
                 cpra = columns[0]  # Get the CPRA from the first column
                 cpra_split = cpra.split(":")  # Split the CPRA into components
                 # Construct the alternate CPRA format
-                cpra_alt = f"{cpra_splt[0]}:{cpra_splt[1]}:{cpra_splt[3]}:{cpra_splt[2]}"
+                cpra_alt = f"{cpra_split[0]}:{cpra_split[1]}:{cpra_split[3]}:{cpra_split[2]}"
                 # Create A1 and A2 for output columns
                 A1 = cpra_split[2] 
                 A2 = cpra_split[3]
