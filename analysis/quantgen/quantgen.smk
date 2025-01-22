@@ -17,7 +17,9 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results 
 rule all:
     input:
-    	"results/heritability_merged.txt",
+    	"results/intermediate_files/gw_significant_snps.txt",
+        #"results/queried_snps_across_traits.tsv",
+        #"results/heritability_merged.txt",
     	# "results/genetic_correlation_merged.txt",
     	# expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]])
     	# "results/intermediate_files/mean_crossovers_by_mother_summary_stats_cpra.tsv",
@@ -335,11 +337,34 @@ rule pheWAS:
 rule extract_snps:
     """Extract SNPs that were genome-wide significant from both aneuploidy and recombination traits."""
     input:
+        lead_variants_recombination="/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/finalized/natera_recombination_gwas.sumstats.replication.rsids.tsv",
         aneuploidy_summary_stats="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/intermediate_files/maternal_meiotic_aneuploidy_by_mother_summary_stats_cpra.tsv",
-        lead_variants_recombination="/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/finalized/natera_recombination_gwas.sumstats.replication.rsids.tsv"
     output:
+        filtered_recomb=temp("results/intermediate_files/recomb_hits_filtered.tsv"),
         significant_snps="results/intermediate_files/gw_significant_snps.txt"
     params:
+        filter_recomb_exec=config["filter_recomb_exec"],
         extractsnps_exec=config["extractsnps_exec"]
     shell:
-        "bash {params.extractsnps_exec} {input.aneuploidy_summary_stats} {input.lead_variants_recombination} {output.significant_snps}"
+        """
+        ml r/4.3.0
+        Rscript {params.filter_recomb_exec} {input.lead_variants_recombination} {output.filtered_recomb}
+        bash {params.extractsnps_exec} {input.aneuploidy_summary_stats} {output.filtered_recomb} {output.significant_snps}
+        """
+
+
+rule merge_summary_stats: 
+    """Query SNPs that were significant in aneuploidy and recombination phenotypes across all traits."""
+    input:
+        significant_snps=rules.extract_snps.output.significant_snps,
+        summary_stats_cpra=expand("results/intermediate_files/{name}_summary_stats_cpra.tsv", name=config["summary_stats"].keys()),
+    output:
+        snps_across_traits="results/queried_snps_across_traits.tsv"
+    params:
+        merge_summary_stats=config["merge_summary_stats_exec"]
+    run:
+        """
+        ml r/4.3.0
+        Rscript {params.merge_summary_stats} {input.significant_snps} {output.snps_across_traits} {input.summary_stats_cpra}
+        """
+

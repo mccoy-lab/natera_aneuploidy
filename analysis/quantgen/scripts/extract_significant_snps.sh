@@ -9,7 +9,7 @@ output_file=$3
 mkdir -p "$(dirname "$output_file")"
 
 # Extract lead SNP from aneuploidy GWAS
-tail -n +2 "$aneuploidy_summary_stats" | sort -k8,8g | head -n 1 | awk '{print "MaternalMeioticAneu", $9, $6, $8}' > "$output_file"
+tail -n +2 "$aneuploidy_summary_stats" | awk 'length($2) == 1 && length($3) == 1' | sort -k6,6g | head -n 1 | awk '{print "MaternalMeioticAneu", $1, $4, $6}' > "$output_file"
 
 # Extract lead SNPs from recombination GWAS results
-awk 'BEGIN{OFS="\t"} NR > 1 {print $1, $NF, $8, $3}' "$lead_variants_recombination" >> "$output_file"
+awk 'BEGIN{OFS="\t"} {print $1, $NF, $8, $3}' "$lead_variants_recombination" >> "$output_file"
