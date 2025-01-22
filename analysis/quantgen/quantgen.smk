@@ -18,8 +18,10 @@ chromosomes = [str(i) for i in range(1, 24)]
 rule all:
     input:
     	"results/heritability_merged.txt",
-    	"results/genetic_correlation_merged.txt",
-    	expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]])
+    	# "results/genetic_correlation_merged.txt",
+    	# expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]])
+    	# "results/intermediate_files/mean_crossovers_by_mother_summary_stats_cpra.tsv",
+    	# "results/intermediate_files/maternal_meiotic_aneuploidy_by_mother_summary_stats_cpra.tsv"
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
