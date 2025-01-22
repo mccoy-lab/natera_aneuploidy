@@ -330,3 +330,16 @@ rule pheWAS:
             fi
         done
         """
+
+
+rule extract_snps:
+    """Extract SNPs that were genome-wide significant from both aneuploidy and recombination traits."""
+    input:
+        aneuploidy_summary_stats="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/intermediate_files/maternal_meiotic_aneuploidy_by_mother_summary_stats_cpra.tsv",
+        lead_variants_recombination="/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/finalized/natera_recombination_gwas.sumstats.replication.rsids.tsv"
+    output:
+        significant_snps="results/intermediate_files/gw_significant_snps.txt"
+    params:
+        extractsnps_exec=config["extractsnps_exec"]
+    shell:
+        "bash {params.extractsnps_exec} {input.aneuploidy_summary_stats} {input.lead_variants_recombination} {output.significant_snps}"
