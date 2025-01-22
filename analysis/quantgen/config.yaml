@@ -10,7 +10,7 @@ rsid: "rs6006737"
 
 summary_stats:
   maternal_meiotic_aneuploidy_by_mother:
-    file: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/summary_stats/lmm_gwas_maternal_meiotic_aneuploidy_by_mother_discovery_total.tsv.gz"
+    file: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/summary_stats/All/lmm_gwas_maternal_meiotic_aneuploidy_by_mother_discovery_All_total.tsv.gz"
     type: "aneuploidy"
     N: 18646
     #ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
