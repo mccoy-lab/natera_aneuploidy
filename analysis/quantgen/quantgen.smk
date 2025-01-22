@@ -74,7 +74,6 @@ rule cpra2rsid:
         dbsnp=config["dbsnp"],
         dictionary=rules.process_dbsnp.output.cpra2rsid_info
     output:
-        summary_stats_cpra_intermediate="results/intermediate_files/{name}_summary_stats_cpra_intermediate.tsv",
         summary_stats_cpra="results/intermediate_files/{name}_summary_stats_cpra.tsv"
     params:
         filetype=lambda wildcards: config["summary_stats"][wildcards.name]["type"],
@@ -87,14 +86,8 @@ rule cpra2rsid:
     shell:
         """
         if [[ "{params.filetype}" == "recombination" || "{params.filetype}" == "aneuploidy" ]]; then
-            python3 {params.cpra2rsid_exec} --sumstats {input.summary_stats} --dbsnp {input.dbsnp} --dictionary {input.dictionary} --output {output.summary_stats_cpra_intermediate};
-            awk 'NR==1 {{gsub(/^SNP/, "CPRA"); gsub(/RSID$/, "SNP")}} {{print}}' {output.summary_stats_cpra_intermediate} > {output.summary_stats_cpra};
-            if [[ "{params.filetype}" == "recombination" ]]; then
-                awk 'BEGIN {{OFS="\\t"}} NR==1 {{print $1, $2, $3, $4, "A2", $5, $6, $7, $8; next}} {{split($1, a, ":"); print $1, $2, $3, $4, a[3], $5, $6, $7, $8}}' {output.summary_stats_cpra} > {output.summary_stats_cpra_intermediate};
-                cp {output.summary_stats_cpra_intermediate} {output.summary_stats_cpra};
-            fi
+            python3 {params.cpra2rsid_exec} --sumstats {input.summary_stats} --dbsnp {input.dbsnp} --dictionary {input.dictionary} --output {output.summary_stats_cpra};
         else
-            cp {input.summary_stats} {output.summary_stats_cpra_intermediate};
             cp {input.summary_stats} {output.summary_stats_cpra};
         fi
         """
