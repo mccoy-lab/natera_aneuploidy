@@ -3,7 +3,7 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last updated: January 21, 2025
+# last updated: January 22, 2025
 # aim: Compute heritability and genetic correlation for recombination, aneuploidy, and 
 #       published fertility-related traits. Process input files as necessary. 
 # =================
@@ -17,7 +17,8 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results 
 rule all:
     input:
-    	"results/intermediate_files/gw_significant_snps.txt",
+    	"results/queried_snps_across_traits.tsv",
+        #"results/intermediate_files/gw_significant_snps.txt",
         #"results/queried_snps_across_traits.tsv",
         #"results/heritability_merged.txt",
     	# "results/genetic_correlation_merged.txt",
@@ -361,10 +362,13 @@ rule merge_summary_stats:
     output:
         snps_across_traits="results/queried_snps_across_traits.tsv"
     params:
-        merge_summary_stats=config["merge_summary_stats_exec"]
-    run:
+        merge_summary_stats=config["merge_summary_stats_exec"],
+    resources:
+    	mem_mb=128000,
+        disk_mb=128000,
+    shell:
         """
         ml r/4.3.0
-        Rscript {params.merge_summary_stats} {input.significant_snps} {output.snps_across_traits} {input.summary_stats_cpra}
+        Rscript --vanilla {params.merge_summary_stats} {input.significant_snps} {output.snps_across_traits} {input.summary_stats_cpra}
         """
 
