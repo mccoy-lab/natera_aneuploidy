@@ -4,7 +4,7 @@
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
 # last updated: January 22, 2025
-# aim: Get most significant SNPs from aneuploidy and recombination GWAS results
+# aim: Extract lead SNP from each peak in aneuploidy and recombination GWAS results
 # =================
 
 # Usage: extract_significant_snps.sh <aneuploidy_summary_stats> <lead_variants_recombination> <output_file>
