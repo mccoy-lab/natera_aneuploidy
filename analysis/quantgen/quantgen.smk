@@ -94,30 +94,6 @@ rule cpra2rsid:
         """
 
 
-rule create_ldscores: 
-    """Calculate LD Scores for the Natera dataset for each chromosome."""
-    input:
-        ldsc_exec=config["ldsc_exec"],
-    output:
-        ld_score_gz="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
-    resources:
-        time="24:00:00",
-        mem_mb=128000,
-        disk_mb=128000
-    params:
-        outfix="results/ld_scores/LDscore.{chrom}",
-        imputed_parents_prefix=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom),
-        window=300,
-        maf=0.05
-    conda:
-        "ldsc_env.yaml"
-    shell:
-        """
-        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.imputed_parents_prefix} --l2 --ld-wind-kb {params.window} --maf 0.05
-        """
-
-
-
 # -------- Step 2: Process all summary stats for use in LDSC ------- #
 
 rule munge_summary_stats: 
