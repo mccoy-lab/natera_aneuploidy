@@ -3,9 +3,12 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# 2024
+# last updated: January 22, 2025
+# aim: Compute heritability and genetic correlation for recombination, aneuploidy, and 
+#       published fertility-related traits. Process input files as necessary. 
 # =================
 
+# Usage: snakemake --snakefile quantgen.smk --use-conda --profile ~/code/rockfish_smk_profile -p
 
 configfile: "config.yaml"
 
@@ -14,10 +17,10 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results 
 rule all:
     input:
-    	expand("results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes)
-    	# "results/heritability_merged.txt",
-    	# "results/genetic_correlation_merged.txt",
-    	# expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]])
+        "results/heritability_merged.txt",
+    	"results/genetic_correlation_merged.txt",
+    	expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]]),
+    	"results/queried_snps_across_traits.tsv",
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -53,9 +56,9 @@ rule rename_summary_stats:
     shell:
         """
         if [[ "{params.filetype}" == "recombination" ]]; then
-            awk 'BEGIN {{ OFS="\\t"; print "SNP", "CHR", "BP", "A1", "BETA", "SE", "P" }} NR > 1 {{ print $3, $1, $2, $6, $10, $11, $13 }}' {input.summary_stats} > {output.summary_stats_renamed};
+            awk 'BEGIN {{ OFS="\\t"; print "SNP", "A2", "A2", "BETA", "SE", "P" }} NR > 1 {{ print $3, $6, $6, $10, $11, $13 }}' {input.summary_stats} > {output.summary_stats_renamed};
         elif [[ "{params.filetype}" == "aneuploidy" ]]; then
-            zcat {input.summary_stats} | awk 'BEGIN {{ OFS="\\t"; print "SNP", "CHR", "BP", "A1", "A2", "BETA", "SE", "P" }} {{ print $8, $10, $1, $13, $12, $3, $4, $6 }}' > {output.summary_stats_renamed};
+            zcat {input.summary_stats} | awk 'BEGIN {{ OFS="\\t"; print "SNP", "A1", "A2", "BETA", "SE", "P" }} {{ print $8, $13, $12, $3, $4, $6 }}' > {output.summary_stats_renamed};
         else
             cp {input.summary_stats} {output.summary_stats_renamed};
         fi
@@ -68,15 +71,14 @@ rule cpra2rsid:
     For public datasets, copy existing summary stats.
     """
     input:
+        cpra2rsid_exec=config["cpra2rsid_exec"],
         summary_stats="results/intermediate_files/{name}_renamed_summary_stats.tsv", 
         dbsnp=config["dbsnp"],
         dictionary=rules.process_dbsnp.output.cpra2rsid_info
     output:
-        summary_stats_cpra_intermediate="results/intermediate_files/{name}_summary_stats_cpra_intermediate.tsv",
         summary_stats_cpra="results/intermediate_files/{name}_summary_stats_cpra.tsv"
     params:
         filetype=lambda wildcards: config["summary_stats"][wildcards.name]["type"],
-        cpra2rsid_exec=config["cpra2rsid_exec"]
     threads: 1
     resources:
         time="3:00:00",
@@ -85,14 +87,8 @@ rule cpra2rsid:
     shell:
         """
         if [[ "{params.filetype}" == "recombination" || "{params.filetype}" == "aneuploidy" ]]; then
-            python3 {params.cpra2rsid_exec} --sumstats {input.summary_stats} --dbsnp {input.dbsnp} --dictionary {input.dictionary} --output {output.summary_stats_cpra_intermediate};
-            awk 'NR==1 {{gsub(/^SNP/, "CPRA"); gsub(/RSID$/, "SNP")}} {{print}}' {output.summary_stats_cpra_intermediate} > {output.summary_stats_cpra};
-            if [[ "{params.filetype}" == "recombination" ]]; then
-                awk 'BEGIN {{OFS="\\t"}} NR==1 {{print $1, $2, $3, $4, "A2", $5, $6, $7, $8; next}} {{split($1, a, ":"); print $1, $2, $3, $4, a[3], $5, $6, $7, $8}}' {output.summary_stats_cpra} > {output.summary_stats_cpra_intermediate};
-                cp {output.summary_stats_cpra_intermediate} {output.summary_stats_cpra};
-            fi
+            python3 {input.cpra2rsid_exec} --sumstats {input.summary_stats} --dbsnp {input.dbsnp} --dictionary {input.dictionary} --output {output.summary_stats_cpra};
         else
-            cp {input.summary_stats} {output.summary_stats_cpra_intermediate};
             cp {input.summary_stats} {output.summary_stats_cpra};
         fi
         """
@@ -333,3 +329,40 @@ rule pheWAS:
             fi
         done
         """
+
+
+rule extract_snps:
+    """Extract SNPs that were genome-wide significant from both aneuploidy and recombination traits."""
+    input:
+        filter_recomb_exec=config["filter_recomb_exec"],
+        extractsnps_exec=config["extractsnps_exec"],
+        lead_variants_recombination="/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/finalized/natera_recombination_gwas.sumstats.replication.rsids.tsv",
+        aneuploidy_summary_stats="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/intermediate_files/maternal_meiotic_aneuploidy_by_mother_summary_stats_cpra.tsv",
+    output:
+        filtered_recomb=temp("results/intermediate_files/recomb_hits_filtered.tsv"),
+        significant_snps="results/intermediate_files/gw_significant_snps.txt"
+    shell:
+        """
+        ml r/4.3.0
+        Rscript {input.filter_recomb_exec} {input.lead_variants_recombination} {output.filtered_recomb}
+        bash {input.extractsnps_exec} {input.aneuploidy_summary_stats} {output.filtered_recomb} {output.significant_snps}
+        """
+
+
+rule merge_summary_stats: 
+    """Query SNPs that were significant in aneuploidy and recombination phenotypes across all traits."""
+    input:
+        merge_summary_stats=config["merge_summary_stats_exec"],
+        significant_snps=rules.extract_snps.output.significant_snps,
+        summary_stats_cpra=expand("results/intermediate_files/{name}_summary_stats_cpra.tsv", name=config["summary_stats"].keys()),
+    output:
+        snps_across_traits="results/queried_snps_across_traits.tsv"
+    resources:
+    	mem_mb=128000,
+        disk_mb=128000,
+    shell:
+        """
+        ml r/4.3.0
+        Rscript --vanilla {input.merge_summary_stats} {input.significant_snps} {output.snps_across_traits} {input.summary_stats_cpra}
+        """
+
