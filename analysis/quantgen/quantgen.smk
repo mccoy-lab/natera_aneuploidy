@@ -17,14 +17,10 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results 
 rule all:
     input:
+        "results/heritability_merged.txt",
+    	"results/genetic_correlation_merged.txt",
+    	expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]]),
     	"results/queried_snps_across_traits.tsv",
-        #"results/intermediate_files/gw_significant_snps.txt",
-        #"results/queried_snps_across_traits.tsv",
-        #"results/heritability_merged.txt",
-    	# "results/genetic_correlation_merged.txt",
-    	# expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]])
-    	# "results/intermediate_files/mean_crossovers_by_mother_summary_stats_cpra.tsv",
-    	# "results/intermediate_files/maternal_meiotic_aneuploidy_by_mother_summary_stats_cpra.tsv"
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -75,6 +71,7 @@ rule cpra2rsid:
     For public datasets, copy existing summary stats.
     """
     input:
+        cpra2rsid_exec=config["cpra2rsid_exec"],
         summary_stats="results/intermediate_files/{name}_renamed_summary_stats.tsv", 
         dbsnp=config["dbsnp"],
         dictionary=rules.process_dbsnp.output.cpra2rsid_info
@@ -82,7 +79,6 @@ rule cpra2rsid:
         summary_stats_cpra="results/intermediate_files/{name}_summary_stats_cpra.tsv"
     params:
         filetype=lambda wildcards: config["summary_stats"][wildcards.name]["type"],
-        cpra2rsid_exec=config["cpra2rsid_exec"]
     threads: 1
     resources:
         time="3:00:00",
@@ -91,7 +87,7 @@ rule cpra2rsid:
     shell:
         """
         if [[ "{params.filetype}" == "recombination" || "{params.filetype}" == "aneuploidy" ]]; then
-            python3 {params.cpra2rsid_exec} --sumstats {input.summary_stats} --dbsnp {input.dbsnp} --dictionary {input.dictionary} --output {output.summary_stats_cpra};
+            python3 {input.cpra2rsid_exec} --sumstats {input.summary_stats} --dbsnp {input.dbsnp} --dictionary {input.dictionary} --output {output.summary_stats_cpra};
         else
             cp {input.summary_stats} {output.summary_stats_cpra};
         fi
@@ -338,37 +334,35 @@ rule pheWAS:
 rule extract_snps:
     """Extract SNPs that were genome-wide significant from both aneuploidy and recombination traits."""
     input:
+        filter_recomb_exec=config["filter_recomb_exec"],
+        extractsnps_exec=config["extractsnps_exec"],
         lead_variants_recombination="/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/finalized/natera_recombination_gwas.sumstats.replication.rsids.tsv",
         aneuploidy_summary_stats="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/intermediate_files/maternal_meiotic_aneuploidy_by_mother_summary_stats_cpra.tsv",
     output:
         filtered_recomb=temp("results/intermediate_files/recomb_hits_filtered.tsv"),
         significant_snps="results/intermediate_files/gw_significant_snps.txt"
-    params:
-        filter_recomb_exec=config["filter_recomb_exec"],
-        extractsnps_exec=config["extractsnps_exec"]
     shell:
         """
         ml r/4.3.0
-        Rscript {params.filter_recomb_exec} {input.lead_variants_recombination} {output.filtered_recomb}
-        bash {params.extractsnps_exec} {input.aneuploidy_summary_stats} {output.filtered_recomb} {output.significant_snps}
+        Rscript {input.filter_recomb_exec} {input.lead_variants_recombination} {output.filtered_recomb}
+        bash {input.extractsnps_exec} {input.aneuploidy_summary_stats} {output.filtered_recomb} {output.significant_snps}
         """
 
 
 rule merge_summary_stats: 
     """Query SNPs that were significant in aneuploidy and recombination phenotypes across all traits."""
     input:
+        merge_summary_stats=config["merge_summary_stats_exec"],
         significant_snps=rules.extract_snps.output.significant_snps,
         summary_stats_cpra=expand("results/intermediate_files/{name}_summary_stats_cpra.tsv", name=config["summary_stats"].keys()),
     output:
         snps_across_traits="results/queried_snps_across_traits.tsv"
-    params:
-        merge_summary_stats=config["merge_summary_stats_exec"],
     resources:
     	mem_mb=128000,
         disk_mb=128000,
     shell:
         """
         ml r/4.3.0
-        Rscript --vanilla {params.merge_summary_stats} {input.significant_snps} {output.snps_across_traits} {input.summary_stats_cpra}
+        Rscript --vanilla {input.merge_summary_stats} {input.significant_snps} {output.snps_across_traits} {input.summary_stats_cpra}
         """
 
