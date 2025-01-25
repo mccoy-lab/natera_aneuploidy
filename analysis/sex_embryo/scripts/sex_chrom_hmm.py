@@ -87,7 +87,6 @@ def posterior_chrX_karyotype(bafs, pos, mat_haps, pat_haps, **kwargs):
         pat_haps=pat_haps,
         pi0=pi0_est,
         std_dev=sigma_est,
-        unphased=True,
     )
     res_dict = hmm.posterior_karyotypes(gammas, karyotypes)
     res_dict["pi0_est_chrX"] = pi0_est
@@ -121,6 +120,7 @@ def posterior_chrY_karyotype(bafs, pos, pat_haps, **kwargs):
         mat_haps=mat_haps,
         pat_haps=pat_haps,
         sigma_bounds=(1e-2, 0.4),
+        unphased=True,
     )
     # 2. run fwd-bwd decoding for the HMM for state probabilities
     gammas, states, karyotypes = hmm.forward_backward(

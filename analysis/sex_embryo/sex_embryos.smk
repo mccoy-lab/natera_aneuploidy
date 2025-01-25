@@ -29,9 +29,14 @@ lrrs = ["none"]
 # Create the VCF data dictionary for the sex-chromosomes
 vcf_dict = {}
 chroms = ["chrX", "chrY"]
+# vcf_dict["chrX"] = (
+# "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_23.norm.b38.vcf.gz"
+# )
 vcf_dict["chrX"] = (
-    "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_23.norm.b38.vcf.gz"
+    "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/eagle_phased_hg38/natera_parents.b38.beagle.chr23.annot.vcf.gz"
 )
+
+
 vcf_dict["chrY"] = (
     "/data/rmccoy22/natera_spectrum/genotypes/opticall_parents_100423/genotypes/opticall_concat_24.norm.b38.vcf.gz"
 )
