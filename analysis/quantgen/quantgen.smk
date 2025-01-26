@@ -17,7 +17,7 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results 
 rule all:
     input:
-        "results/heritability_merged.txt",
+        "results/heritability_published_merged.txt",
     	"results/genetic_correlation_merged.txt",
     	expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]]),
     	"results/queried_snps_across_traits.tsv",
@@ -131,7 +131,13 @@ rule heritability:
     """Calculate heritability of each trait."""
     input:
         ldsc_exec=config["ldsc_exec"],
-        summary_stats=rules.munge_summary_stats.output.summary_stats_munged
+        summary_stats=expand(
+            "results/intermediate_files/{name}_summary_stats_cpra.tsv",
+            name=[
+                key for key, value in config["summary_stats"].items() 
+                if value["type"] not in {"aneuploidy", "recombination"}
+            ]
+        )
     output:
         heritability="results/heritability/{name}_heritability.log"
     resources:
@@ -155,9 +161,15 @@ rule heritability:
 rule merge_heritability_results:
     """Merge heritability results into a single file."""
     input:
-        logs=expand("results/heritability/{name}_heritability.log", name=config["summary_stats"].keys())
+        logs=expand(
+            "results/heritability/{name}_heritability.log", 
+            name=[
+                key for key, value in config["summary_stats"].items() 
+                if value["type"] not in {"aneuploidy", "recombination"}
+            ]
+        )
     output:
-        merged="results/heritability_merged.txt"
+        merged="results/heritability_published_merged.txt"
     resources:
         time="0:05:00",
         mem_mb=4000,
@@ -246,9 +258,6 @@ rule pairwise_genetic_correlation:
 rule merge_genetic_correlation:
 	"""Merge genetic correlation results for the relevant pairings."""
 	input:
-		expand("results/genetic_correlation/{trait1}-{trait2}.log",
-			trait1=[t1 for t1, t2 in pairwise_all],
-			trait2=[t2 for t1, t2 in pairwise_all]) +
 		expand("results/genetic_correlation/{trait1}-{trait2}.log",
 			trait1=[t1 for t1, t2 in pairwise_european],
 			trait2=[t2 for t1, t2 in pairwise_european])
