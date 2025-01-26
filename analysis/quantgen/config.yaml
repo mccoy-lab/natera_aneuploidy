@@ -10,7 +10,6 @@ imputed_parents_template: "/data/rmccoy22/natera_spectrum/genotypes/imputed_pare
 allele_list: "analysis_files/w_hm3.snplist"
 rsid: "rs6006737"
 
-
 summary_stats:
   maternal_meiotic_aneuploidy_by_mother:
     file: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/summary_stats/All/lmm_gwas_maternal_meiotic_aneuploidy_by_mother_discovery_All_total.tsv.gz"
