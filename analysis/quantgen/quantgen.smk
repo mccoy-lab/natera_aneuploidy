@@ -20,14 +20,6 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results
 rule all:
     input:
-        # expand(
-        #     "results/heritability/{name}_heritability.log",
-        #     name=[
-        #         key
-        #         for key, value in config["summary_stats"].items()
-        #         if value["type"] not in {"aneuploidy", "recombination"}
-        #     ]
-        # ),
         "results/heritability_published_merged.txt",
         "results/genetic_correlation_merged.txt",
         expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]]),
