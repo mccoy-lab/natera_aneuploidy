@@ -138,14 +138,6 @@ rule munge_summary_stats:
 
 
 # -------- Step 3: Calculate heritability on all summary stats ------- #
-
-# Select traits to run heritability on (published only)
-valid_traits = [
-    key
-    for key, value in config["summary_stats"].items()
-    if value["type"] not in {"aneuploidy", "recombination"}
-]
-
 rule heritability:
     """Calculate heritability of each trait."""
     input:
