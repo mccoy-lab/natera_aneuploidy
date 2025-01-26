@@ -193,34 +193,34 @@ rule merge_heritability_results:
                 "snps": r"After merging with regression SNP LD, (\d+) SNPs remain",
             }
 
-            # Prepare to write the merged output
-            with open(output.merged, "w") as outfile:
-                # Write the header row
-                outfile.write(
-            "Trait\tTotal_h2\tTotal_h2_SE\tLambda_GC\tMean_Chi2\tIntercept\tIntercept_SE\tSNPs\n"
+        # Prepare to write the merged output
+        with open(output.merged, "w") as outfile:
+        # Write the header row
+            outfile.write(
+                "Trait\tTotal_h2\tTotal_h2_SE\tLambda_GC\tMean_Chi2\tIntercept\tIntercept_SE\tSNPs\n"
+        )
+
+        # Iterate through each input log file
+        for log_file in input.logs:
+            with open(log_file, "r") as infile:
+                content = infile.read()
+
+                # Extract values using regex
+            trait = log_file.split("/")[-1].replace("_heritability.log", "")
+            total_h2, total_h2_se = re.search(
+                patterns["total_h2"], content
+            ).groups()
+            lambda_gc = re.search(patterns["lambda_gc"], content).group(1)
+            mean_chi2 = re.search(patterns["mean_chi2"], content).group(1)
+            intercept, intercept_se = re.search(
+                patterns["intercept"], content
+            ).groups()
+            snps = re.search(patterns["snps"], content).group(1)
+
+            # Write extracted values to the output file
+            outfile.write(
+                f"{trait}\t{total_h2}\t{total_h2_se}\t{lambda_gc}\t{mean_chi2}\t{intercept}\t{intercept_se}\t{snps}\n"
             )
-
-            # Iterate through each input log file
-            for log_file in input.logs:
-                with open(log_file, "r") as infile:
-                    content = infile.read()
-
-                    # Extract values using regex
-                trait = log_file.split("/")[-1].replace("_heritability.log", "")
-                total_h2, total_h2_se = re.search(
-                    patterns["total_h2"], content
-                ).groups()
-                lambda_gc = re.search(patterns["lambda_gc"], content).group(1)
-                mean_chi2 = re.search(patterns["mean_chi2"], content).group(1)
-                intercept, intercept_se = re.search(
-                    patterns["intercept"], content
-                ).groups()
-                snps = re.search(patterns["snps"], content).group(1)
-
-                # Write extracted values to the output file
-                outfile.write(
-                    f"{trait}\t{total_h2}\t{total_h2_se}\t{lambda_gc}\t{mean_chi2}\t{intercept}\t{intercept_se}\t{snps}\n"
-                )
 
 
 # -------- Step 4: Calculate genetic correlation on relevant pairs of summary stats ------- #
