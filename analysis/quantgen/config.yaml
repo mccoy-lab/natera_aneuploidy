@@ -165,7 +165,7 @@ summary_stats:
   maternal_meiotic_aneuploidy_by_mother_eur:
     file: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/summary_stats/EUR/lmm_gwas_maternal_meiotic_aneuploidy_by_mother_discovery_EUR_total.tsv.gz"
     type: "aneuploidy"
-    N: 10000
+    N: 12466
     ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
   MeanCO_Female_eur:
