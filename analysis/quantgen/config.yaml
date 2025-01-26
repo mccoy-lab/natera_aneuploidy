@@ -166,25 +166,151 @@ summary_stats:
     file: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/summary_stats/EUR/lmm_gwas_maternal_meiotic_aneuploidy_by_mother_discovery_EUR_total.tsv.gz"
     type: "aneuploidy"
     N: 10000
-    ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
-  mean_crossovers_by_mother_eur:
-    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.MeanCO.glm.linear"
+  MeanCO_Female_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Female_regenie.MeanCO.glm.linear"
     type: "recombination"
-    N: 13088
-    ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    N: 9836
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
-  telomere_distance_by_mother_eur:
-    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.TelomereDist.glm.linear"
+  MeanCO_Male_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Male_regenie.MeanCO.glm.linear"
     type: "recombination"
-    N: 14776
-    ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    N: 10303
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
-  centromere_distance_by_mother_eur:
-    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.CentromereDist.glm.linear"
+  MeanCO_Joint_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Joint_regenie.MeanCO.glm.linear"
     type: "recombination"
-    N: 14875
-    ld_scores: "/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    N: 20139
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  CentromereDist_Female_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Female_regenie.CentromereDist.glm.linear"
+    type: "recombination"
+    N: 9887
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  CentromereDist_Male_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Male_regenie.CentromereDist.glm.linear"
+    type: "recombination"
+    N: 10267
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  CentromereDist_Joint_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Joint_regenie.CentromereDist.glm.linear"
+    type: "recombination"
+    N: 20154
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  TelomereDist_Female_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Female_regenie.TelomereDist.glm.linear"
+    type: "recombination"
+    N: 9820
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  TelomereDist_Male_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Male_regenie.TelomereDist.glm.linear"
+    type: "recombination"
+    N: 10216
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  TelomereDist_Joint_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Joint_regenie.TelomereDist.glm.linear"
+    type: "recombination"
+    N: 20036
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  cvCO_Female_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Female_regenie.cvCO.glm.linear"
+    type: "recombination"
+    N: 9842
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  cvCO_Male_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Male_regenie.cvCO.glm.linear"
+    type: "recombination"
+    N: 10279
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  cvCO_Joint_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Joint_regenie.cvCO.glm.linear"
+    type: "recombination"
+    N: 20121
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  VarCO_Female_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Female_regenie.VarCO.glm.linear"
+    type: "recombination"
+    N: 9518
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  VarCO_Male_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Male_regenie.VarCO.glm.linear"
+    type: "recombination"
+    N: 10304
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  VarCO_Joint_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Joint_regenie.VarCO.glm.linear"
+    type: "recombination"
+    N: 19822
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  HotspotOccupancy_Female_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Female_regenie.HotspotOccupancy.glm.linear"
+    type: "recombination"
+    N: 9836
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  HotspotOccupancy_Male_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Male_regenie.HotspotOccupancy.glm.linear"
+    type: "recombination"
+    N: 10180
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  HotspotOccupancy_Joint_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Joint_regenie.HotspotOccupancy.glm.linear"
+    type: "recombination"
+    N: 20016
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  GcContent_Female_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Female_regenie.GcContent.glm.linear"
+    type: "recombination"
+    N: 9838
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  GcContent_Male_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Male_regenie.GcContent.glm.linear"
+    type: "recombination"
+    N: /scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Male_regenie.GcContent.glm.linear"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  GcContent_Joint_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Joint_regenie.GcContent.glm.linear"
+    type: "recombination"
+    N: 20016
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  ReplicationTiming_Female_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Female_regenie.ReplicationTiming.glm.linear"
+    type: "recombination"
+    N: 9844
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  ReplicationTiming_Male_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Male_regenie.ReplicationTiming.glm.linear"
+    type: "recombination"
+    N: 10188
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
+    population: "European"
+  ReplicationTiming_Joint_eur:
+    file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Joint_regenie.ReplicationTiming.glm.linear"
+    type: "recombination"
+    N: 20032
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
   ovarian_aging_ANM_reproGen:
     file: "/scratch16/rmccoy22/abiddan1/prs_aneuploidy/analysis/pgs_calc/results/ovarian_aging_pgs.reprogen.ANM.rsids.true.tsv"
