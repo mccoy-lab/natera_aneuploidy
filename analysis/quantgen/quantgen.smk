@@ -320,12 +320,26 @@ rule extract_snps:
         """
 
 
+# Filter to query only the aneuploidy and recombination summary stats based on the full dataset, 
+# not the European subsets
+def filter_summary_stats(config):
+	filtered_files = []
+	for name, data in config["summary_stats"].items():
+		if data["type"] in ["aneuploidy", "recombination"]:
+			if data["population"].lower() != "european":  # Include only non-European
+				filtered_files.append(f"results/intermediate_files/{name}_summary_stats_cpra.tsv")
+		else:
+			# Include any entries for all other phenotype types 
+			filtered_files.append(f"results/intermediate_files/{name}_summary_stats_cpra.tsv")
+	return filtered_files
+
+
 rule merge_summary_stats: 
     """Query SNPs that were significant in aneuploidy and recombination phenotypes across all traits."""
     input:
         merge_summary_stats=config["merge_summary_stats_exec"],
         significant_snps=rules.extract_snps.output.significant_snps,
-        summary_stats_cpra=expand("results/intermediate_files/{name}_summary_stats_cpra.tsv", name=config["summary_stats"].keys()),
+        summary_stats_cpra=filter_summary_stats(config),
     output:
         snps_across_traits="results/queried_snps_across_traits.tsv"
     resources:
