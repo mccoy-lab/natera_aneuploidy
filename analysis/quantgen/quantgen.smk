@@ -3,7 +3,7 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last updated: January 22, 2025
+# last updated: January 26, 2025
 # aim: Compute heritability and genetic correlation for recombination, aneuploidy, and 
 #       published fertility-related traits. Process input files as necessary. 
 # =================
@@ -211,22 +211,8 @@ def pairwise_comparisons(config, population_filter):
     # Generate all pairwise combinations
     pairwise = list(combinations(traits, 2))
     
-    # Skip pairings for European subsets of aneuploidy and recombination
-    # (compare these traits only for population All)
-    if population_filter == "European":
-        pairwise = [
-            (t1, t2) for t1, t2 in pairwise
-            if not (
-                config["summary_stats"][t1]["type"] in {"aneuploidy", "recombination"} and
-                config["summary_stats"][t2]["type"] in {"aneuploidy", "recombination"}
-            )
-        ]
     return pairwise
 
-
-# Generate pairwise comparisons for each population
-# Natera summary stats (population all)
-pairwise_all = pairwise_comparisons(config, "All")
 # Pairings between published summary stats and European-specific subsets of Natera
 pairwise_european = pairwise_comparisons(config, "European")
 
