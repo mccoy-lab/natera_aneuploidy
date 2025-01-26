@@ -36,7 +36,6 @@ rule all:
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
 
-
 rule process_dbsnp:
     """Generate cpra and rsid table for dbsnp."""
     input:
@@ -108,7 +107,6 @@ rule cpra2rsid:
 
 # -------- Step 2: Process all summary stats for use in LDSC ------- #
 
-
 rule munge_summary_stats:
     """Apply the LDSC data-cleaning script to each summary statistic."""
     input:
@@ -138,6 +136,7 @@ rule munge_summary_stats:
 
 
 # -------- Step 3: Calculate heritability on all summary stats ------- #
+
 rule heritability:
     """Calculate heritability of each trait."""
     input:
@@ -265,12 +264,6 @@ rule pairwise_genetic_correlation:
         """
 
 
-# Break genetic correlation results into sets to extract information 
-# pairwise_inputs = expand(
-#     "results/genetic_correlation/{trait1}-{trait2}.log",
-#     trait1=[t1 for t1, t2 in pairwise_european],
-#     trait2=[t2 for t1, t2 in pairwise_european],
-# )
 pairwise_inputs = sorted(
     set(
         f"results/genetic_correlation/{min(t1, t2)}-{max(t1, t2)}.log"
@@ -314,6 +307,7 @@ rule merge_genetic_correlation_final:
 
 
 # -------- Step 5: Conduct pheWAS on traits in this analysis.------- #
+
 rule pheWAS:
     """Extract lines matching a given RSID from summary stats files and merge them into a single table."""
     input:
