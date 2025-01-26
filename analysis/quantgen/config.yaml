@@ -284,7 +284,7 @@ summary_stats:
   GcContent_Male_eur:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Male_regenie.GcContent.glm.linear"
     type: "recombination"
-    N: /scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_eur_Male_regenie.GcContent.glm.linear"
+    N: 10178
     ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/analysis_files/LDscores_1kgp_EUR/LDscore.@"
     population: "European"
   GcContent_Joint_eur:

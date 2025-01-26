@@ -20,6 +20,14 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results
 rule all:
     input:
+        # expand(
+        #     "results/heritability/{name}_heritability.log",
+        #     name=[
+        #         key
+        #         for key, value in config["summary_stats"].items()
+        #         if value["type"] not in {"aneuploidy", "recombination"}
+        #     ]
+        # ),
         "results/heritability_published_merged.txt",
         "results/genetic_correlation_merged.txt",
         expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]]),
@@ -131,19 +139,18 @@ rule munge_summary_stats:
 
 # -------- Step 3: Calculate heritability on all summary stats ------- #
 
+# Select traits to run heritability on (published only)
+valid_traits = [
+    key
+    for key, value in config["summary_stats"].items()
+    if value["type"] not in {"aneuploidy", "recombination"}
+]
 
 rule heritability:
     """Calculate heritability of each trait."""
     input:
         ldsc_exec=config["ldsc_exec"],
-        summary_stats=expand(
-            "results/intermediate_files/{name}_summary_stats_cpra.tsv",
-            name=[
-                key
-                for key, value in config["summary_stats"].items()
-                if value["type"] not in {"aneuploidy", "recombination"}
-            ],
-        ),
+        summary_stats="results/intermediate_files/{name}_munged.sumstats.gz",
     output:
         heritability="results/heritability/{name}_heritability.log",
     resources:
@@ -165,62 +172,53 @@ rule heritability:
 
 
 rule merge_heritability_results:
-    """Merge heritability results into a single file."""
-    input:
-        logs=expand(
-            "results/heritability/{name}_heritability.log",
-            name=[
-                key
-                for key, value in config["summary_stats"].items()
-                if value["type"] not in {"aneuploidy", "recombination"}
-            ],
-        ),
-    output:
-        merged="results/heritability_published_merged.txt",
-    resources:
-        time="0:05:00",
-        mem_mb=4000,
-        disk_mb=5000,
-    run:
-        import re
+	"""Merge heritability results into a single file."""
+	input:
+		logs=expand(
+			"results/heritability/{name}_heritability.log", 
+			name=[
+				key for key, value in config["summary_stats"].items()
+				if value["type"] not in {"recombination", "aneuploidy"}
+			]
+		),
+	output:
+		merged="results/heritability_published_merged.txt",
+	resources:
+		time="0:05:00",
+		mem_mb=4000,
+		disk_mb=5000,
+	run:
+		import re
 
-        # Define the regex patterns to extract relevant values
-        patterns = {
-            "total_h2": r"Total Observed scale h2:\s+([\d.]+)\s+\(([\d.]+)\)",
-                "lambda_gc": r"Lambda GC:\s+([\d.]+)",
-                "mean_chi2": r"Mean Chi\^2:\s+([\d.]+)",
-                "intercept": r"Intercept:\s+([\d.]+)\s+\(([\d.]+)\)",
-                "snps": r"After merging with regression SNP LD, (\d+) SNPs remain",
-            }
+		# Define the regex patterns to extract relevant values
+		patterns = {
+			"total_h2": r"Total Observed scale h2:\s+([\d.]+)\s+\(([\d.]+)\)",
+			"lambda_gc": r"Lambda GC:\s+([\d.]+)",
+			"mean_chi2": r"Mean Chi\^2:\s+([\d.]+)",
+			"intercept": r"Intercept:\s+([\d.]+)\s+\(([\d.]+)\)",
+			"snps": r"After merging with regression SNP LD, (\d+) SNPs remain",
+		}
 
         # Prepare to write the merged output
-        with open(output.merged, "w") as outfile:
-        # Write the header row
-            outfile.write(
-                "Trait\tTotal_h2\tTotal_h2_SE\tLambda_GC\tMean_Chi2\tIntercept\tIntercept_SE\tSNPs\n"
-        )
+		with open(output.merged, "w") as outfile:
+			# Write the header row
+			outfile.write("Trait\tTotal_h2\tTotal_h2_SE\tLambda_GC\tMean_Chi2\tIntercept\tIntercept_SE\tSNPs\n")
 
-        # Iterate through each input log file
-        for log_file in input.logs:
-            with open(log_file, "r") as infile:
-                content = infile.read()
+			# Iterate through each input log file
+			for log_file in input.logs:
+				with open(log_file, "r") as infile:
+					content = infile.read()
 
-                # Extract values using regex
-            trait = log_file.split("/")[-1].replace("_heritability.log", "")
-            total_h2, total_h2_se = re.search(
-                patterns["total_h2"], content
-            ).groups()
-            lambda_gc = re.search(patterns["lambda_gc"], content).group(1)
-            mean_chi2 = re.search(patterns["mean_chi2"], content).group(1)
-            intercept, intercept_se = re.search(
-                patterns["intercept"], content
-            ).groups()
-            snps = re.search(patterns["snps"], content).group(1)
+				# Extract values using regex
+				trait = log_file.split("/")[-1].replace("_heritability.log", "")
+				total_h2, total_h2_se = re.search(patterns["total_h2"], content).groups()
+				lambda_gc = re.search(patterns["lambda_gc"], content).group(1)
+				mean_chi2 = re.search(patterns["mean_chi2"], content).group(1)
+				intercept, intercept_se = re.search(patterns["intercept"], content).groups()
+				snps = re.search(patterns["snps"], content).group(1)
 
-            # Write extracted values to the output file
-            outfile.write(
-                f"{trait}\t{total_h2}\t{total_h2_se}\t{lambda_gc}\t{mean_chi2}\t{intercept}\t{intercept_se}\t{snps}\n"
-            )
+				# Write extracted values to the output file
+				outfile.write(f"{trait}\t{total_h2}\t{total_h2_se}\t{lambda_gc}\t{mean_chi2}\t{intercept}\t{intercept_se}\t{snps}\n")
 
 
 # -------- Step 4: Calculate genetic correlation on relevant pairs of summary stats ------- #
@@ -275,17 +273,30 @@ rule pairwise_genetic_correlation:
         """
 
 
-rule merge_genetic_correlation:
+# Break genetic correlation results into sets to extract information 
+# pairwise_inputs = expand(
+#     "results/genetic_correlation/{trait1}-{trait2}.log",
+#     trait1=[t1 for t1, t2 in pairwise_european],
+#     trait2=[t2 for t1, t2 in pairwise_european],
+# )
+pairwise_inputs = sorted(
+    set(
+        f"results/genetic_correlation/{min(t1, t2)}-{max(t1, t2)}.log"
+        for t1, t2 in pairwise_european
+    )
+)
+# Split into groups
+n_tranches = 10
+tranche_size = (len(pairwise_inputs) + n_tranches - 1) // n_tranches
+tranches = [pairwise_inputs[i:i + tranche_size] for i in range(0, len(pairwise_inputs), tranche_size)]
+
+rule merge_genetic_correlation_tranche:
     """Merge genetic correlation results for the relevant pairings."""
     input:
-        expand(
-            "results/genetic_correlation/{trait1}-{trait2}.log",
-            trait1=[t1 for t1, t2 in pairwise_european],
-            trait2=[t2 for t1, t2 in pairwise_european],
-        ),
+        lambda wildcards: tranches[int(wildcards.tranche)]
     output:
-        intermediate=temp("results/genetic_correlation_merged_space.txt"),
-        merged="results/genetic_correlation_merged.txt",
+        intermediate=temp("results/genetic_correlation_tranche_{tranche}_space.txt"),
+        merged=temp("results/genetic_correlation_tranche_{tranche}.txt"),
     resources:
         time="0:05:00",
         mem_mb=4000,
@@ -295,6 +306,18 @@ rule merge_genetic_correlation:
         echo "p1 p2 rg se z p h2_obs h2_obs_se h2_int h2_int_se gcov_int gcov_int_se" > {output.intermediate}
         awk '/^p1/{{flag=1; next}} flag && !/^Analysis finished|^Total time elapsed/{{print; flag=0}}' {input} >> {output.intermediate}
         awk -v OFS="\t" '$1=$1' {output.intermediate} > {output.merged}
+        """
+
+
+rule merge_genetic_correlation_final:
+    """Concatenate and finalize genetic correlation results."""
+    input:
+        expand("results/genetic_correlation_tranche_{tranche}.txt", tranche=range(n_tranches))
+    output:
+        "results/genetic_correlation_merged.txt",
+    shell:
+        """
+        cat {input} > {output}
         """
 
 
