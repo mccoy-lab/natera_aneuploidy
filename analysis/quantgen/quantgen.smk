@@ -294,7 +294,10 @@ rule merge_genetic_correlation_final:
         "results/genetic_correlation_merged.txt",
     shell:
         """
-        cat {input} > {output}
+        # Extract header from the first tranche
+        head -n 1 {input[0]} > {output}
+        # Concatenate all files, skipping subsequent headers
+        tail -n +2 -q {input} >> {output}
         """
 
 
@@ -314,7 +317,7 @@ rule pheWAS:
     shell:
         """
         # Create an empty file for the merged results
-        echo -e "File\tExtracted_Line" > {output.merged_results}
+        echo -e "File\tSNP\tA1\tA2\tBeta\tSE\tP" > {output.merged_results}
 
         # Loop through all input files and extract the line containing the RSID
         for file in {input.summary_stats_cpra}; do
@@ -322,9 +325,14 @@ rule pheWAS:
             result=$(grep "{params.rsid}" ${{file}})
             # If a result is found, append it to the output with the filename
             if [[ -n "$result" ]]; then
-                echo -e "$(basename ${{file}})\t$result" >> {output.merged_results}
+                # Remove the suffix "_summary_stats_cpra.tsv" from the filename
+                modified_name=$(basename ${{file}} | sed 's/_summary_stats_cpra.tsv$//')
+                echo -e "$modified_name\t$result" >> {output.merged_results}
             fi
         done
+
+        # Replace all white space with tabs
+		sed -E -i 's/[[:space:]]+/\t/g' {output.merged_results}
         """
 
 
