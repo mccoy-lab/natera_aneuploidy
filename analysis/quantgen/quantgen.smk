@@ -344,8 +344,8 @@ rule extract_snps:
     input:
         filter_recomb_exec=config["filter_recomb_exec"],
         extractsnps_exec=config["extractsnps_exec"],
-        lead_variants_recombination="/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/finalized/natera_recombination_gwas.sumstats.replication.rsids.tsv",
-        aneuploidy_summary_stats="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/intermediate_files/maternal_meiotic_aneuploidy_by_mother_summary_stats_cpra.tsv",
+        lead_variants_recombination=config["lead_variants_recombination"],
+        aneuploidy_summary_stats=config["aneuploidy_summary_stats"]
     output:
         filtered_recomb=temp("results/intermediate_files/recomb_hits_filtered.tsv"),
         significant_snps="results/intermediate_files/gw_significant_snps.txt",
