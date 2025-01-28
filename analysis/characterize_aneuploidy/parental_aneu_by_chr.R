@@ -14,7 +14,7 @@ library(ggplot2)
 
 # Read in data (aneuploidy calls for autosomes, sex chromosomes)
 ploidy_calls <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.bph_sph_trisomy.full_annotation.031624.tsv.gz")
-sex_chr <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.sex_embryos.031624.tsv.gz")
+sex_chr <- fread("/data/rmccoy22/natera_spectrum/karyohmm_outputs/compiled_output/natera_embryos.karyohmm_v30a.sex_embryos.012425.tsv.gz")
 
 # Read in segmentals for filtering
 segmental_calls <- fread("/scratch16/rmccoy22/abiddan1/natera_segmental/analysis/segmental_qc/results/tables/segmental_calls_postqc_refined.tsv.gz")
@@ -94,7 +94,17 @@ num_embryos <- length(unique(ploidy_calls$child))
 autosomes <- ploidy_calls
 
 
-# Categorize calls for sex chromosomes 
+# Categorize calls for sex chromosomes
+
+# Remove embryos that were already removed from autosomal calls 
+# (e.g., trip/haploid, failed amplification, day 3)
+sex_chr <- sex_chr[sex_chr$child %in% ploidy_calls$child]
+
+# Create column with max probability for filtering 
+sex_chr$max_prob <- apply(sex_chr[, 6:11], 1, max)
+sex_chr <- sex_chr[sex_chr$max_prob > min_prob]
+sex_chr$max_prob_Y <- apply(sex_chr[, 16:17], 1, max)
+sex_chr <- sex_chr[sex_chr$max_prob_Y > min_prob]
 
 # Combine x and y max BF cats to get all possible unique combinations
 sex_chr$karyotype <- paste0(sex_chr$x_maxBFcat, "_", sex_chr$y_maxBFcat)
@@ -142,11 +152,6 @@ sex_chr_clean <- sex_chr %>%
       status %in% c("gain_paternal", "loss_paternalY") ~ "paternal"
     )
   )
-
-# Remove from sex chromosome info embryos that were triploid or haploid 
-sex_chr_clean <- sex_chr_clean[sex_chr_clean$child %in% non_triploid$child, ]
-sex_chr_clean <- sex_chr_clean[sex_chr_clean$child %in% non_haploid$child, ]
-
 
 # Combine autosomes and sex chromosomes
 combined_data <- bind_rows(autosomes_clean, sex_chr_clean)
