@@ -1,7 +1,7 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last update: January 25, 2025
+# last update: January 27, 2025
 # aim: for each lead SNP from the aneuploidy and recombination GWAS results, 
 #       get the beta and p-value from all other traits and create table.
 # =================
@@ -19,7 +19,7 @@ summary_stat_files <- args[3:length(args)]
 # Load table with lead SNPs from aneuploidy and recombination traits
 primary_table <- read.table(primary_table, header = FALSE)
 colnames(primary_table) <- c("Primary_Trait", "SNP", "Primary_Trait_Beta", 
-                             "Primary_Trait_P-value")
+                             "Primary_Trait_SE", "Primary_Trait_P-value")
 
 # Iterate through each file of summary stats
 for (file_path in summary_stat_files) {
@@ -34,12 +34,13 @@ for (file_path in summary_stat_files) {
   summary_stats <- summary_stats[!is.na(summary_stats$SNP),]
   
   # Merge with the primary table on SNP
-  primary_table <- left_join(primary_table, summary_stats %>% select(SNP, BETA, P), 
+  primary_table <- left_join(primary_table, summary_stats %>% select(SNP, BETA, SE, P), 
                              by = "SNP", relationship = "many-to-many")
   
   # Rename the newly added columns
-  colnames(primary_table)[(ncol(primary_table) - 1):ncol(primary_table)] <- c(
+  colnames(primary_table)[(ncol(primary_table) - 2):ncol(primary_table)] <- c(
     paste(trait_name, "Beta", sep = "_"),
+    paste(trait_name, "SE", sep = "_"),
     paste(trait_name, "P-value", sep = "_")
     )
 

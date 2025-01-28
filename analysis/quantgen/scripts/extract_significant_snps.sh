@@ -3,7 +3,7 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last updated: January 22, 2025
+# last updated: January 27, 2025
 # aim: Extract lead SNP from each peak in aneuploidy and recombination GWAS results
 # =================
 
@@ -17,7 +17,7 @@ output_file=$3
 mkdir -p "$(dirname "$output_file")"
 
 # Extract lead SNP from aneuploidy GWAS
-tail -n +2 "$aneuploidy_summary_stats" | awk 'length($2) == 1 && length($3) == 1' | sort -k6,6g | head -n 1 | awk '{print "MaternalMeioticAneu", $1, $4, $6}' > "$output_file"
+tail -n +2 "$aneuploidy_summary_stats" | awk 'length($2) == 1 && length($3) == 1' | sort -k6,6g | head -n 1 | awk '{print "MaternalMeioticAneu", $1, $4, $5, $6}' > "$output_file"
 
 # Extract lead SNPs from recombination GWAS results
-awk 'BEGIN{OFS="\t"} {print $1, $NF, $8, $3}' "$lead_variants_recombination" >> "$output_file"
+awk 'BEGIN{OFS="\t"} {print $1, $NF, $8, $9, $3}' "$lead_variants_recombination" >> "$output_file"
