@@ -22,7 +22,7 @@ rule all:
     input:
         "results/heritability_published_merged.txt",
         "results/genetic_correlation_merged.txt",
-        expand("results/pheWAS_results_{rsid}.tsv", rsid=[config["rsid"]]),
+        expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
         "results/queried_snps_across_traits.tsv",
 
 
@@ -311,28 +311,31 @@ rule pheWAS:
             name=config["summary_stats"].keys(),
         ),
     output:
-        merged_results="results/pheWAS_results_{rsid}.tsv",
+        merged_results=expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
     params:
-        rsid=config["rsid"],
+        rsid=config["rsid"],  # List of RSIDs from the config
     shell:
         """
-        # Create an empty file for the merged results
-        echo -e "File\tSNP\tA1\tA2\tBeta\tSE\tP" > {output.merged_results}
+        # Loop over each RSID and create the file for each
+        for rsid in {params.rsid}; do
+            # Create an empty file for the merged results
+            echo -e "File\tSNP\tA1\tA2\tBeta\tSE\tP" > results/pheWAS_results_${{rsid}}.tsv
 
-        # Loop through all input files and extract the line containing the RSID
-        for file in {input.summary_stats_cpra}; do
-            # Extract the line containing the RSID
-            result=$(grep "{params.rsid}" ${{file}})
-            # If a result is found, append it to the output with the filename
-            if [[ -n "$result" ]]; then
-                # Remove the suffix "_summary_stats_cpra.tsv" from the filename
-                modified_name=$(basename ${{file}} | sed 's/_summary_stats_cpra.tsv$//')
-                echo -e "$modified_name\t$result" >> {output.merged_results}
-            fi
+            # Loop through all input files and extract the line containing the RSID
+            for file in {input.summary_stats_cpra}; do
+                # Extract the line containing the RSID
+                result=$(grep "${{rsid}}" ${{file}})
+                # If a result is found, append it to the output with the filename
+                if [[ -n "$result" ]]; then
+                    # Remove the suffix "_summary_stats_cpra.tsv" from the filename
+                    modified_name=$(basename ${{file}} | sed 's/_summary_stats_cpra.tsv$//')
+                    echo -e "$modified_name\t$result" >> results/pheWAS_results_${{rsid}}.tsv
+                fi
+            done
+
+            # Replace all white space with tabs
+            sed -E -i 's/[[:space:]]+/\\t/g' results/pheWAS_results_${{rsid}}.tsv
         done
-
-        # Replace all white space with tabs
-		sed -E -i 's/[[:space:]]+/\t/g' {output.merged_results}
         """
 
 
