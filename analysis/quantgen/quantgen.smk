@@ -3,7 +3,7 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last updated: January 26, 2025
+# last updated: February 3, 2025
 # aim: Compute heritability and genetic correlation for recombination, aneuploidy, and
 #       published fertility-related traits. Process input files as necessary.
 # =================
@@ -20,26 +20,30 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results
 rule all:
     input:
-        "results/heritability_published_merged.txt",
-        "results/genetic_correlation_merged.txt",
-        expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
-        "results/queried_snps_across_traits.tsv",
+        "results/intermediate_files/dbsnp151_hg38_dictionary.tsv"
+        # "results/heritability_published_merged.txt",
+        # "results/genetic_correlation_merged.txt",
+        # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
+        # "results/queried_snps_across_traits.tsv",
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
 
 rule process_dbsnp:
-    """Generate cpra and rsid table for dbsnp."""
+    """Generate cpra and rsid dictionary for dbsnp."""
     input:
+        dbsnp_exec=config["dbsnp_exec"],
         dbsnp=config["dbsnp"],
     output:
-        cpra2rsid_info="results/intermediate_files/dbsnp151_hg38_info.txt",
+        cpra2rsid_info="results/intermediate_files/dbsnp151_hg38_dictionary.tsv",
     resources:
         time="6:00:00",
         mem_mb=1000,
-    threads: 16
     shell:
-        'bcftools query -f "%CHROM\t%POS\t%REF\t%ALT\t%ID\n" {input.dbsnp} | bgzip -@ {threads} > {output.cpra2rsid_info}'
+        """
+        ml r/4.3.0
+        Rscript {input.dbsnp_exec} {input.dbsnp} {output.cpra2rsid_info} 
+        """
 
 
 rule rename_summary_stats:
