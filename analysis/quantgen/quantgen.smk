@@ -20,7 +20,8 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results
 rule all:
     input:
-        "results/intermediate_files/dbsnp151_hg38_dictionary.tsv"
+        #"results/intermediate_files/dbsnp151_hg38_dictionary_chr19.tsv"
+        "results/intermediate_files/dbsnp151_hg38_dictionary_merged.tsv"
         # "results/heritability_published_merged.txt",
         # "results/genetic_correlation_merged.txt",
         # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
@@ -29,20 +30,50 @@ rule all:
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
 
+rule split_dbsnp_by_chromosome:
+    input:
+        dbsnp=config["dbsnp"],
+    output: 
+        dbsnp_chrom="results/intermediate_files/dbsnp_chr{chrom}.vcf.gz"
+    threads: 32
+    resources:
+        time="5:00",
+        mem_mb=200,
+    params:
+        chrom=lambda wildcards: str(wildcards.chrom)
+    shell:
+        """
+        bcftools view -r {params.chrom} {input.dbsnp} -O z -o {output.dbsnp_chrom} --threads {threads}
+        """  
+
+
 rule process_dbsnp:
     """Generate cpra and rsid dictionary for dbsnp."""
     input:
         dbsnp_exec=config["dbsnp_exec"],
-        dbsnp=config["dbsnp"],
+        #dbsnp=config["dbsnp"],
+        dbsnp_chrom="results/intermediate_files/dbsnp_chr{chrom}.vcf.gz"
     output:
-        cpra2rsid_info="results/intermediate_files/dbsnp151_hg38_dictionary.tsv",
+        cpra2rsid_info="results/intermediate_files/dbsnp151_hg38_dictionary_chr{chrom}.tsv",
+    threads: 32
     resources:
         time="6:00:00",
-        mem_mb=1000,
+        mem_mb=16000,
     shell:
         """
         ml r/4.3.0
-        Rscript {input.dbsnp_exec} {input.dbsnp} {output.cpra2rsid_info} 
+        Rscript {input.dbsnp_exec} {input.dbsnp_chrom} {threads} {output.cpra2rsid_info} 
+        """
+
+rule merge_dbsnp_outputs:
+    """Merge the per-chromosome dbsnp dictionary files into a single final output."""
+    input:
+        expand("results/intermediate_files/dbsnp151_hg38_dictionary_chr{chrom}.tsv", chrom=range(1, 24)) 
+    output:
+        final_output="results/intermediate_files/dbsnp151_hg38_dictionary_merged.tsv"
+    shell:
+        """
+        cat {input} > {output}
         """
 
 
