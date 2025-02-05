@@ -55,10 +55,10 @@ rule process_dbsnp:
         dbsnp_chrom="results/intermediate_files/dbsnp_chr{chrom}.vcf.gz"
     output:
         cpra2rsid_info="results/intermediate_files/dbsnp151_hg38_dictionary_chr{chrom}.tsv",
-    threads: 32
+    threads: 16
     resources:
         time="6:00:00",
-        mem_mb=16000,
+        mem_mb=32000,
     shell:
         """
         ml r/4.3.0
