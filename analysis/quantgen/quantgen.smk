@@ -20,7 +20,8 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results
 rule all:
     input:
-        "results/heritability_published_merged.txt",
+        #"results/heritability_published_merged.txt",
+        "results/intermediate_files/CentromereDist_Female_eur_summary_stats_cpra.tsv"
         # "results/genetic_correlation_merged.txt",
         # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
         # "results/queried_snps_across_traits.tsv",
@@ -86,9 +87,8 @@ rule cpra2rsid:
         filetype="summary_stats"
     threads: 1
     resources:
-        time="3:00:00",
+        time="1:30:00",
         mem_mb=128000,
-        disk_mb=200000,
     shell:
         """
         if [[ "{params.population}" == "European" ]]; then
