@@ -20,9 +20,7 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results
 rule all:
     input:
-        #"results/intermediate_files/dbsnp151_hg38_dictionary_chr19.tsv"
-        "results/intermediate_files/dbsnp151_hg38_dictionary_merged.tsv"
-        # "results/heritability_published_merged.txt",
+        "results/heritability_published_merged.txt",
         # "results/genetic_correlation_merged.txt",
         # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
         # "results/queried_snps_across_traits.tsv",
@@ -72,18 +70,20 @@ rule rename_summary_stats:
 
 rule cpra2rsid:
     """
-    For aneuploidy and recombination summary stats, create RSID column.
-    For public datasets, copy existing summary stats.
+    For European subsets of aneuploidy and recombination summary stats, create RSID column.
+    For public datasets, and for full datasets of aneuploidy/recombination,
+    copy existing summary stats.
     """
     input:
         cpra2rsid_exec=config["cpra2rsid_exec"],
+        dbsnp=rules.process_dbsnp.output.cpra2rsid_info,
         summary_stats="results/intermediate_files/{name}_renamed_summary_stats.tsv",
-        dbsnp=config["dbsnp"],
-        dictionary=rules.process_dbsnp.output.cpra2rsid_info,
     output:
         summary_stats_cpra="results/intermediate_files/{name}_summary_stats_cpra.tsv",
     params:
-        filetype=lambda wildcards: config["summary_stats"][wildcards.name]["type"],
+        traittype=lambda wildcards: config["summary_stats"][wildcards.name]["type"],
+        population=lambda wildcards: config["summary_stats"][wildcards.name]["population"],
+        filetype="summary_stats"
     threads: 1
     resources:
         time="3:00:00",
@@ -91,8 +91,19 @@ rule cpra2rsid:
         disk_mb=200000,
     shell:
         """
-        if [[ "{params.filetype}" == "recombination" || "{params.filetype}" == "aneuploidy" ]]; then
-            python3 {input.cpra2rsid_exec} --sumstats {input.summary_stats} --dbsnp {input.dbsnp} --dictionary {input.dictionary} --output {output.summary_stats_cpra};
+        if [[ "{params.population}" == "European" ]]; then
+            if [[ "{params.traittype}" == "recombination" || "{params.traittype}" == "aneuploidy" ]]; then
+                tmp1=$(mktemp)
+                tmp2=$(mktemp)
+
+                python3 {input.cpra2rsid_exec} {input.dbsnp} {input.summary_stats} "$tmp1" {params.filetype};
+                cut --complement -f 2 "$tmp1" > "$tmp2"
+                sed -e '1s/NA/SNP/' "$tmp2" > {output.summary_stats_cpra}
+
+                rm "$tmp1" "$tmp2"
+            else
+                cp {input.summary_stats} {output.summary_stats_cpra};
+            fi
         else
             cp {input.summary_stats} {output.summary_stats_cpra};
         fi
