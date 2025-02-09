@@ -140,7 +140,32 @@ rule munge_summary_stats:
         """
 
 
-# -------- Step 3: Calculate heritability on all summary stats ------- #
+# -------- Step 3: Calculate LD scores for Natera data (CPRA) ------- #
+
+rule create_ldscores: 
+    """Calculate LD Scores for the Natera dataset for each chromosome."""
+    input:
+        ldsc_exec=config["ldsc_exec"],
+    output:
+        ld_score_gz="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
+    resources:
+        time="24:00:00",
+        mem_mb=128000,
+        disk_mb=128000
+    params:
+        outfix="results/ld_scores/LDscore.{chrom}",
+        imputed_parents_prefix=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom),
+        window=300,
+        maf=0.05
+    conda:
+        "ldsc_env.yaml"
+    shell:
+        """
+        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.imputed_parents_prefix} --l2 --ld-wind-kb {params.window} --maf 0.05
+        """
+
+
+# -------- Step 4: Calculate heritability on all summary stats ------- #
 
 rule heritability:
     """Calculate heritability of each trait."""
@@ -221,7 +246,7 @@ rule merge_heritability_results:
 				outfile.write(f"{trait}\t{total_h2}\t{total_h2_se}\t{lambda_gc}\t{mean_chi2}\t{intercept}\t{intercept_se}\t{snps}\n")
 
 
-# -------- Step 4: Calculate genetic correlation on relevant pairs of summary stats ------- #
+# -------- Step 5: Calculate genetic correlation on relevant pairs of summary stats ------- #
 
 from itertools import combinations
 
@@ -318,7 +343,7 @@ rule merge_genetic_correlation_final:
         """
 
 
-# -------- Step 5: Conduct pheWAS on traits in this analysis.------- #
+# -------- Step 6: Conduct pheWAS on traits in this analysis.------- #
 
 rule pheWAS:
     """Extract lines matching a given RSID from summary stats files and merge them into a single table."""
