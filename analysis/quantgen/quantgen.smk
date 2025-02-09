@@ -20,8 +20,8 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results
 rule all:
     input:
-        #"results/heritability_published_merged.txt",
-        "results/intermediate_files/CentromereDist_Female_eur_summary_stats_cpra.tsv"
+        "results/heritability_published_merged.txt",
+        #"results/intermediate_files/CentromereDist_Female_eur_summary_stats_cpra.tsv"
         # "results/genetic_correlation_merged.txt",
         # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
         # "results/queried_snps_across_traits.tsv",
@@ -174,7 +174,11 @@ rule merge_heritability_results:
 			"results/heritability/{name}_heritability.log", 
 			name=[
 				key for key, value in config["summary_stats"].items()
-				if value["type"] not in {"recombination", "aneuploidy"}
+				if (
+                    value["type"] not in {"recombination", "aneuploidy"}  # include all published 
+                    # include recombination and aneuploidy only for their full datsets
+                    or (value["type"] in {"recombination", "aneuploidy"} and value["population"] == "All") 
+                )
 			]
 		),
 	output:
