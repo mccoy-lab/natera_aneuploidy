@@ -1,5 +1,4 @@
 dbsnp: "/scratch4/rmccoy22/abiddan1/dbsnp/dbSNP151.hg38.vcf.gz"
-#dbsnp_exec: "scripts/build_rsid_dict.R"
 cpra2rsid_exec: "scripts/cpra2rsid.py"
 ldsc_exec: "/scratch16/rmccoy22/scarios1/sandbox/genetic_correlation/ldsc/ldsc.py"
 munge_exec: "/scratch16/rmccoy22/scarios1/sandbox/genetic_correlation/ldsc/munge_sumstats.py"
