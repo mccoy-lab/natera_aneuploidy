@@ -20,11 +20,12 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results
 rule all:
     input:
-        "results/heritability_published_merged.txt",
+        #"results/heritability_published_merged.txt",
         #"results/intermediate_files/CentromereDist_Female_eur_summary_stats_cpra.tsv"
-        # "results/genetic_correlation_merged.txt",
+        #"results/genetic_correlation_merged.txt",
         # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
         # "results/queried_snps_across_traits.tsv",
+        expand("results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes)
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -155,13 +156,12 @@ rule create_ldscores:
     params:
         outfix="results/ld_scores/LDscore.{chrom}",
         imputed_parents_prefix=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom),
-        window=300,
-        maf=0.05
+        window=300
     conda:
         "ldsc_env.yaml"
     shell:
         """
-        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.imputed_parents_prefix} --l2 --ld-wind-kb {params.window} --maf 0.05
+        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.imputed_parents_prefix} --l2 --ld-wind-kb {params.window}
         """
 
 
@@ -266,6 +266,8 @@ def pairwise_comparisons(config, population_filter):
     return pairwise
 
 
+# Pairings between full summary stats for within recombination/aneuploidy comparisions
+pairwise_all = pairwise_comparisons(config, "All")
 # Pairings between published summary stats and European-specific subsets of Natera
 pairwise_european = pairwise_comparisons(config, "European")
 
@@ -301,11 +303,12 @@ rule pairwise_genetic_correlation:
 pairwise_inputs = sorted(
     set(
         f"results/genetic_correlation/{min(t1, t2)}-{max(t1, t2)}.log"
-        for t1, t2 in pairwise_european
+        for subset in [pairwise_all, pairwise_european]
+        for t1, t2 in subset
     )
 )
 # Split into groups
-n_tranches = 10
+n_tranches = 20
 tranche_size = (len(pairwise_inputs) + n_tranches - 1) // n_tranches
 tranches = [pairwise_inputs[i:i + tranche_size] for i in range(0, len(pairwise_inputs), tranche_size)]
 
