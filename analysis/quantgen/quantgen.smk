@@ -62,7 +62,7 @@ rule rename_summary_stats:
     shell:
         """
         if [[ "{params.filetype}" == "recombination" ]]; then
-            awk 'BEGIN {{ OFS="\\t"; print "SNP", "A2", "A2", "BETA", "SE", "P" }} NR > 1 {{ print $3, $6, $6, $10, $11, $13 }}' {input.summary_stats} > {output.summary_stats_renamed};
+            awk 'BEGIN {{ OFS="\\t"; print "SNP", "A1", "A2", "BETA", "SE", "P" }} NR > 1 {{ print $3, $6, $4, $10, $11, $13 }}' {input.summary_stats} > {output.summary_stats_renamed};
         elif [[ "{params.filetype}" == "aneuploidy" ]]; then
             zcat {input.summary_stats} | awk 'BEGIN {{ OFS="\\t"; print "SNP", "A1", "A2", "BETA", "SE", "P" }} {{ print $8, $13, $12, $3, $4, $6 }}' > {output.summary_stats_renamed};
         else
