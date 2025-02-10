@@ -93,19 +93,15 @@ rule cpra2rsid:
         mem_mb=128000,
     shell:
         """
-        if [[ "{params.population}" == "European" ]]; then
-            if [[ "{params.traittype}" == "recombination" || "{params.traittype}" == "aneuploidy" ]]; then
-                tmp1=$(mktemp)
-                tmp2=$(mktemp)
+        if [[ "{params.traittype}" == "recombination" || "{params.traittype}" == "aneuploidy" ]]; then
+            tmp1=$(mktemp)
+            tmp2=$(mktemp)
 
-                python3 {input.cpra2rsid_exec} {input.dbsnp} {input.summary_stats} "$tmp1" {params.filetype};
-                cut --complement -f 2 "$tmp1" > "$tmp2"
-                sed -e '1s/NA/SNP/' "$tmp2" > {output.summary_stats_cpra}
+            python3 {input.cpra2rsid_exec} {input.dbsnp} {input.summary_stats} "$tmp1" {params.filetype};
+            cut --complement -f 2 "$tmp1" > "$tmp2"
+            sed -e '1s/NA/SNP/' "$tmp2" > {output.summary_stats_cpra}
 
-                rm "$tmp1" "$tmp2"
-            else
-                cp {input.summary_stats} {output.summary_stats_cpra};
-            fi
+            rm "$tmp1" "$tmp2"
         else
             cp {input.summary_stats} {output.summary_stats_cpra};
         fi
