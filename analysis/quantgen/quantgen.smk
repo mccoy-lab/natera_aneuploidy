@@ -3,7 +3,7 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last updated: February 3, 2025
+# last updated: February 10, 2025
 # aim: Compute heritability and genetic correlation for recombination, aneuploidy, and
 #       published fertility-related traits. Process input files as necessary.
 # =================
@@ -25,7 +25,8 @@ rule all:
         #"results/genetic_correlation_merged.txt",
         # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
         # "results/queried_snps_across_traits.tsv",
-        expand("results/ld_scores/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes)
+        #expand("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bed", chrom=chromosomes),
+        expand("results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes)
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -143,6 +144,51 @@ rule munge_summary_stats:
 
 # -------- Step 3: Calculate LD scores for Natera data (CPRA) ------- #
 
+rule filter_Natera_vcf: 
+	"""Filter imputed VCF to keep only sites with DR2>0.9 for use in LD scores."""
+	input:
+		vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/spectrum_imputed_chr{chrom}_rehead_filter.cpra.vcf.gz",
+		vcfidx="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/spectrum_imputed_chr{chrom}_rehead_filter.cpra.vcf.gz.tbi",
+	output:
+		filtered_vcf="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz",
+		filtered_vcf_tabix="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz.tbi",
+	resources:
+		mem_mb="10G",
+		time="10:00:00",
+	threads: 16
+	wildcard_constraints:
+		chrom="|".join([str(i) for i in range(1, 24)]),
+	params:
+		dosage_r2_thresh=0.9
+	conda:
+		"geno.yaml"
+	shell:
+		"""
+		bcftools view -i \'DR2>{params.dosage_r2_thresh}\' --threads {threads} {input.vcf} -Oz -o {output.filtered_vcf}; tabix -f {output.filtered_vcf}
+		"""
+
+rule vcf2bed: 
+	"""Create plink output files for use in LD score calculation."""
+	input:
+		filtered_vcf="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz",
+	output:
+		bed="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bed",
+		bim="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bim",
+		fam="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.fam",
+		log="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.log",
+	resources:
+		mem_mb="10G",
+		time="3:00:00"
+	params:
+		outfix="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink"
+	conda:
+		"geno.yaml"
+	shell:
+		"""
+		plink --vcf {input.filtered_vcf} --memory 9000 --double-id --make-bed --out {params.outfix}
+		"""
+
+
 rule create_ldscores: 
     """Calculate LD Scores for the Natera dataset for each chromosome."""
     input:
@@ -156,16 +202,42 @@ rule create_ldscores:
     params:
         outfix="results/ld_scores/LDscore.{chrom}",
         imputed_parents_prefix=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom),
-        window=300
+        window=300,
+        maf=0.005
     conda:
         "ldsc_env.yaml"
     shell:
         """
-        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.imputed_parents_prefix} --l2 --ld-wind-kb {params.window}
+        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.imputed_parents_prefix} --l2 --ld-wind-kb {params.window} --maf {params.maf}
         """
 
 
-# -------- Step 4: Calculate heritability on all summary stats ------- #
+# -------- Step 5: Calculate LD Scores for European individuals (RSID) ------- #
+
+rule create_ldscores_EUR: 
+    """Calculate LD Scores for European subset of the 1kgphgp dataset for each chromosome."""
+    input:
+        ldsc_exec=config["ldsc_exec"],
+    output:
+        ld_score_gz="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz",
+    resources:
+        time="24:00:00",
+        mem_mb=128000,
+        disk_mb=128000
+    params:
+        outfix="results/ld_scores_EUR/LDscore.{chrom}",
+        hgdp1kgp__prefix=lambda wildcards: config["hgdp1kgp_template"].format(chrom=wildcards.chrom),
+        window=300,
+        maf=0.005
+    conda:
+        "ldsc_env.yaml"
+    shell:
+        """
+        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.hgdp1kgp__prefix} --l2 --ld-wind-kb {params.window} --maf {params.maf}
+        """
+
+
+# -------- Step 6: Calculate heritability on all summary stats ------- #
 
 rule heritability:
     """Calculate heritability of each trait."""
@@ -246,7 +318,7 @@ rule merge_heritability_results:
 				outfile.write(f"{trait}\t{total_h2}\t{total_h2_se}\t{lambda_gc}\t{mean_chi2}\t{intercept}\t{intercept_se}\t{snps}\n")
 
 
-# -------- Step 5: Calculate genetic correlation on relevant pairs of summary stats ------- #
+# -------- Step 7: Calculate genetic correlation on relevant pairs of summary stats ------- #
 
 from itertools import combinations
 
@@ -346,7 +418,7 @@ rule merge_genetic_correlation_final:
         """
 
 
-# -------- Step 6: Conduct pheWAS on traits in this analysis.------- #
+# -------- Step 8: Conduct pheWAS on traits in this analysis.------- #
 
 rule pheWAS:
     """Extract lines matching a given RSID from summary stats files and merge them into a single table."""
