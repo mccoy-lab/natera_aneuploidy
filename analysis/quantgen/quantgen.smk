@@ -29,8 +29,8 @@ rule all:
         #"results/intermediate_files/maternal_meiotic_aneuploidy_by_mother_munged.sumstats.gz",
         #"results/intermediate_files/age_at_menarche_reproGen_munged.sumstats.gz",
         #expand("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bed", chrom=chromosomes),
-        "results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr22.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
-        expand("results/ld_scores_EUR/LDscore.22.l2.ldscore.gz", chrom=chromosomes)
+        #"results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr21.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
+        expand("results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes)
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -217,46 +217,83 @@ rule create_ldscores:
 
 # -------- Step 5: Calculate LD Scores for European individuals (RSID) ------- #
 
-rule vcf2bed_hgdp1kgp:
-    """Create plink output files for use in calculating LD scores."""
-    input:
-        input_vcf="/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.vcf.gz",
-    output:
-        bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
-        bim="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bim",
-        fam="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.fam",
-        log="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.log",
-    resources:
-        mem_mb="10G",
-        time="3:00:00",
-    params:
-        outfix="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only",
-    shell:
-        """
-        plink --vcf {input.input_vcf} --memory 9000 --double-id --make-bed --out {params.outfix}
-        """
+rule filter_EUR_individuals:
+	"""Create vcf file for just EUR individuals for each chr."""
+	input:
+		metadata="/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/gnomad_meta_updated.tsv",
+	output:
+		samples="results/intermediate_files/ld_scores_EUR/eur.samples.txt",
+	resources:
+		mem_mb=500,
+		time="30:00"
+	shell:
+		"""
+		grep "EUR" {input.metadata} | awk '{{print $2}}' > {output.samples}
+		"""
+
+rule bcf2bed_hgdp1kgp:
+	"""Create plink output files for use in calculating LD scores."""
+	input:
+		samples=rules.filter_EUR_individuals.output.samples,
+		#bcf="/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.bcf",
+		bcf=lambda wildcards: f"/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr{wildcards.chrom}.filtered.SNV_INDEL.phased.shapeit5.bcf"
+			if wildcards.chrom in [str(c) for c in range(1, 23)] else
+			"/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chrX.filtered.SNV_INDEL.phased.shapeit5.vcf.gz"
+	output:
+		vcf="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.vcf.gz",
+		bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
+		bim="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bim",
+		fam="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.fam",
+		log="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.log",
+	threads: 8
+	resources:
+		mem_mb="10G",
+		time="30:00"
+	params:
+		outfix="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only",
+	shell:
+		"""
+		bcftools view -S {input.samples} --force-samples -m2 -M2 -c 1 -q 0.005:minor {input.bcf} | \
+		bgzip -@ {threads} > {output.vcf}
+		plink --vcf {output.vcf} --memory 9000 --double-id --make-bed --out {params.outfix}
+		"""
+
+# rule vcf_chr23_hgdp1kgp:
+# 	"""Create plink output files for X chromosome."""
+# 	input:
+# 		samples=rules.filter_EUR_individuals.output.samples,
+# 		vcf="/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chrX.filtered.SNV_INDEL.phased.shapeit5.vcf.gz",
+# 	output:
+# 		vcf="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.vcf.gz",
+# 		bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
+# 		bim="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bim",
+# 		fam="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.fam",
+# 		log="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.log",
+
+
 
 
 rule create_ldscores_EUR: 
     """Calculate LD Scores for European subset of the 1kgphgp dataset for each chromosome."""
     input:
         ldsc_exec=config["ldsc_exec"],
+        bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
     output:
         ld_score_gz="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz",
     resources:
-        time="24:00:00",
+        time="30:00",
         mem_mb=128000,
         disk_mb=128000
     params:
         outfix="results/ld_scores_EUR/LDscore.{chrom}",
-        hgdp1kgp__prefix=lambda wildcards: config["hgdp1kgp_template"].format(chrom=wildcards.chrom),
+        hgdp1kgp_prefix=lambda wildcards: config["hgdp1kgp_template"].format(chrom=wildcards.chrom),
         window=300,
         maf=0.005
     conda:
         "ldsc_env.yaml"
     shell:
         """
-        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.hgdp1kgp__prefix} --l2 --ld-wind-kb {params.window} --maf {params.maf}
+        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.hgdp1kgp_prefix} --l2 --ld-wind-kb {params.window} --maf {params.maf}
         """
 
 
