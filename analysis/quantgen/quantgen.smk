@@ -23,10 +23,14 @@ rule all:
         #"results/heritability_published_merged.txt",
         #"results/intermediate_files/CentromereDist_Female_eur_summary_stats_cpra.tsv"
         #"results/genetic_correlation_merged.txt",
-        # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
-        # "results/queried_snps_across_traits.tsv",
+        #expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
+        #"results/queried_snps_across_traits.tsv",
+        #"results/intermediate_files/MeanCO_Female_munged.sumstats.gz",
+        #"results/intermediate_files/maternal_meiotic_aneuploidy_by_mother_munged.sumstats.gz",
+        #"results/intermediate_files/age_at_menarche_reproGen_munged.sumstats.gz",
         #expand("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bed", chrom=chromosomes),
-        expand("results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes)
+        "/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr22.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
+        expand("results/ld_scores_EUR/LDscore.22.l2.ldscore.gz", chrom=chromosomes)
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -64,7 +68,11 @@ rule rename_summary_stats:
         if [[ "{params.filetype}" == "recombination" ]]; then
             awk 'BEGIN {{ OFS="\\t"; print "SNP", "A1", "A2", "BETA", "SE", "P" }} NR > 1 {{ print $3, $6, $4, $10, $11, $13 }}' {input.summary_stats} > {output.summary_stats_renamed};
         elif [[ "{params.filetype}" == "aneuploidy" ]]; then
-            zcat {input.summary_stats} | awk 'BEGIN {{ OFS="\\t"; print "SNP", "A1", "A2", "BETA", "SE", "P" }} {{ print $8, $13, $12, $3, $4, $6 }}' > {output.summary_stats_renamed};
+            tmp1=$(mktemp)
+            zcat {input.summary_stats} | awk -F'\t' '{ split($8, arr, ":"); \
+                split(arr[3], alleles, ":"); new_col = (alleles[1] == $9) ? alleles[2] : alleles[1]; 
+                print $0 "\t" new_col; }' | gzip  > "$tmp1"
+            zcat "$tmp1" | awk 'BEGIN {{ OFS="\\t"; print "SNP", "A1", "A2", "BETA", "SE", "P" }} {{ print $8, $9, $14, $3, $4, $6 }}' > {output.summary_stats_renamed};
         else
             cp {input.summary_stats} {output.summary_stats_renamed};
         fi
@@ -114,8 +122,8 @@ rule munge_summary_stats:
     """Apply the LDSC data-cleaning script to each summary statistic."""
     input:
         munge_exec=config["munge_exec"],
-        summary_stats=rules.cpra2rsid.output.summary_stats_cpra,
-        allele_list=config["allele_list"],
+        #summary_stats=rules.cpra2rsid.output.summary_stats_cpra,
+        summary_stats="results/intermediate_files/{name}_summary_stats_cpra.tsv",
     output:
         summary_stats_munged="results/intermediate_files/{name}_munged.sumstats.gz",
         log="results/intermediate_files/{name}_munged.log",
@@ -132,9 +140,8 @@ rule munge_summary_stats:
     shell:
         """
         python2 {input.munge_exec} --sumstats {input.summary_stats} \
-        --merge-alleles {input.allele_list} \
-        --out {params.outfix} \
-        --a1-inc --N {params.num_individuals} --chunksize {params.chunksize}
+        --out {params.outfix} --N {params.num_individuals} \
+        --chunksize {params.chunksize}
         """
 
 
@@ -210,6 +217,26 @@ rule create_ldscores:
 
 # -------- Step 5: Calculate LD Scores for European individuals (RSID) ------- #
 
+rule vcf2bed_hgdp1kgp:
+    """Create plink output files for use in calculating LD scores."""
+    input:
+        input_vcf="/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.vcf.gz",
+    output:
+        bed="/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
+        bim="/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bim",
+        fam="/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.fam",
+        log="/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.log",
+    resources:
+        mem_mb="10G",
+        time="3:00:00",
+    params:
+        outfix="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only",
+    shell:
+        """
+        plink --vcf {input.input_vcf} --memory 9000 --double-id --make-bed --out {params.outfix}
+        """
+
+
 rule create_ldscores_EUR: 
     """Calculate LD Scores for European subset of the 1kgphgp dataset for each chromosome."""
     input:
@@ -221,7 +248,7 @@ rule create_ldscores_EUR:
         mem_mb=128000,
         disk_mb=128000
     params:
-        outfix="results/ld_scores_EUR/LDscore.{chrom}",
+        outfix="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only",
         hgdp1kgp__prefix=lambda wildcards: config["hgdp1kgp_template"].format(chrom=wildcards.chrom),
         window=300,
         maf=0.005
