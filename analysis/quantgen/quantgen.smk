@@ -29,7 +29,7 @@ rule all:
         #"results/intermediate_files/maternal_meiotic_aneuploidy_by_mother_munged.sumstats.gz",
         #"results/intermediate_files/age_at_menarche_reproGen_munged.sumstats.gz",
         #expand("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bed", chrom=chromosomes),
-        "/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr22.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
+        "results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr22.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
         expand("results/ld_scores_EUR/LDscore.22.l2.ldscore.gz", chrom=chromosomes)
 
 
@@ -222,10 +222,10 @@ rule vcf2bed_hgdp1kgp:
     input:
         input_vcf="/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.vcf.gz",
     output:
-        bed="/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
-        bim="/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bim",
-        fam="/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.fam",
-        log="/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.log",
+        bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
+        bim="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bim",
+        fam="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.fam",
+        log="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.log",
     resources:
         mem_mb="10G",
         time="3:00:00",
@@ -248,7 +248,7 @@ rule create_ldscores_EUR:
         mem_mb=128000,
         disk_mb=128000
     params:
-        outfix="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only",
+        outfix="results/ld_scores_EUR/LDscore.{chrom}",
         hgdp1kgp__prefix=lambda wildcards: config["hgdp1kgp_template"].format(chrom=wildcards.chrom),
         window=300,
         maf=0.005
