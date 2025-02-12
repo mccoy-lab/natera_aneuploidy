@@ -30,7 +30,7 @@ rule all:
         #"results/intermediate_files/age_at_menarche_reproGen_munged.sumstats.gz",
         #expand("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bed", chrom=chromosomes),
         #"results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr21.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
-        expand("results/ld_scores_EUR/LDscore.23.l2.ldscore.gz", chrom=chromosomes)
+        expand("results/ld_scores_EUR_rsid/LDscore.19.l2.ldscore.gz", chrom=chromosomes)
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -59,7 +59,7 @@ rule rename_summary_stats:
     output:
         summary_stats_renamed="results/intermediate_files/{name}_renamed_summary_stats.tsv",
     resources:
-        time="1:00:00",
+        time="10:00",
         mem_mb=500,
     params:
         filetype=lambda wildcards: config["summary_stats"][wildcards.name]["type"],
@@ -157,7 +157,7 @@ rule filter_Natera_vcf:
 		filtered_vcf_tabix="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz.tbi",
 	resources:
 		mem_mb="10G",
-		time="10:00:00",
+		time="2:00:00",
 	threads: 16
 	wildcard_constraints:
 		chrom="|".join([str(i) for i in range(1, 24)]),
@@ -181,7 +181,7 @@ rule vcf2bed:
 		log="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.log",
 	resources:
 		mem_mb="10G",
-		time="3:00:00"
+		time="45:00"
 	params:
 		outfix="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink"
 	conda:
@@ -199,7 +199,7 @@ rule create_ldscores:
     output:
         ld_score_gz="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
     resources:
-        time="24:00:00",
+        time="6:00:00",
         mem_mb=128000,
         disk_mb=128000
     params:
@@ -295,9 +295,10 @@ rule cpra2rsid_ldscores_EUR:
         cpra2rsid_exec=config["cpra2rsid_exec"],
         dbsnp=rules.process_dbsnp.output.cpra2rsid_info,
         ld_score_in="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz",
-        ld_score_M_in="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.M",
-        ld_score_M_5_50_in="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.M_5_50",
+        ld_score_M_in="results/ld_scores_EUR/LDscore.{chrom}.l2.M",
+        ld_score_M_5_50_in="results/ld_scores_EUR/LDscore.{chrom}.l2.M_5_50",
     output:
+        ld_score_temp=temp("results/intermediate_files/LDscore.{chrom}.temp.l2.ldscore.gz"),
         ld_score_gz="results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.ldscore.gz",
         ld_score_M="results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.M",
         ld_score_M_5_50="results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.M_5_50",
@@ -308,8 +309,8 @@ rule cpra2rsid_ldscores_EUR:
         filetype="summary_stats"
     shell:
         """
-        python3 {input.cpra2rsid_exec} {input.dbsnp} {input.ld_score_in} "$tmp1" {params.filetype}
-        awk 'BEGIN{OFS=FS="\t"} NR==1 {$1="SNP"; $3="CPRA"} 1' "$tmp1" | bgzip > {output.ld_score_gz}
+        python3 {input.cpra2rsid_exec} {input.dbsnp} {input.ld_score_in} {output.ld_score_temp} {params.filetype}
+        awk 'BEGIN{{OFS=FS="\t"}} NR==1 {{$1="SNP"; $3="CPRA"}} 1' {output.ld_score_temp}| bgzip > {output.ld_score_gz}
         # Copy SNP count files to renamed directory for use with RSID ld scores
         cp {input.ld_score_M_in} {output.ld_score_M}
         cp {input.ld_score_M_5_50_in} {output.ld_score_M_5_50}
