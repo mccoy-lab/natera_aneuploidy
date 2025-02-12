@@ -30,7 +30,7 @@ rule all:
         #"results/intermediate_files/age_at_menarche_reproGen_munged.sumstats.gz",
         #expand("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bed", chrom=chromosomes),
         #"results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr21.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
-        expand("results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz", chrom=chromosomes)
+        expand("results/ld_scores_EUR/LDscore.23.l2.ldscore.gz", chrom=chromosomes)
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -69,9 +69,9 @@ rule rename_summary_stats:
             awk 'BEGIN {{ OFS="\\t"; print "SNP", "A1", "A2", "BETA", "SE", "P" }} NR > 1 {{ print $3, $6, $4, $10, $11, $13 }}' {input.summary_stats} > {output.summary_stats_renamed};
         elif [[ "{params.filetype}" == "aneuploidy" ]]; then
             tmp1=$(mktemp)
-            zcat {input.summary_stats} | awk -F'\t' '{ split($8, arr, ":"); \
+            zcat {input.summary_stats} | awk -F'\t' '{{ split($8, arr, ":"); \
                 split(arr[3], alleles, ":"); new_col = (alleles[1] == $9) ? alleles[2] : alleles[1]; 
-                print $0 "\t" new_col; }' | gzip  > "$tmp1"
+                print $0 "\t" new_col; }}' | gzip  > "$tmp1"
             zcat "$tmp1" | awk 'BEGIN {{ OFS="\\t"; print "SNP", "A1", "A2", "BETA", "SE", "P" }} {{ print $8, $9, $14, $3, $4, $6 }}' > {output.summary_stats_renamed};
         else
             cp {input.summary_stats} {output.summary_stats_renamed};
@@ -98,7 +98,7 @@ rule cpra2rsid:
     threads: 1
     resources:
         time="1:30:00",
-        mem_mb=128000,
+        mem_mb="132G",
     shell:
         """
         if [[ "{params.traittype}" == "recombination" || "{params.traittype}" == "aneuploidy" ]]; then
@@ -238,7 +238,7 @@ rule bcf2bed_hgdp1kgp:
 		#bcf="/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.bcf",
 		bcf=lambda wildcards: f"/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr{wildcards.chrom}.filtered.SNV_INDEL.phased.shapeit5.bcf"
 			if wildcards.chrom in [str(c) for c in range(1, 23)] else
-			"/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chrX.filtered.SNV_INDEL.phased.shapeit5.vcf.gz"
+			"/scratch4/rmccoy22/sharedData/populationDatasets/1KGP_NYGC/GRCh38_phased_vcfs/1kGP_high_coverage_Illumina.chr23.filtered.SNV_INDEL_SV_phased_panel.vcf.gz"
 	output:
 		vcf="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.vcf.gz",
 		bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
@@ -253,24 +253,18 @@ rule bcf2bed_hgdp1kgp:
 		outfix="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only",
 	shell:
 		"""
-		bcftools view -S {input.samples} --force-samples -m2 -M2 -c 1 -q 0.005:minor {input.bcf} | \
-		bgzip -@ {threads} > {output.vcf}
+		# If chromosome is 23, replace chrX with chr23 in the VCF file 
+		if [ "{wildcards.chrom}" == "23" ]; then
+            bcftools view -S {input.samples} --force-samples -m2 -M2 -c 1 -q 0.005:minor {input.bcf} | \
+            sed 's/^chrX$/chr23/' | \
+            bgzip -@ {threads} > {output.vcf}
+        else
+            bcftools view -S {input.samples} --force-samples -m2 -M2 -c 1 -q 0.005:minor {input.bcf} | \
+            bgzip -@ {threads} > {output.vcf}
+        fi
+		
 		plink --vcf {output.vcf} --memory 9000 --double-id --make-bed --out {params.outfix}
 		"""
-
-# rule vcf_chr23_hgdp1kgp:
-# 	"""Create plink output files for X chromosome."""
-# 	input:
-# 		samples=rules.filter_EUR_individuals.output.samples,
-# 		vcf="/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chrX.filtered.SNV_INDEL.phased.shapeit5.vcf.gz",
-# 	output:
-# 		vcf="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.vcf.gz",
-# 		bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
-# 		bim="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bim",
-# 		fam="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.fam",
-# 		log="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.log",
-
-
 
 
 rule create_ldscores_EUR: 
