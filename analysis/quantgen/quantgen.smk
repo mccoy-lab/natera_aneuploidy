@@ -150,11 +150,11 @@ rule munge_summary_stats:
 rule filter_Natera_vcf: 
 	"""Filter imputed VCF to keep only sites with DR2>0.9 for use in LD scores."""
 	input:
-		vcf="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/spectrum_imputed_chr{chrom}_rehead_filter.cpra.vcf.gz",
-		vcfidx="/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/spectrum_imputed_chr{chrom}_rehead_filter.cpra.vcf.gz.tbi",
+        vcf=config["imputed_parents_vcf"],
+        vcfidx=config["imputed_parents_vcfidx"],
 	output:
-		filtered_vcf="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz",
-		filtered_vcf_tabix="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz.tbi",
+		filtered_vcf="results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz",
+		filtered_vcf_tabix="results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz.tbi",
 	resources:
 		mem_mb="10G",
 		time="2:00:00",
@@ -173,17 +173,17 @@ rule filter_Natera_vcf:
 rule vcf2bed: 
 	"""Create plink output files for use in LD score calculation."""
 	input:
-		filtered_vcf="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz",
+		filtered_vcf="results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz",
 	output:
-		bed="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bed",
-		bim="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bim",
-		fam="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.fam",
-		log="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.log",
+		bed="results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bed",
+		bim="results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bim",
+		fam="results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.fam",
+		log="results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.log",
 	resources:
 		mem_mb="10G",
 		time="45:00"
 	params:
-		outfix="/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink"
+		outfix="results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink"
 	conda:
 		"geno.yaml"
 	shell:
@@ -204,7 +204,7 @@ rule create_ldscores:
         disk_mb=128000
     params:
         outfix="results/ld_scores/LDscore.{chrom}",
-        imputed_parents_prefix=lambda wildcards: config["imputed_parents_template"].format(chrom=wildcards.chrom),
+        imputed_parents_prefix=lambda wildcards: config["imputed_parents_template_filtered"].format(chrom=wildcards.chrom),
         window=300,
         maf=0.005
     conda:
