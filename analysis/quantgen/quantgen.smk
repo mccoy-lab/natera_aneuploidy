@@ -266,14 +266,13 @@ rule bcf2bed_hgdp1kgp:
 		plink --vcf {output.vcf} --memory 9000 --double-id --make-bed --out {params.outfix}
 		"""
 
-
 rule create_ldscores_EUR: 
     """Calculate LD Scores for European subset of the 1kgphgp dataset for each chromosome."""
     input:
         ldsc_exec=config["ldsc_exec"],
         bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
     output:
-        ld_score_gz="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz",
+        ld_score="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz",
     resources:
         time="30:00",
         mem_mb=128000,
@@ -288,6 +287,32 @@ rule create_ldscores_EUR:
     shell:
         """
         python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.hgdp1kgp_prefix} --l2 --ld-wind-kb {params.window} --maf {params.maf}
+        """
+
+rule cpra2rsid_ldscores_EUR:
+    """Convert EUR ld scores from CPRA to RSID."""
+    input:
+        cpra2rsid_exec=config["cpra2rsid_exec"],
+        dbsnp=rules.process_dbsnp.output.cpra2rsid_info,
+        ld_score_in="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz",
+        ld_score_M_in="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.M",
+        ld_score_M_5_50_in="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.M_5_50",
+    output:
+        ld_score_gz="results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.ldscore.gz",
+        ld_score_M="results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.M",
+        ld_score_M_5_50="results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.M_5_50",
+    resources:
+        time="1:30:00",
+        mem_mb="132G",
+    params:
+        filetype="summary_stats"
+    shell:
+        """
+        python3 {input.cpra2rsid_exec} {input.dbsnp} {input.ld_score_in} "$tmp1" {params.filetype}
+        awk 'BEGIN{OFS=FS="\t"} NR==1 {$1="SNP"; $3="CPRA"} 1' "$tmp1" | bgzip > {output.ld_score_gz}
+        # Copy SNP count files to renamed directory for use with RSID ld scores
+        cp {input.ld_score_M_in} {output.ld_score_M}
+        cp {input.ld_score_M_5_50_in} {output.ld_score_M_5_50}
         """
 
 
