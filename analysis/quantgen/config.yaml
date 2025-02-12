@@ -8,6 +8,11 @@ merge_summary_stats_exec: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analys
 imputed_parents_vcf: "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/spectrum_imputed_chr{chrom}_rehead_filter.vcf.gz"
 imputed_parents_vcfidx: "/data/rmccoy22/natera_spectrum/genotypes/imputed_parents_101224_cpra/spectrum_imputed_chr{chrom}_rehead_filter.vcf.gz.tbi"
 imputed_parents_template_filtered: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink"
+metadata_hgdp1kgp: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/gnomad_meta_updated.tsv"
+eur_bcf: 
+    autosomes: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.bcf"
+    chrX: "/scratch4/rmccoy22/sharedData/populationDatasets/1KGP_NYGC/GRCh38_phased_vcfs/1kGP_high_coverage_Illumina.chr23.filtered.SNV_INDEL_SV_phased_panel.vcf.gz"
+bcf2bed_hgdp1kgp_outfix: "results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only"
 hgdp1kgp_template: "results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only"
 allele_list: "analysis_files/w_hm3.snplist"
 lead_variants_recombination: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/finalized/natera_recombination_gwas.sumstats.replication.rsids.tsv"

@@ -30,7 +30,8 @@ rule all:
         #"results/intermediate_files/age_at_menarche_reproGen_munged.sumstats.gz",
         #expand("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bed", chrom=chromosomes),
         #"results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr21.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
-        expand("results/ld_scores_EUR_rsid/LDscore.19.l2.ldscore.gz", chrom=chromosomes)
+        #expand("results/ld_scores_EUR_rsid/LDscore.19.l2.ldscore.gz", chrom=chromosomes)
+        expand("results/ld_scores_EUR/LDscore.19.l2.ldscore.gz", chrom=chromosomes)
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -150,8 +151,8 @@ rule munge_summary_stats:
 rule filter_Natera_vcf: 
 	"""Filter imputed VCF to keep only sites with DR2>0.9 for use in LD scores."""
 	input:
-        vcf=config["imputed_parents_vcf"],
-        vcfidx=config["imputed_parents_vcfidx"],
+		vcf=config["imputed_parents_vcf"],
+		vcfidx=config["imputed_parents_vcfidx"],
 	output:
 		filtered_vcf="results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz",
 		filtered_vcf_tabix="results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz.tbi",
@@ -220,7 +221,7 @@ rule create_ldscores:
 rule filter_EUR_individuals:
 	"""Create vcf file for just EUR individuals for each chr."""
 	input:
-		metadata="/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/gnomad_meta_updated.tsv",
+		metadata=config["metadata_hgdp1kgp"],
 	output:
 		samples="results/intermediate_files/ld_scores_EUR/eur.samples.txt",
 	resources:
@@ -235,22 +236,21 @@ rule bcf2bed_hgdp1kgp:
 	"""Create plink output files for use in calculating LD scores."""
 	input:
 		samples=rules.filter_EUR_individuals.output.samples,
-		#bcf="/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.bcf",
-		bcf=lambda wildcards: f"/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr{wildcards.chrom}.filtered.SNV_INDEL.phased.shapeit5.bcf"
-			if wildcards.chrom in [str(c) for c in range(1, 23)] else
-			"/scratch4/rmccoy22/sharedData/populationDatasets/1KGP_NYGC/GRCh38_phased_vcfs/1kGP_high_coverage_Illumina.chr23.filtered.SNV_INDEL_SV_phased_panel.vcf.gz"
+		bcf=lambda wildcards: config["bcf_paths"]["autosomes"].format(chrom=wildcards.chrom)
+			if wildcards.chrom in [str(c) for c in range(1, 23)] 
+			else config["bcf_paths"]["chrX"]
 	output:
-		vcf="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.vcf.gz",
-		bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
-		bim="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bim",
-		fam="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.fam",
-		log="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.log",
+		vcf=config["bcf2bed_hgdp1kgp_outfix"] + ".vcf.gz", 
+		bed=config["bcf2bed_hgdp1kgp_outfix"] + ".bed", 
+		bim=config["bcf2bed_hgdp1kgp_outfix"] + ".bim", 
+		fam=config["bcf2bed_hgdp1kgp_outfix"] + ".fam", 
+		log=config["bcf2bed_hgdp1kgp_outfix"] + ".log", 
 	threads: 8
 	resources:
 		mem_mb="10G",
 		time="30:00"
 	params:
-		outfix="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only",
+		outfix=config["bcf2bed_hgdp1kgp_outfix"]
 	shell:
 		"""
 		# If chromosome is 23, replace chrX with chr23 in the VCF file 
@@ -266,11 +266,47 @@ rule bcf2bed_hgdp1kgp:
 		plink --vcf {output.vcf} --memory 9000 --double-id --make-bed --out {params.outfix}
 		"""
 
+# rule bcf2bed_hgdp1kgp:
+# 	"""Create plink output files for use in calculating LD scores."""
+# 	input:
+# 		samples=rules.filter_EUR_individuals.output.samples,
+# 		#bcf="/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.bcf",
+# 		bcf=lambda wildcards: f"/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr{wildcards.chrom}.filtered.SNV_INDEL.phased.shapeit5.bcf"
+# 			if wildcards.chrom in [str(c) for c in range(1, 23)] else
+# 			"/scratch4/rmccoy22/sharedData/populationDatasets/1KGP_NYGC/GRCh38_phased_vcfs/1kGP_high_coverage_Illumina.chr23.filtered.SNV_INDEL_SV_phased_panel.vcf.gz"
+# 	output:
+# 		vcf="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.vcf.gz",
+# 		bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
+# 		bim="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bim",
+# 		fam="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.fam",
+# 		log="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.log",
+# 	threads: 8
+# 	resources:
+# 		mem_mb="10G",
+# 		time="30:00"
+# 	params:
+# 		outfix="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only",
+# 	shell:
+# 		"""
+# 		# If chromosome is 23, replace chrX with chr23 in the VCF file 
+# 		if [ "{wildcards.chrom}" == "23" ]; then
+#             bcftools view -S {input.samples} --force-samples -m2 -M2 -c 1 -q 0.005:minor {input.bcf} | \
+#             sed 's/^chrX$/chr23/' | \
+#             bgzip -@ {threads} > {output.vcf}
+#         else
+#             bcftools view -S {input.samples} --force-samples -m2 -M2 -c 1 -q 0.005:minor {input.bcf} | \
+#             bgzip -@ {threads} > {output.vcf}
+#         fi
+		
+# 		plink --vcf {output.vcf} --memory 9000 --double-id --make-bed --out {params.outfix}
+# 		"""
+
 rule create_ldscores_EUR: 
     """Calculate LD Scores for European subset of the 1kgphgp dataset for each chromosome."""
     input:
         ldsc_exec=config["ldsc_exec"],
-        bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
+        #bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
+        bed=config["bcf2bed_hgdp1kgp_outfix"] + ".bed",
     output:
         ld_score="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz",
     resources:
