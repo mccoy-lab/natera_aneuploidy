@@ -25,7 +25,7 @@ rule all:
         # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
         # "results/queried_snps_across_traits.tsv",
         expand("results/ld_scores_rsid/LDscore.{chrom}.l2.ldscore.gz", chrom = chromosomes),
-        "results/heritability/MeanCO_Female_heritability.log",
+        #"results/heritability/maternal_meiotic_aneuploidy_by_mother_heritability.log",
         
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -210,19 +210,47 @@ rule create_ldscores:
         """
 
 
+# rule cpra2rsid_ldscores:
+#     """Convert Natera ld scores from CPRA to RSID."""
+#     input:
+#         cpra2rsid_exec=config["cpra2rsid_exec"],
+#         dbsnp=rules.process_dbsnp.output.cpra2rsid_info,
+#         ld_score_in="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
+#         ld_score_M_in="results/ld_scores/LDscore.{chrom}.l2.M",
+#         ld_score_M_5_50_in="results/ld_scores/LDscore.{chrom}.l2.M_5_50",
+#     output:
+#         ld_score_temp=temp("results/intermediate_files/LDscore.{chrom}.temp.l2.ldscore.gz"),
+#         ld_score_gz="results/ld_scores_rsid/LDscore.{chrom}.l2.ldscore.gz",
+#         ld_score_M="results/ld_scores_rsid/LDscore.{chrom}.l2.M",
+#         ld_score_M_5_50="results/ld_scores_rsid/LDscore.{chrom}.l2.M_5_50",
+#     resources:
+#         time="1:30:00",
+#         mem_mb="132G",
+#     params:
+#         filetype="ld_scores"
+#     shell:
+#         """
+#         python3 {input.cpra2rsid_exec} {input.dbsnp} {input.ld_score_in} {output.ld_score_temp} {params.filetype}
+#         awk 'BEGIN{{OFS=FS="\t"}} NR==1 {{$1="SNP"; $3="CPRA"}} 1' {output.ld_score_temp}| bgzip > {output.ld_score_gz}
+#         # Copy SNP count files to renamed directory for use with RSID ld scores
+#         cp {input.ld_score_M_in} {output.ld_score_M}
+#         cp {input.ld_score_M_5_50_in} {output.ld_score_M_5_50}
+#         """
+
 rule cpra2rsid_ldscores:
     """Convert Natera ld scores from CPRA to RSID."""
     input:
         cpra2rsid_exec=config["cpra2rsid_exec"],
         dbsnp=rules.process_dbsnp.output.cpra2rsid_info,
         ld_score_in="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
-        ld_score_M_in="results/ld_scores/LDscore.{chrom}.l2.M",
-        ld_score_M_5_50_in="results/ld_scores/LDscore.{chrom}.l2.M_5_50",
+        #ld_score_M_in="results/ld_scores/LDscore.{chrom}.l2.M",
+        #ld_score_M_5_50_in="results/ld_scores/LDscore.{chrom}.l2.M_5_50",
     output:
-        ld_score_temp=temp("results/intermediate_files/LDscore.{chrom}.temp.l2.ldscore.gz"),
+        ld_score_temp1=temp("results/intermediate_files/LDscore.{chrom}.temp1.l2.ldscore.gz"),
+        ld_score_temp2=temp("results/intermediate_files/LDscore.{chrom}.temp2.l2.ldscore.gz"),
         ld_score_gz="results/ld_scores_rsid/LDscore.{chrom}.l2.ldscore.gz",
         ld_score_M="results/ld_scores_rsid/LDscore.{chrom}.l2.M",
-        ld_score_M_5_50="results/ld_scores_rsid/LDscore.{chrom}.l2.M_5_50",
+        #ld_score_M_5_50="results/ld_scores_rsid/LDscore.{chrom}.l2.M_5_50",
     resources:
         time="1:30:00",
         mem_mb="132G",
@@ -230,11 +258,14 @@ rule cpra2rsid_ldscores:
         filetype="ld_scores"
     shell:
         """
-        python3 {input.cpra2rsid_exec} {input.dbsnp} {input.ld_score_in} {output.ld_score_temp} {params.filetype}
-        awk 'BEGIN{{OFS=FS="\t"}} NR==1 {{$1="SNP"; $3="CPRA"}} 1' {output.ld_score_temp}| bgzip > {output.ld_score_gz}
-        # Copy SNP count files to renamed directory for use with RSID ld scores
-        cp {input.ld_score_M_in} {output.ld_score_M}
-        cp {input.ld_score_M_5_50_in} {output.ld_score_M_5_50}
+        python3 {input.cpra2rsid_exec} {input.dbsnp} {input.ld_score_in} {output.ld_score_temp1} {params.filetype}
+        awk 'BEGIN{{OFS=FS="\t"}} NR==1 {{$1="SNP"; $3="CPRA"}} 1' {output.ld_score_temp1} | bgzip > {output.ld_score_temp2}
+
+        # Remove CPRA column from LD scores
+        zcat {output.ld_score_temp2} | awk '{{$3=""; print $0}}' | sed 's/\t//3' | gzip > {output.ld_score_gz}
+        
+        # Create new .M file that reflects number of usable SNPs (non-NA for SNP RSID)
+        zcat {output.ld_score_gz} | awk 'NR > 1 && $1 != "NA"' | wc -l > {output.ld_score_M}
         """
 
 
@@ -371,6 +402,7 @@ rule heritability:
         """
         python2 {input.ldsc_exec} \
         --h2 {input.summary_stats} \
+        --not-M-5-50 \
         --ref-ld-chr {params.ld_scores} \
         --w-ld-chr {params.ld_scores} \
         --out {params.outfix}

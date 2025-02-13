@@ -25,151 +25,151 @@ summary_stats:
     file: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/summary_stats/All/lmm_gwas_maternal_meiotic_aneuploidy_by_mother_discovery_All_total.tsv.gz"
     type: "aneuploidy"
     N: 18646
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   MeanCO_Female:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.MeanCO.glm.linear"
     type: "recombination"
     N: 14788
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   MeanCO_Male:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Male_regenie.MeanCO.glm.linear"
     type: "recombination"
     N: 14644d
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   MeanCO_Joint:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Joint_regenie.MeanCO.glm.linear"
     type: "recombination"
     N: 29432
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   CentromereDist_Female:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.CentromereDist.glm.linear"
     type: "recombination"
     N: 14875
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   CentromereDist_Male:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Male_regenie.CentromereDist.glm.linear"
     type: "recombination"
     N: 14594
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   CentromereDist_Joint:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Joint_regenie.CentromereDist.glm.linear"
     type: "recombination"
     N: 29469
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   TelomereDist_Female:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.TelomereDist.glm.linear"
     type: "recombination"
     N: 14776
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   TelomereDist_Male:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Male_regenie.TelomereDist.glm.linear"
     type: "recombination"
     N: 14505
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   TelomereDist_Joint:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Joint_regenie.TelomereDist.glm.linear"
     type: "recombination"
     N: 29281
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   cvCO_Female:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.cvCO.glm.linear"
     type: "recombination"
     N: 14810
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   cvCO_Male:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Male_regenie.cvCO.glm.linear"
     type: "recombination"
     N: 14609
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   cvCO_Joint:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Joint_regenie.cvCO.glm.linear"
     type: "recombination"
     N: 29419
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   VarCO_Female:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.VarCO.glm.linear"
     type: "recombination"
     N: 14351
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   VarCO_Male:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Male_regenie.VarCO.glm.linear"
     type: "recombination"
     N: 14638
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   VarCO_Joint:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Joint_regenie.VarCO.glm.linear"
     type: "recombination"
     N: 28989
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   HotspotOccupancy_Female:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.HotspotOccupancy.glm.linear"
     type: "recombination"
     N: 14811
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   HotspotOccupancy_Male:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Male_regenie.HotspotOccupancy.glm.linear"
     type: "recombination"
     N: 14504
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   HotspotOccupancy_Joint:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Joint_regenie.HotspotOccupancy.glm.linear"
     type: "recombination"
     N: 29315
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   GcContent_Female:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.GcContent.glm.linear"
     type: "recombination"
     N: 14806
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   GcContent_Male:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Male_regenie.GcContent.glm.linear"
     type: "recombination"
     N: 14466
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   GcContent_Joint:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Joint_regenie.GcContent.glm.linear"
     type: "recombination"
     N: 29272
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   ReplicationTiming_Female:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Female_regenie.ReplicationTiming.glm.linear"
     type: "recombination"
     N: 14814
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   ReplicationTiming_Male:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Male_regenie.ReplicationTiming.glm.linear"
     type: "recombination"
     N: 14505
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   ReplicationTiming_Joint:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Joint_regenie.ReplicationTiming.glm.linear"
     type: "recombination"
     N: 29319
-    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/LDscore.@"
+    ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   maternal_meiotic_aneuploidy_by_mother_eur:
     file: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/gwas/results/gwas/summary_stats/EUR/lmm_gwas_maternal_meiotic_aneuploidy_by_mother_discovery_EUR_total.tsv.gz"
