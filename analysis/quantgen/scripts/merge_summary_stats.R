@@ -1,7 +1,7 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last update: January 27, 2025
+# last update: February 13, 2025
 # aim: for each lead SNP from the aneuploidy and recombination GWAS results, 
 #       get the beta and p-value from all other traits and create table.
 # =================
@@ -28,7 +28,8 @@ for (file_path in summary_stat_files) {
   trait_name <- gsub("_summary_stats_cpra|\\.tsv$", "", basename(file_path))
   
   # Load the summary statistic file
-  summary_stats <- read.table(file_path, header = TRUE, fill = TRUE)
+  #summary_stats <- read.table(file_path, header = TRUE, fill = TRUE)
+  summary_stats <- fread(file_path)
   
   # Remove any rows for which SNP was NA 
   summary_stats <- summary_stats[!is.na(summary_stats$SNP),]
