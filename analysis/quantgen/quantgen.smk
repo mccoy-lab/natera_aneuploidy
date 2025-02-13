@@ -31,7 +31,7 @@ rule all:
         #expand("/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bed", chrom=chromosomes),
         #"results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr21.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
         #expand("results/ld_scores_EUR_rsid/LDscore.19.l2.ldscore.gz", chrom=chromosomes)
-        expand("results/ld_scores_EUR/LDscore.19.l2.ldscore.gz", chrom=chromosomes)
+        expand("results/ld_scores_EUR_rsid/LDscore.17.l2.ldscore.gz", chrom=chromosomes)
 
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -236,11 +236,12 @@ rule bcf2bed_hgdp1kgp:
 	"""Create plink output files for use in calculating LD scores."""
 	input:
 		samples=rules.filter_EUR_individuals.output.samples,
-		bcf=lambda wildcards: config["bcf_paths"]["autosomes"].format(chrom=wildcards.chrom)
+		bcf=lambda wildcards: config["eur_bcf"]["autosomes"].format(chrom=wildcards.chrom)
 			if wildcards.chrom in [str(c) for c in range(1, 23)] 
-			else config["bcf_paths"]["chrX"]
+			else config["eur_bcf"]["chrX"]
 	output:
-		vcf=config["bcf2bed_hgdp1kgp_outfix"] + ".vcf.gz", 
+		vcf_temp=temp(config["bcf2bed_hgdp1kgp_outfix"] + "temp.vcf.gz"), 
+		vcf=config["bcf2bed_hgdp1kgp_outfix"] + ".vcf.gz",
 		bed=config["bcf2bed_hgdp1kgp_outfix"] + ".bed", 
 		bim=config["bcf2bed_hgdp1kgp_outfix"] + ".bim", 
 		fam=config["bcf2bed_hgdp1kgp_outfix"] + ".fam", 
@@ -254,15 +255,21 @@ rule bcf2bed_hgdp1kgp:
 	shell:
 		"""
 		# If chromosome is 23, replace chrX with chr23 in the VCF file 
+		# Select just European individuals and filter sites
 		if [ "{wildcards.chrom}" == "23" ]; then
             bcftools view -S {input.samples} --force-samples -m2 -M2 -c 1 -q 0.005:minor {input.bcf} | \
             sed 's/^chrX$/chr23/' | \
-            bgzip -@ {threads} > {output.vcf}
+            bgzip -@ {threads} > {output.vcf_temp}
         else
             bcftools view -S {input.samples} --force-samples -m2 -M2 -c 1 -q 0.005:minor {input.bcf} | \
-            bgzip -@ {threads} > {output.vcf}
+            bgzip -@ {threads} > {output.vcf_temp}
         fi
-		
+        
+        # Create ID column with CPRA
+        zcat {output.vcf_temp} | awk 'BEGIN{{OFS=FS="\t"}} /^#/ {{print; next}} {{$3=$1":"$2":"$4":"$5; print}}' | 
+        bgzip > {output.vcf}
+
+		# Convert to plink for use in ld score
 		plink --vcf {output.vcf} --memory 9000 --double-id --make-bed --out {params.outfix}
 		"""
 
@@ -309,6 +316,8 @@ rule create_ldscores_EUR:
         bed=config["bcf2bed_hgdp1kgp_outfix"] + ".bed",
     output:
         ld_score="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz",
+        ld_score_M="results/ld_scores_EUR/LDscore.{chrom}.l2.M",
+        ld_score_M_5_50="results/ld_scores_EUR/LDscore.{chrom}.l2.M_5_50",
     resources:
         time="30:00",
         mem_mb=128000,
@@ -342,7 +351,7 @@ rule cpra2rsid_ldscores_EUR:
         time="1:30:00",
         mem_mb="132G",
     params:
-        filetype="summary_stats"
+        filetype="ld_scores"
     shell:
         """
         python3 {input.cpra2rsid_exec} {input.dbsnp} {input.ld_score_in} {output.ld_score_temp} {params.filetype}
