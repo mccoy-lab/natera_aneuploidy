@@ -20,11 +20,11 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results
 rule all:
     input:
-        # "results/heritability_published_merged.txt",
+        "results/heritability_published_merged.txt",
         # "results/genetic_correlation_merged.txt",
         # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
-        # "results/queried_snps_across_traits.tsv",
-        expand("results/ld_scores_rsid/LDscore.{chrom}.l2.ldscore.gz", chrom = chromosomes),
+        "results/queried_snps_across_traits.tsv",
+        #expand("results/ld_scores_rsid/LDscore.{chrom}.l2.ldscore.gz", chrom = chromosomes),
         #"results/heritability/maternal_meiotic_aneuploidy_by_mother_heritability.log",
         
 
@@ -209,33 +209,6 @@ rule create_ldscores:
         python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.imputed_parents_prefix} --l2 --ld-wind-kb {params.window} --maf {params.maf}
         """
 
-
-# rule cpra2rsid_ldscores:
-#     """Convert Natera ld scores from CPRA to RSID."""
-#     input:
-#         cpra2rsid_exec=config["cpra2rsid_exec"],
-#         dbsnp=rules.process_dbsnp.output.cpra2rsid_info,
-#         ld_score_in="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
-#         ld_score_M_in="results/ld_scores/LDscore.{chrom}.l2.M",
-#         ld_score_M_5_50_in="results/ld_scores/LDscore.{chrom}.l2.M_5_50",
-#     output:
-#         ld_score_temp=temp("results/intermediate_files/LDscore.{chrom}.temp.l2.ldscore.gz"),
-#         ld_score_gz="results/ld_scores_rsid/LDscore.{chrom}.l2.ldscore.gz",
-#         ld_score_M="results/ld_scores_rsid/LDscore.{chrom}.l2.M",
-#         ld_score_M_5_50="results/ld_scores_rsid/LDscore.{chrom}.l2.M_5_50",
-#     resources:
-#         time="1:30:00",
-#         mem_mb="132G",
-#     params:
-#         filetype="ld_scores"
-#     shell:
-#         """
-#         python3 {input.cpra2rsid_exec} {input.dbsnp} {input.ld_score_in} {output.ld_score_temp} {params.filetype}
-#         awk 'BEGIN{{OFS=FS="\t"}} NR==1 {{$1="SNP"; $3="CPRA"}} 1' {output.ld_score_temp}| bgzip > {output.ld_score_gz}
-#         # Copy SNP count files to renamed directory for use with RSID ld scores
-#         cp {input.ld_score_M_in} {output.ld_score_M}
-#         cp {input.ld_score_M_5_50_in} {output.ld_score_M_5_50}
-#         """
 
 rule cpra2rsid_ldscores:
     """Convert Natera ld scores from CPRA to RSID."""
