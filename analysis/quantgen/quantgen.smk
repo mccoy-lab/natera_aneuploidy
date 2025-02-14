@@ -20,12 +20,12 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results
 rule all:
     input:
-        "results/heritability_published_merged.txt",
+        "results/heritability_merged.txt",
         # "results/genetic_correlation_merged.txt",
         # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
-        "results/queried_snps_across_traits.tsv",
-        #expand("results/ld_scores_rsid/LDscore.{chrom}.l2.ldscore.gz", chrom = chromosomes),
-        #"results/heritability/maternal_meiotic_aneuploidy_by_mother_heritability.log",
+        #"results/queried_snps_across_traits.tsv",
+        #expand("results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.ldscore.gz", chrom = chromosomes),
+        
         
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
@@ -216,14 +216,11 @@ rule cpra2rsid_ldscores:
         cpra2rsid_exec=config["cpra2rsid_exec"],
         dbsnp=rules.process_dbsnp.output.cpra2rsid_info,
         ld_score_in="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
-        #ld_score_M_in="results/ld_scores/LDscore.{chrom}.l2.M",
-        #ld_score_M_5_50_in="results/ld_scores/LDscore.{chrom}.l2.M_5_50",
     output:
         ld_score_temp1=temp("results/intermediate_files/LDscore.{chrom}.temp1.l2.ldscore.gz"),
         ld_score_temp2=temp("results/intermediate_files/LDscore.{chrom}.temp2.l2.ldscore.gz"),
         ld_score_gz="results/ld_scores_rsid/LDscore.{chrom}.l2.ldscore.gz",
         ld_score_M="results/ld_scores_rsid/LDscore.{chrom}.l2.M",
-        #ld_score_M_5_50="results/ld_scores_rsid/LDscore.{chrom}.l2.M_5_50",
     resources:
         time="1:30:00",
         mem_mb="132G",
@@ -332,13 +329,11 @@ rule cpra2rsid_ldscores_EUR:
         cpra2rsid_exec=config["cpra2rsid_exec"],
         dbsnp=rules.process_dbsnp.output.cpra2rsid_info,
         ld_score_in="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz",
-        ld_score_M_in="results/ld_scores_EUR/LDscore.{chrom}.l2.M",
-        ld_score_M_5_50_in="results/ld_scores_EUR/LDscore.{chrom}.l2.M_5_50",
     output:
-        ld_score_temp=temp("results/intermediate_files/LDscore.{chrom}.temp.l2.ldscore.gz"),
+        ld_score_temp1=temp("results/intermediate_files/LDscore.{chrom}.temp1.l2.ldscore.gz"),
+        ld_score_temp2=temp("results/intermediate_files/LDscore.{chrom}.temp2.l2.ldscore.gz"),
         ld_score_gz="results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.ldscore.gz",
         ld_score_M="results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.M",
-        ld_score_M_5_50="results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.M_5_50",
     resources:
         time="1:30:00",
         mem_mb="132G",
@@ -346,11 +341,14 @@ rule cpra2rsid_ldscores_EUR:
         filetype="ld_scores"
     shell:
         """
-        python3 {input.cpra2rsid_exec} {input.dbsnp} {input.ld_score_in} {output.ld_score_temp} {params.filetype}
-        awk 'BEGIN{{OFS=FS="\t"}} NR==1 {{$1="SNP"; $3="CPRA"}} 1' {output.ld_score_temp}| bgzip > {output.ld_score_gz}
-        # Copy SNP count files to renamed directory for use with RSID ld scores
-        cp {input.ld_score_M_in} {output.ld_score_M}
-        cp {input.ld_score_M_5_50_in} {output.ld_score_M_5_50}
+        python3 {input.cpra2rsid_exec} {input.dbsnp} {input.ld_score_in} {output.ld_score_temp1} {params.filetype}
+        awk 'BEGIN{{OFS=FS="\t"}} NR==1 {{$1="SNP"; $3="CPRA"}} 1' {output.ld_score_temp1}| bgzip > {output.ld_score_temp2}
+
+        # Remove CPRA column from LD scores
+        zcat {output.ld_score_temp2} | awk '{{$3=""; print $0}}' | sed 's/\t//3' | gzip > {output.ld_score_gz}
+
+        # Create new .M file that reflects number of usable SNPs (non-NA for SNP RSID)
+        zcat {output.ld_score_gz} | awk 'NR > 1 && $1 != "NA"' | wc -l > {output.ld_score_M}
         """
 
 
@@ -397,7 +395,7 @@ rule merge_heritability_results:
 			]
 		),
 	output:
-		merged="results/heritability_published_merged.txt",
+		merged="results/heritability_merged.txt",
 	resources:
 		time="0:05:00",
 		mem_mb=4000,
@@ -407,7 +405,7 @@ rule merge_heritability_results:
 
 		# Define the regex patterns to extract relevant values
 		patterns = {
-			"total_h2": r"Total Observed scale h2:\s+([\d.]+)\s+\(([\d.]+)\)",
+			"total_h2": r"Total Observed scale h2:\s+(-?[\d.]+)\s+\(([\d.]+)\)",
 			"lambda_gc": r"Lambda GC:\s+([\d.]+)",
 			"mean_chi2": r"Mean Chi\^2:\s+([\d.]+)",
 			"intercept": r"Intercept:\s+([\d.]+)\s+\(([\d.]+)\)",
@@ -426,11 +424,27 @@ rule merge_heritability_results:
 
 				# Extract values using regex
 				trait = log_file.split("/")[-1].replace("_heritability.log", "")
-				total_h2, total_h2_se = re.search(patterns["total_h2"], content).groups()
-				lambda_gc = re.search(patterns["lambda_gc"], content).group(1)
-				mean_chi2 = re.search(patterns["mean_chi2"], content).group(1)
-				intercept, intercept_se = re.search(patterns["intercept"], content).groups()
-				snps = re.search(patterns["snps"], content).group(1)
+				# total_h2, total_h2_se = re.search(patterns["total_h2"], content).groups()
+				# lambda_gc = re.search(patterns["lambda_gc"], content).group(1)
+				# mean_chi2 = re.search(patterns["mean_chi2"], content).group(1)
+				# intercept, intercept_se = re.search(patterns["intercept"], content).groups()
+				# snps = re.search(patterns["snps"], content).group(1)
+
+				# Extract values using regex, handle missing matches
+				trait = log_file.split("/")[-1].replace("_heritability.log", "")
+
+				total_h2_match = re.search(patterns["total_h2"], content)
+				lambda_gc_match = re.search(patterns["lambda_gc"], content)
+				mean_chi2_match = re.search(patterns["mean_chi2"], content)
+				intercept_match = re.search(patterns["intercept"], content)
+				snps_match = re.search(patterns["snps"], content)
+
+				# Handle cases where the regex match is None
+				total_h2, total_h2_se = total_h2_match.groups() if total_h2_match else ("NA", "NA")
+				lambda_gc = lambda_gc_match.group(1) if lambda_gc_match else "NA"
+				mean_chi2 = mean_chi2_match.group(1) if mean_chi2_match else "NA"
+				intercept, intercept_se = intercept_match.groups() if intercept_match else ("NA", "NA")
+				snps = snps_match.group(1) if snps_match else "NA"
 
 				# Write extracted values to the output file
 				outfile.write(f"{trait}\t{total_h2}\t{total_h2_se}\t{lambda_gc}\t{mean_chi2}\t{intercept}\t{intercept_se}\t{snps}\n")
