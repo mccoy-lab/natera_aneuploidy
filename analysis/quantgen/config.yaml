@@ -36,7 +36,7 @@ summary_stats:
   MeanCO_Male:
     file: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/natera_recombination_gwas_Male_regenie.MeanCO.glm.linear"
     type: "recombination"
-    N: 14644d
+    N: 14644
     ld_scores: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/ld_scores_rsid/LDscore.@"
     population: "All"
   MeanCO_Joint:
