@@ -20,10 +20,10 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results
 rule all:
     input:
-        "results/heritability_merged.txt",
-        # "results/genetic_correlation_merged.txt",
+        #"results/heritability_merged.txt",
+        #"results/genetic_correlation_merged.txt",
         # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
-        #"results/queried_snps_across_traits.tsv",
+        "results/queried_snps_across_traits.tsv",
         #expand("results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.ldscore.gz", chrom = chromosomes),
         
         
@@ -498,6 +498,7 @@ rule pairwise_genetic_correlation:
         """
         python2 {input.ldsc_exec} \
         --rg {input.trait1_file},{input.trait2_file} \
+        --not-M-5-50 \
         --ref-ld-chr {params.ld_scores} \
         --w-ld-chr {params.ld_scores} \
         --out {params.outfix}
