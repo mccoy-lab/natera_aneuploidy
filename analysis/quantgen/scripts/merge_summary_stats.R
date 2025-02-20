@@ -29,7 +29,7 @@ for (file_path in summary_stat_files) {
   
   # Load the summary statistic file
   #summary_stats <- read.table(file_path, header = TRUE, fill = TRUE)
-  summary_stats <- fread(file_path)
+  summary_stats <- fread(file_path, fill = TRUE)
   
   # Remove any rows for which SNP was NA 
   summary_stats <- summary_stats[!is.na(summary_stats$SNP),]
