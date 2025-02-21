@@ -131,7 +131,7 @@ rule munge_summary_stats:
         chunksize=50000,
         outfix="results/intermediate_files/{name}_munged",
     conda:
-        "ldsc_env.yaml"
+        "envs/ldsc_env.yaml"
     shell:
         """
         python2 {input.munge_exec} --sumstats {input.summary_stats} \
@@ -159,7 +159,7 @@ rule filter_Natera_vcf:
 	params:
 		dosage_r2_thresh=0.9
 	conda:
-		"geno.yaml"
+		"envs/geno.yaml"
 	shell:
 		"""
 		bcftools view -i \'DR2>{params.dosage_r2_thresh}\' --threads {threads} {input.vcf} -Oz -o {output.filtered_vcf}; tabix -f {output.filtered_vcf}
@@ -180,7 +180,7 @@ rule vcf2bed:
 	params:
 		outfix="results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink"
 	conda:
-		"geno.yaml"
+		"envs/geno.yaml"
 	shell:
 		"""
 		plink --vcf {input.filtered_vcf} --memory 9000 --double-id --make-bed --out {params.outfix}
@@ -203,7 +203,7 @@ rule create_ldscores:
         window=1000,
         maf=0.005
     conda:
-        "ldsc_env.yaml"
+        "envs/ldsc_env.yaml"
     shell:
         """
         python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.imputed_parents_prefix} --l2 --ld-wind-kb {params.window} --maf {params.maf}
@@ -317,7 +317,7 @@ rule create_ldscores_EUR:
         window=1000,
         maf=0.005
     conda:
-        "ldsc_env.yaml"
+        "envs/ldsc_env.yaml"
     shell:
         """
         python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.hgdp1kgp_prefix} --l2 --ld-wind-kb {params.window} --maf {params.maf}
@@ -368,7 +368,7 @@ rule heritability:
         ld_scores=lambda wildcards: config["summary_stats"][wildcards.name]["ld_scores"],
         outfix="results/heritability/{name}_heritability",
     conda:
-        "ldsc_env.yaml"
+        "envs/ldsc_env.yaml"
     shell:
         """
         python2 {input.ldsc_exec} \
@@ -493,7 +493,7 @@ rule pairwise_genetic_correlation:
         ],
         outfix="results/genetic_correlation/{trait1}-{trait2}",
     conda:
-        "ldsc_env.yaml"
+        "envs/ldsc_env.yaml"
     shell:
         """
         python2 {input.ldsc_exec} \
