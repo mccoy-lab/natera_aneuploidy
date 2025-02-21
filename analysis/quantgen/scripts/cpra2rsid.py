@@ -1,114 +1,57 @@
-#!/usr/bin/env python3
-
 """ 
 original author: Arjun Biddanda, Biology Dept., Johns Hopkins University 
 modified by: Sara A. Carioscia, Biology Dept., Johns Hopkins University 
 email: scarios1@jhu.edu 
-last update: January 10, 2025
+last update: February 8, 2025
 aim: Convert CPRA to rsids in Natera GWAS summary stats (aneuploidy and recombination)
   for use in ldsc pipeline.  
 """
 
+import sys
 import gzip
-import argparse
 
-
-def build_rsid_dict(af_tsv_fp):
-    """Function to build a dictionary of rsids."""
-    cpra2rsid = {}
-    with gzip.open(af_tsv_fp, "rt") as fp:
-        for line in fp:
-            [chrom, pos, ref, alts, rsid] = line.rstrip().split()
-            for a in alts.split(","):
-                cpra = f"chr{chrom}:{pos}:{ref}:{a}"
-                cpra2rsid[cpra] = rsid
-    return cpra2rsid
-
-def load_rsid_dict(dictionary_fp):
-    """Load RSID dictionary from a tab-separated file."""
-    cpra2rsid = {}
-    with gzip.open(dictionary_fp, "rt") as f:
+def parse_gzipped_vcf(file_path):
+    cpra_rsid_dict = {}
+    
+    with gzip.open(file_path, 'rt') as f:
         for line in f:
-            chrom, pos, ref, alt, rsid = line.rstrip().split("\t")  # Split by tab
-            cpra = f"chr{chrom}:{pos}:{ref}:{alt}"
-            cpra2rsid[cpra] = rsid
-    return cpra2rsid
+            chrom, pos, ref, alt, rsid = line.strip().split('\t')
+            
+            # Handle multiple alternative alleles
+            for alt_allele in alt.split(','):
+                cpra = f"chr{chrom}:{pos}:{ref}:{alt_allele}"
+                cpra_rsid_dict[cpra] = rsid
+    
+    return cpra_rsid_dict
 
-
-def cpra2rsid(cpra, cpra_alt, rsid_dict):
-    """CPRA to rsid direct conversion."""
-    if cpra in rsid_dict:
-        return rsid_dict[cpra]
-    elif cpra_alt in rsid_dict:
-        return rsid_dict[cpra_alt]
-    else:
-        return "NA"  # Use "NA" if no RSID is found
-
-
-def main():
-    # Set up the argument parser
-    parser = argparse.ArgumentParser(
-        description="Convert CPRA IDs to RSIDs in summary statistics."
-    )
-    parser.add_argument(
-        "--sumstats",
-        required=True,
-        help="Path to the input summary statistics file.",
-    )
-    parser.add_argument(
-        "--dbsnp",
-        required=True,
-        help="Path to the dbSNP file (gzipped).",
-    )
-    parser.add_argument(
-        "--dictionary",
-        required=True,
-        help="Path to the prebuilt RSID dictionary file or specify 'build' to generate a new dictionary.",
-    )
-    parser.add_argument(
-        "--output",
-        required=True,
-        help="Path to the output file with RSIDs.",
-    )
-
-    # Parse command-line arguments
-    args = parser.parse_args()
-
-    # Load or build the RSID dictionary
-    if args.dictionary.lower() == 'build':
-        if not args.dbsnp:
-            raise ValueError(
-                "--dbsnp must be specified to build a dictionary if --dictionary is 'build'."
-            )
-        print("Building RSID dictionary...")
-        rsid_dict = build_rsid_dict(args.dbsnp)
-    else:
-        print("Loading RSID dictionary from file...")
-        rsid_dict = load_rsid_dict(args.dictionary)
-
-    # Open the output file for writing
-    with open(args.output, "w+") as out:
-        # Open the input summary statistics file
-        with open(args.sumstats, "r") as sumstats:
-            header = sumstats.readline().rstrip().split("\t")  # Read and clean the header
-            out.write("\t".join(["SNP", "A1", "A2", "BETA", "SE", "P"]) + "\n") # Create header 
-            # Process each line in the summary statistics file
-            for line in sumstats:
-                columns = line.rstrip().split("\t")
-                cpra = columns[0]  # Get the CPRA from the first column
-                cpra_split = cpra.split(":")  # Split the CPRA into components
-                # Construct the alternate CPRA format
-                cpra_alt = f"{cpra_split[0]}:{cpra_split[1]}:{cpra_split[3]}:{cpra_split[2]}"
-                # Create A1 and A2 for output columns
-                A1 = cpra_split[2] 
-                A2 = cpra_split[3]
-                # Get RSID from dictionary
-                rsid = cpra2rsid(cpra, cpra_alt, rsid_dict)
-                
-                # Write the original line and the corresponding RSID
-                out.write(f"{rsid}\t{A1}\t{A2}\t{columns[3]}\t{columns[4]}\t{columns[5]}\n")
-
+def annotate_cpra_file(input_file, output_file, cpra_rsid_dict, file_type):
+    open_file = gzip.open if file_type == "ld_scores" else open
+    with open_file(input_file, 'rt') as infile, open(output_file, 'w') as outfile:
+        for line in infile:
+            if file_type == "summary_stats":    
+                cpra = line.strip().split('\t')[0]  # First column is CPRA
+            elif file_type == "ld_scores":
+                cpra = line.strip().split('\t')[1] # Second column is CPRA 
+            rsid = cpra_rsid_dict.get(cpra, 'NA')  # Lookup RSID or assign 'NA'
+            outfile.write(f"{rsid}\t{line.strip()}\n")
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 5:
+        print("Usage: python3 script.py <gzipped_input_file> <input_file> <output_file> <filetype>")
+        sys.exit(1)
+    
+    file_path = sys.argv[1]
+    input_file = sys.argv[2]
+    output_file = sys.argv[3]
+    file_type = sys.argv[4]
+    
+    cpra_rsid = parse_gzipped_vcf(file_path)
+
+    print("First few CPRA:RSID mappings:")
+    for i, (cpra, rsid) in enumerate(cpra_rsid.items()):
+        if i >= 10:
+            break
+        print(cpra, "->", rsid)
+
+    annotate_cpra_file(input_file, output_file, cpra_rsid, file_type)
 

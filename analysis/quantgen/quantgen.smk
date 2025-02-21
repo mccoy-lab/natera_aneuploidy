@@ -3,7 +3,7 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last updated: January 26, 2025
+# last updated: February 10, 2025
 # aim: Compute heritability and genetic correlation for recombination, aneuploidy, and
 #       published fertility-related traits. Process input files as necessary.
 # =================
@@ -20,11 +20,13 @@ chromosomes = [str(i) for i in range(1, 24)]
 # Create all heritability and genetic correlation results
 rule all:
     input:
-        "results/heritability_published_merged.txt",
-        "results/genetic_correlation_merged.txt",
-        expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
+        #"results/heritability_merged.txt",
+        #"results/genetic_correlation_merged.txt",
+        # expand("results/pheWAS_results_{rsid}.tsv", rsid=config["rsid"]),
         "results/queried_snps_across_traits.tsv",
-
+        #expand("results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.ldscore.gz", chrom = chromosomes),
+        
+        
 
 # -------- Step 1: Steps to standardize Natera summary stats and supporting files for use in LDSC ------- #
 
@@ -52,16 +54,20 @@ rule rename_summary_stats:
     output:
         summary_stats_renamed="results/intermediate_files/{name}_renamed_summary_stats.tsv",
     resources:
-        time="1:00:00",
+        time="10:00",
         mem_mb=500,
     params:
         filetype=lambda wildcards: config["summary_stats"][wildcards.name]["type"],
     shell:
         """
         if [[ "{params.filetype}" == "recombination" ]]; then
-            awk 'BEGIN {{ OFS="\\t"; print "SNP", "A2", "A2", "BETA", "SE", "P" }} NR > 1 {{ print $3, $6, $6, $10, $11, $13 }}' {input.summary_stats} > {output.summary_stats_renamed};
+            awk 'BEGIN {{ OFS="\\t"; print "SNP", "A1", "A2", "BETA", "SE", "P" }} NR > 1 {{ print $3, $6, $4, $10, $11, $13 }}' {input.summary_stats} > {output.summary_stats_renamed};
         elif [[ "{params.filetype}" == "aneuploidy" ]]; then
-            zcat {input.summary_stats} | awk 'BEGIN {{ OFS="\\t"; print "SNP", "A1", "A2", "BETA", "SE", "P" }} {{ print $8, $13, $12, $3, $4, $6 }}' > {output.summary_stats_renamed};
+            tmp1=$(mktemp)
+            zcat {input.summary_stats} | awk -F'\t' '{{ split($8, arr, ":"); \
+                split(arr[3], alleles, ":"); new_col = (alleles[1] == $9) ? alleles[2] : alleles[1]; 
+                print $0 "\t" new_col; }}' | gzip  > "$tmp1"
+            zcat "$tmp1" | awk 'BEGIN {{ OFS="\\t"; print "SNP", "A1", "A2", "BETA", "SE", "P" }} {{ print $8, $9, $14, $3, $4, $6 }}' > {output.summary_stats_renamed};
         else
             cp {input.summary_stats} {output.summary_stats_renamed};
         fi
@@ -70,27 +76,35 @@ rule rename_summary_stats:
 
 rule cpra2rsid:
     """
-    For aneuploidy and recombination summary stats, create RSID column.
-    For public datasets, copy existing summary stats.
+    For European subsets of aneuploidy and recombination summary stats, create RSID column.
+    For public datasets, and for full datasets of aneuploidy/recombination,
+    copy existing summary stats.
     """
     input:
         cpra2rsid_exec=config["cpra2rsid_exec"],
+        dbsnp=rules.process_dbsnp.output.cpra2rsid_info,
         summary_stats="results/intermediate_files/{name}_renamed_summary_stats.tsv",
-        dbsnp=config["dbsnp"],
-        dictionary=rules.process_dbsnp.output.cpra2rsid_info,
     output:
         summary_stats_cpra="results/intermediate_files/{name}_summary_stats_cpra.tsv",
     params:
-        filetype=lambda wildcards: config["summary_stats"][wildcards.name]["type"],
+        traittype=lambda wildcards: config["summary_stats"][wildcards.name]["type"],
+        population=lambda wildcards: config["summary_stats"][wildcards.name]["population"],
+        filetype="summary_stats"
     threads: 1
     resources:
-        time="3:00:00",
-        mem_mb=128000,
-        disk_mb=200000,
+        time="1:30:00",
+        mem_mb="132G",
     shell:
         """
-        if [[ "{params.filetype}" == "recombination" || "{params.filetype}" == "aneuploidy" ]]; then
-            python3 {input.cpra2rsid_exec} --sumstats {input.summary_stats} --dbsnp {input.dbsnp} --dictionary {input.dictionary} --output {output.summary_stats_cpra};
+        if [[ "{params.traittype}" == "recombination" || "{params.traittype}" == "aneuploidy" ]]; then
+            tmp1=$(mktemp)
+            tmp2=$(mktemp)
+
+            python3 {input.cpra2rsid_exec} {input.dbsnp} {input.summary_stats} "$tmp1" {params.filetype};
+            cut --complement -f 2 "$tmp1" > "$tmp2"
+            sed -e '1s/NA/SNP/' "$tmp2" > {output.summary_stats_cpra}
+
+            rm "$tmp1" "$tmp2"
         else
             cp {input.summary_stats} {output.summary_stats_cpra};
         fi
@@ -103,8 +117,8 @@ rule munge_summary_stats:
     """Apply the LDSC data-cleaning script to each summary statistic."""
     input:
         munge_exec=config["munge_exec"],
-        summary_stats=rules.cpra2rsid.output.summary_stats_cpra,
-        allele_list=config["allele_list"],
+        #summary_stats=rules.cpra2rsid.output.summary_stats_cpra,
+        summary_stats="results/intermediate_files/{name}_summary_stats_cpra.tsv",
     output:
         summary_stats_munged="results/intermediate_files/{name}_munged.sumstats.gz",
         log="results/intermediate_files/{name}_munged.log",
@@ -117,17 +131,228 @@ rule munge_summary_stats:
         chunksize=50000,
         outfix="results/intermediate_files/{name}_munged",
     conda:
-        "ldsc_env.yaml"
+        "envs/ldsc_env.yaml"
     shell:
         """
         python2 {input.munge_exec} --sumstats {input.summary_stats} \
-        --merge-alleles {input.allele_list} \
-        --out {params.outfix} \
-        --a1-inc --N {params.num_individuals} --chunksize {params.chunksize}
+        --out {params.outfix} --N {params.num_individuals} \
+        --chunksize {params.chunksize}
         """
 
 
-# -------- Step 3: Calculate heritability on all summary stats ------- #
+# -------- Step 3: Calculate LD scores for Natera data (CPRA) ------- #
+
+rule filter_Natera_vcf: 
+	"""Filter imputed VCF to keep only sites with DR2>0.9 for use in LD scores."""
+	input:
+		vcf=config["imputed_parents_vcf"],
+		vcfidx=config["imputed_parents_vcfidx"],
+	output:
+		filtered_vcf="results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz",
+		filtered_vcf_tabix="results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz.tbi",
+	resources:
+		mem_mb="10G",
+		time="2:00:00",
+	threads: 16
+	wildcard_constraints:
+		chrom="|".join([str(i) for i in range(1, 24)]),
+	params:
+		dosage_r2_thresh=0.9
+	conda:
+		"envs/geno.yaml"
+	shell:
+		"""
+		bcftools view -i \'DR2>{params.dosage_r2_thresh}\' --threads {threads} {input.vcf} -Oz -o {output.filtered_vcf}; tabix -f {output.filtered_vcf}
+		"""
+
+rule vcf2bed: 
+	"""Create plink output files for use in LD score calculation."""
+	input:
+		filtered_vcf="results/ld_scores/filtered_natera_vcf/spectrum_imputed_chr{chrom}_rehead_filterDR29.cpra.vcf.gz",
+	output:
+		bed="results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bed",
+		bim="results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.bim",
+		fam="results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.fam",
+		log="results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink.log",
+	resources:
+		mem_mb="10G",
+		time="45:00"
+	params:
+		outfix="results/ld_scores/filtered_natera_vcf/plink_files/spectrum_imputed_chr{chrom}_rehead_filterDR29_plink"
+	conda:
+		"envs/geno.yaml"
+	shell:
+		"""
+		plink --vcf {input.filtered_vcf} --memory 9000 --double-id --make-bed --out {params.outfix}
+		"""
+
+
+rule create_ldscores: 
+    """Calculate LD Scores for the Natera dataset for each chromosome."""
+    input:
+        ldsc_exec=config["ldsc_exec"],
+    output:
+        ld_score_gz="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
+    resources:
+        time="6:00:00",
+        mem_mb=128000,
+        disk_mb=128000
+    params:
+        outfix="results/ld_scores/LDscore.{chrom}",
+        imputed_parents_prefix=lambda wildcards: config["imputed_parents_template_filtered"].format(chrom=wildcards.chrom),
+        window=1000,
+        maf=0.005
+    conda:
+        "envs/ldsc_env.yaml"
+    shell:
+        """
+        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.imputed_parents_prefix} --l2 --ld-wind-kb {params.window} --maf {params.maf}
+        """
+
+
+rule cpra2rsid_ldscores:
+    """Convert Natera ld scores from CPRA to RSID."""
+    input:
+        cpra2rsid_exec=config["cpra2rsid_exec"],
+        dbsnp=rules.process_dbsnp.output.cpra2rsid_info,
+        ld_score_in="results/ld_scores/LDscore.{chrom}.l2.ldscore.gz",
+    output:
+        ld_score_temp1=temp("results/intermediate_files/LDscore.{chrom}.temp1.l2.ldscore.gz"),
+        ld_score_temp2=temp("results/intermediate_files/LDscore.{chrom}.temp2.l2.ldscore.gz"),
+        ld_score_gz="results/ld_scores_rsid/LDscore.{chrom}.l2.ldscore.gz",
+        ld_score_M="results/ld_scores_rsid/LDscore.{chrom}.l2.M",
+    resources:
+        time="1:30:00",
+        mem_mb="132G",
+    params:
+        filetype="ld_scores"
+    shell:
+        """
+        python3 {input.cpra2rsid_exec} {input.dbsnp} {input.ld_score_in} {output.ld_score_temp1} {params.filetype}
+        awk 'BEGIN{{OFS=FS="\t"}} NR==1 {{$1="SNP"; $3="CPRA"}} 1' {output.ld_score_temp1} | bgzip > {output.ld_score_temp2}
+
+        # Remove CPRA column from LD scores
+        zcat {output.ld_score_temp2} | awk '{{$3=""; print $0}}' | sed 's/\t//3' | gzip > {output.ld_score_gz}
+        
+        # Create new .M file that reflects number of usable SNPs (non-NA for SNP RSID)
+        zcat {output.ld_score_gz} | awk 'NR > 1 && $1 != "NA"' | wc -l > {output.ld_score_M}
+        """
+
+
+# -------- Step 5: Calculate LD Scores for European individuals (RSID) ------- #
+
+rule filter_EUR_individuals:
+	"""Create vcf file for just EUR individuals for each chr."""
+	input:
+		metadata=config["metadata_hgdp1kgp"],
+	output:
+		samples="results/intermediate_files/ld_scores_EUR/eur.samples.txt",
+	resources:
+		mem_mb=500,
+		time="30:00"
+	shell:
+		"""
+		grep "EUR" {input.metadata} | awk '{{print $2}}' > {output.samples}
+		"""
+
+rule bcf2bed_hgdp1kgp:
+	"""Create plink output files for use in calculating LD scores."""
+	input:
+		samples=rules.filter_EUR_individuals.output.samples,
+		bcf=lambda wildcards: config["eur_bcf"]["autosomes"].format(chrom=wildcards.chrom)
+			if wildcards.chrom in [str(c) for c in range(1, 23)] 
+			else config["eur_bcf"]["chrX"]
+	output:
+		vcf_temp=temp(config["bcf2bed_hgdp1kgp_outfix"] + "temp.vcf.gz"), 
+		vcf=config["bcf2bed_hgdp1kgp_outfix"] + ".vcf.gz",
+		bed=config["bcf2bed_hgdp1kgp_outfix"] + ".bed", 
+		bim=config["bcf2bed_hgdp1kgp_outfix"] + ".bim", 
+		fam=config["bcf2bed_hgdp1kgp_outfix"] + ".fam", 
+		log=config["bcf2bed_hgdp1kgp_outfix"] + ".log", 
+	threads: 8
+	resources:
+		mem_mb="10G",
+		time="30:00"
+	params:
+		outfix=config["bcf2bed_hgdp1kgp_outfix"]
+	shell:
+		"""
+		# If chromosome is 23, replace chrX with chr23 in the VCF file 
+		# Select just European individuals and filter sites
+		if [ "{wildcards.chrom}" == "23" ]; then
+            bcftools view -S {input.samples} --force-samples -m2 -M2 -c 1 -q 0.005:minor {input.bcf} | \
+            sed 's/^chrX$/chr23/' | \
+            bgzip -@ {threads} > {output.vcf_temp}
+        else
+            bcftools view -S {input.samples} --force-samples -m2 -M2 -c 1 -q 0.005:minor {input.bcf} | \
+            bgzip -@ {threads} > {output.vcf_temp}
+        fi
+        
+        # Create ID column with CPRA
+        zcat {output.vcf_temp} | awk 'BEGIN{{OFS=FS="\t"}} /^#/ {{print; next}} {{$3=$1":"$2":"$4":"$5; print}}' | 
+        bgzip > {output.vcf}
+
+		# Convert to plink for use in ld score
+		plink --vcf {output.vcf} --memory 9000 --double-id --make-bed --out {params.outfix}
+		"""
+
+
+rule create_ldscores_EUR: 
+    """Calculate LD Scores for European subset of the 1kgphgp dataset for each chromosome."""
+    input:
+        ldsc_exec=config["ldsc_exec"],
+        #bed="results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only.bed",
+        bed=config["bcf2bed_hgdp1kgp_outfix"] + ".bed",
+    output:
+        ld_score="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz",
+        ld_score_M="results/ld_scores_EUR/LDscore.{chrom}.l2.M",
+        ld_score_M_5_50="results/ld_scores_EUR/LDscore.{chrom}.l2.M_5_50",
+    resources:
+        time="30:00",
+        mem_mb=128000,
+        disk_mb=128000
+    params:
+        outfix="results/ld_scores_EUR/LDscore.{chrom}",
+        hgdp1kgp_prefix=lambda wildcards: config["hgdp1kgp_template"].format(chrom=wildcards.chrom),
+        window=1000,
+        maf=0.005
+    conda:
+        "envs/ldsc_env.yaml"
+    shell:
+        """
+        python2 {input.ldsc_exec} --out {params.outfix} --bfile {params.hgdp1kgp_prefix} --l2 --ld-wind-kb {params.window} --maf {params.maf}
+        """
+
+rule cpra2rsid_ldscores_EUR:
+    """Convert EUR ld scores from CPRA to RSID."""
+    input:
+        cpra2rsid_exec=config["cpra2rsid_exec"],
+        dbsnp=rules.process_dbsnp.output.cpra2rsid_info,
+        ld_score_in="results/ld_scores_EUR/LDscore.{chrom}.l2.ldscore.gz",
+    output:
+        ld_score_temp1=temp("results/intermediate_files/LDscore.{chrom}.temp1.l2.ldscore.gz"),
+        ld_score_temp2=temp("results/intermediate_files/LDscore.{chrom}.temp2.l2.ldscore.gz"),
+        ld_score_gz="results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.ldscore.gz",
+        ld_score_M="results/ld_scores_EUR_rsid/LDscore.{chrom}.l2.M",
+    resources:
+        time="1:30:00",
+        mem_mb="132G",
+    params:
+        filetype="ld_scores"
+    shell:
+        """
+        python3 {input.cpra2rsid_exec} {input.dbsnp} {input.ld_score_in} {output.ld_score_temp1} {params.filetype}
+        awk 'BEGIN{{OFS=FS="\t"}} NR==1 {{$1="SNP"; $3="CPRA"}} 1' {output.ld_score_temp1}| bgzip > {output.ld_score_temp2}
+
+        # Remove CPRA column from LD scores
+        zcat {output.ld_score_temp2} | awk '{{$3=""; print $0}}' | sed 's/\t//3' | gzip > {output.ld_score_gz}
+
+        # Create new .M file that reflects number of usable SNPs (non-NA for SNP RSID)
+        zcat {output.ld_score_gz} | awk 'NR > 1 && $1 != "NA"' | wc -l > {output.ld_score_M}
+        """
+
+
+# -------- Step 6: Calculate heritability on all summary stats ------- #
 
 rule heritability:
     """Calculate heritability of each trait."""
@@ -143,11 +368,12 @@ rule heritability:
         ld_scores=lambda wildcards: config["summary_stats"][wildcards.name]["ld_scores"],
         outfix="results/heritability/{name}_heritability",
     conda:
-        "ldsc_env.yaml"
+        "envs/ldsc_env.yaml"
     shell:
         """
         python2 {input.ldsc_exec} \
         --h2 {input.summary_stats} \
+        --not-M-5-50 \
         --ref-ld-chr {params.ld_scores} \
         --w-ld-chr {params.ld_scores} \
         --out {params.outfix}
@@ -161,11 +387,15 @@ rule merge_heritability_results:
 			"results/heritability/{name}_heritability.log", 
 			name=[
 				key for key, value in config["summary_stats"].items()
-				if value["type"] not in {"recombination", "aneuploidy"}
+				if (
+                    value["type"] not in {"recombination", "aneuploidy"}  # include all published 
+                    # include recombination and aneuploidy only for their full datsets
+                    or (value["type"] in {"recombination", "aneuploidy"} and value["population"] == "All") 
+                )
 			]
 		),
 	output:
-		merged="results/heritability_published_merged.txt",
+		merged="results/heritability_merged.txt",
 	resources:
 		time="0:05:00",
 		mem_mb=4000,
@@ -175,7 +405,7 @@ rule merge_heritability_results:
 
 		# Define the regex patterns to extract relevant values
 		patterns = {
-			"total_h2": r"Total Observed scale h2:\s+([\d.]+)\s+\(([\d.]+)\)",
+			"total_h2": r"Total Observed scale h2:\s+(-?[\d.]+)\s+\(([\d.]+)\)",
 			"lambda_gc": r"Lambda GC:\s+([\d.]+)",
 			"mean_chi2": r"Mean Chi\^2:\s+([\d.]+)",
 			"intercept": r"Intercept:\s+([\d.]+)\s+\(([\d.]+)\)",
@@ -194,17 +424,33 @@ rule merge_heritability_results:
 
 				# Extract values using regex
 				trait = log_file.split("/")[-1].replace("_heritability.log", "")
-				total_h2, total_h2_se = re.search(patterns["total_h2"], content).groups()
-				lambda_gc = re.search(patterns["lambda_gc"], content).group(1)
-				mean_chi2 = re.search(patterns["mean_chi2"], content).group(1)
-				intercept, intercept_se = re.search(patterns["intercept"], content).groups()
-				snps = re.search(patterns["snps"], content).group(1)
+				# total_h2, total_h2_se = re.search(patterns["total_h2"], content).groups()
+				# lambda_gc = re.search(patterns["lambda_gc"], content).group(1)
+				# mean_chi2 = re.search(patterns["mean_chi2"], content).group(1)
+				# intercept, intercept_se = re.search(patterns["intercept"], content).groups()
+				# snps = re.search(patterns["snps"], content).group(1)
+
+				# Extract values using regex, handle missing matches
+				trait = log_file.split("/")[-1].replace("_heritability.log", "")
+
+				total_h2_match = re.search(patterns["total_h2"], content)
+				lambda_gc_match = re.search(patterns["lambda_gc"], content)
+				mean_chi2_match = re.search(patterns["mean_chi2"], content)
+				intercept_match = re.search(patterns["intercept"], content)
+				snps_match = re.search(patterns["snps"], content)
+
+				# Handle cases where the regex match is None
+				total_h2, total_h2_se = total_h2_match.groups() if total_h2_match else ("NA", "NA")
+				lambda_gc = lambda_gc_match.group(1) if lambda_gc_match else "NA"
+				mean_chi2 = mean_chi2_match.group(1) if mean_chi2_match else "NA"
+				intercept, intercept_se = intercept_match.groups() if intercept_match else ("NA", "NA")
+				snps = snps_match.group(1) if snps_match else "NA"
 
 				# Write extracted values to the output file
 				outfile.write(f"{trait}\t{total_h2}\t{total_h2_se}\t{lambda_gc}\t{mean_chi2}\t{intercept}\t{intercept_se}\t{snps}\n")
 
 
-# -------- Step 4: Calculate genetic correlation on relevant pairs of summary stats ------- #
+# -------- Step 7: Calculate genetic correlation on relevant pairs of summary stats ------- #
 
 from itertools import combinations
 
@@ -224,6 +470,8 @@ def pairwise_comparisons(config, population_filter):
     return pairwise
 
 
+# Pairings between full summary stats for within recombination/aneuploidy comparisions
+pairwise_all = pairwise_comparisons(config, "All")
 # Pairings between published summary stats and European-specific subsets of Natera
 pairwise_european = pairwise_comparisons(config, "European")
 
@@ -245,11 +493,12 @@ rule pairwise_genetic_correlation:
         ],
         outfix="results/genetic_correlation/{trait1}-{trait2}",
     conda:
-        "ldsc_env.yaml"
+        "envs/ldsc_env.yaml"
     shell:
         """
         python2 {input.ldsc_exec} \
         --rg {input.trait1_file},{input.trait2_file} \
+        --not-M-5-50 \
         --ref-ld-chr {params.ld_scores} \
         --w-ld-chr {params.ld_scores} \
         --out {params.outfix}
@@ -259,11 +508,12 @@ rule pairwise_genetic_correlation:
 pairwise_inputs = sorted(
     set(
         f"results/genetic_correlation/{min(t1, t2)}-{max(t1, t2)}.log"
-        for t1, t2 in pairwise_european
+        for subset in [pairwise_all, pairwise_european]
+        for t1, t2 in subset
     )
 )
 # Split into groups
-n_tranches = 10
+n_tranches = 20
 tranche_size = (len(pairwise_inputs) + n_tranches - 1) // n_tranches
 tranches = [pairwise_inputs[i:i + tranche_size] for i in range(0, len(pairwise_inputs), tranche_size)]
 
@@ -301,7 +551,7 @@ rule merge_genetic_correlation_final:
         """
 
 
-# -------- Step 5: Conduct pheWAS on traits in this analysis.------- #
+# -------- Step 8: Conduct pheWAS on traits in this analysis.------- #
 
 rule pheWAS:
     """Extract lines matching a given RSID from summary stats files and merge them into a single table."""
