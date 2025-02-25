@@ -57,7 +57,7 @@ reformat_data <- function(phenotype, parent) {
   
   # Compute logistic model 
   model <- glm(
-    aneuploidy_ratio ~ rounded_age + I(rounded_age^2),
+    cbind(aneu_true, aneu_false) ~ rounded_age + I(rounded_age^2),
     data = phenotype_non_donor,
     family = binomial(link = "logit")
   )
@@ -92,3 +92,28 @@ ggplot() +
   theme_minimal() + 
   ylim(0, 1)
 
+## summary(model)
+"""
+glm(formula = cbind(aneu_true, aneu_false) ~ rounded_age + I(rounded_age^2), 
+    family = binomial(link = "logit"), data = phenotype_non_donor)
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-4.3275  -1.0124  -0.1859   0.8099   5.8940  
+
+Coefficients:
+                   Estimate Std. Error z value Pr(>|z|)    
+(Intercept)       3.8298003  0.5196704    7.37 1.71e-13 ***
+rounded_age      -0.5068965  0.0288712  -17.56  < 2e-16 ***
+I(rounded_age^2)  0.0102155  0.0003988   25.62  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 52180  on 26745  degrees of freedom
+Residual deviance: 34215  on 26743  degrees of freedom
+AIC: 61818
+
+Number of Fisher Scoring iterations: 4
+"""
