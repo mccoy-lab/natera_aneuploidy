@@ -1,7 +1,7 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last update: January 22, 2025
+# last update: February 25, 2025
 # aim: starting from lead SNP in each recombination hit, ensure that no two SNPs for the same trait are within 1MB of one another.
 #      If so, keep only the most significant
 # =================
@@ -19,6 +19,9 @@ recomb_hits <- read.table(input_data, header = TRUE, sep = "\t", stringsAsFactor
 
 # Filter to only genome-wide significant 
 recomb_hits <- recomb_hits[recomb_hits$Bonferroni == "true",]
+
+# Filter to only female traits
+recomb_hits_female <- recomb_hits[grepl("Female", recomb_hits$PHENO),]
 
 # Function to process the dataset
 filter_significant_entries <- function(data) {
@@ -47,7 +50,7 @@ filter_significant_entries <- function(data) {
 }
 
 # Apply function
-filtered_data <- filter_significant_entries(recomb_hits)
+filtered_data <- filter_significant_entries(recomb_hits_female)
 
 # Save filtered dataset
 write.table(filtered_data, out_fname, sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
