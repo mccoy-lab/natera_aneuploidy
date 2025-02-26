@@ -50,7 +50,7 @@ filter_significant_entries <- function(data) {
 }
 
 # Apply function
-filtered_data <- filter_significant_entries(recomb_hits)
+filtered_data <- filter_significant_entries(recomb_hits_female)
 
 # Save filtered dataset
 write.table(filtered_data, out_fname, sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
