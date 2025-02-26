@@ -597,7 +597,7 @@ rule extract_snps:
         lead_variants_recombination=config["lead_variants_recombination"],
         aneuploidy_summary_stats=config["aneuploidy_summary_stats"]
     output:
-        filtered_recomb=temp("results/intermediate_files/recomb_hits_filtered.tsv"),
+        filtered_recomb="results/intermediate_files/recomb_hits_filtered.tsv",
         significant_snps="results/intermediate_files/gw_significant_snps.txt",
     shell:
         """
