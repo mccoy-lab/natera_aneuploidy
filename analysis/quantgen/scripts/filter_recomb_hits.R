@@ -20,6 +20,9 @@ recomb_hits <- read.table(input_data, header = TRUE, sep = "\t", stringsAsFactor
 # Filter to only genome-wide significant 
 recomb_hits <- recomb_hits[recomb_hits$Bonferroni == "true",]
 
+# Filter to only female traits
+recomb_hits_female <- recomb_hits[grepl("Female", recomb_hits$PHENO),]
+
 # Function to process the dataset
 filter_significant_entries <- function(data) {
   # Split chromosome and position from CPRA 
@@ -47,7 +50,7 @@ filter_significant_entries <- function(data) {
 }
 
 # Apply function
-filtered_data <- filter_significant_entries(recomb_hits)
+filtered_data <- filter_significant_entries(recomb_hits_female)
 
 # Save filtered dataset
 write.table(filtered_data, out_fname, sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)

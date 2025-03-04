@@ -15,7 +15,7 @@ eur_bcf:
 bcf2bed_hgdp1kgp_outfix: "results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only"
 hgdp1kgp_template: "results/intermediate_files/ld_scores_EUR/hgdp1kgp_chr{chrom}.filtered.SNV_INDEL.phased.shapeit5.european_only"
 allele_list: "analysis_files/w_hm3.snplist"
-lead_variants_recombination: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/finalized/natera_recombination_gwas.sumstats.replication.rsids.tsv"
+lead_variants_recombination: "/scratch16/rmccoy22/abiddan1/natera_recomb/analysis/gwas/results/gwas_output/regenie/finalized/natera_recombination_gwas_v2.sumstats.replication.rsids.tsv"
 aneuploidy_summary_stats: "/scratch16/rmccoy22/scarios1/natera_aneuploidy/analysis/quantgen/results/intermediate_files/maternal_meiotic_aneuploidy_by_mother_summary_stats_cpra.tsv"
 rsid: 
     - "rs6006737"
