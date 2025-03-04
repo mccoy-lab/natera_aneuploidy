@@ -3,7 +3,7 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last update: January 21, 2025
+# last update: February 25, 2025
 # aim: plot proportion of each chromosome that is aneuploid, by parent of origin 
 # =================
 
@@ -48,8 +48,8 @@ count_trisomies <- ploidy_calls %>%
 count_monosomies <- ploidy_calls %>%
   group_by(mother, child) %>%
   summarise(num_monosomies = sum(bf_max_cat %in% c("1m", "1p")))
-# Identify embryos with fewer mono/trisomies than the threshold for 
-# maternal meiotic aneuploidy 
+# Identify embryos with fewer mono/trisomies than the threshold for
+# maternal meiotic aneuploidy
 non_triploid <- count_monosomies[count_monosomies$num_monosomies <= 5, ]
 non_haploid <- count_trisomies[count_trisomies$num_trisomies <= 5, ]
 # Keep only embryos without whole-genome gain or loss
@@ -60,8 +60,8 @@ ploidy_calls <- ploidy_calls[ploidy_calls$child %in% non_haploid$child, ]
 ploidy_calls <- ploidy_calls[complete.cases(
   ploidy_calls[,c("0", "1m", "1p", "2", "3m", "3p")]), ]
 
-# Keep only rows with bayes factor greater than the threshold for 
-# bayes factor qc 
+# Keep only rows with bayes factor greater than the threshold for
+# bayes factor qc
 bayes_factor_cutoff <- 2
 ploidy_calls <- ploidy_calls[ploidy_calls$bf_max > bayes_factor_cutoff, ]
 
@@ -70,20 +70,20 @@ min_prob <- 0.9
 ploidy_calls <- ploidy_calls[ploidy_calls$post_max > min_prob, ]
 
 # Keep only chromosomes that are not affected by post-QC segmental aneu
-# Add column that makes ID of mother-father-child-chrom in whole chr 
+# Add column that makes ID of mother-father-child-chrom in whole chr
 ploidy_calls$uid <- paste0(ploidy_calls$mother, "+", ploidy_calls$father, "+",
                            ploidy_calls$child, "+", ploidy_calls$chrom)
 # Add column that makes ID of mother-father-child-chrom in segmental
-segmental_calls$uid <- paste0(segmental_calls$mother, "+", 
-                              segmental_calls$father, "+", 
-                              segmental_calls$child, "+", 
+segmental_calls$uid <- paste0(segmental_calls$mother, "+",
+                              segmental_calls$father, "+",
+                              segmental_calls$child, "+",
                               segmental_calls$chrom)
-# Remove from ploidy calls any chromosomes in segmentals 
+# Remove from ploidy calls any chromosomes in segmentals
 ploidy_calls <- ploidy_calls[!ploidy_calls$uid %in% segmental_calls$uid,]
 
-# Remove trisomies that are likely mosaic 
-ploidy_calls <- ploidy_calls[!(ploidy_calls$bf_max_cat %in% c("3m", "3p") & 
-                                 (ploidy_calls$post_bph_centro < 0.340 & 
+# Remove trisomies that are likely mosaic
+ploidy_calls <- ploidy_calls[!(ploidy_calls$bf_max_cat %in% c("3m", "3p") &
+                                 (ploidy_calls$post_bph_centro < 0.340 &
                                     ploidy_calls$post_bph_noncentro < 0.340)), ]
 
 
@@ -101,6 +101,7 @@ autosomes <- ploidy_calls
 sex_chr <- sex_chr[sex_chr$child %in% ploidy_calls$child]
 
 # Create column with max probability for filtering 
+min_prob <- 0.9
 sex_chr$max_prob <- apply(sex_chr[, 6:11], 1, max)
 sex_chr <- sex_chr[sex_chr$max_prob > min_prob]
 sex_chr$max_prob_Y <- apply(sex_chr[, 16:17], 1, max)
@@ -188,6 +189,4 @@ ggplot(combined_data, aes(x = chrom, y = proportion, fill = parent_origin)) +
 
 # Disconnect
 dev.off()
-
-
 

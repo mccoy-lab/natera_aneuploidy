@@ -1,7 +1,7 @@
 # =================
 # author: Sara A. Carioscia, Biology Dept., Johns Hopkins University
 # email: scarios1@jhu.edu
-# last update: January 22, 2025
+# last update: February 25, 2025
 # aim: starting from lead SNP in each recombination hit, ensure that no two SNPs for the same trait are within 1MB of one another.
 #      If so, keep only the most significant
 # =================
