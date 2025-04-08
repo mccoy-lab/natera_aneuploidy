@@ -92,7 +92,9 @@ ggplot(data = aneuploidies_by_embryo, aes(x = num_aneuploid)) +
     y = "Number of Embryos Affected"
   ) +
   theme_minimal() +
-  theme(legend.position = "none")
+  theme(legend.position = "none") + 
+  theme(axis.text=element_text(size = 20),
+        axis.title=element_text(size = 20))
 
 # Disconnect
 dev.off()
