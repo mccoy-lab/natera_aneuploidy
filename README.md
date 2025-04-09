@@ -3,16 +3,17 @@ GWAS + QuantGen of Aneuploidy in Natera PGT Data
 
 ## Description 
 
-The code here is associated with the following [paper](https://docs.google.com/document/d/1pPh8kAPeizuqboe01FmO2sB0Xfw8Z3vTeiAjrT1co2o/edit#heading=h.imz1c45tt2oy). You can find each  section of analysis in the `analysis` directory. 
+The code here is associated with the following [paper](https://www.medrxiv.org/content/10.1101/2025.04.02.25325097v1). You can find each  section of analysis in the `analysis` directory. 
 
 ### Aneuploidy
 
-The directory `analysis/aneuploidy` contains code for calling whole-chromosome aneuploidies. You can start this section of the analysis using:
+The directory `analysis/aneuploidy` contains code for calling whole-chromosome aneuploidies using [karyohmm](https://github.com/mccoy-lab/karyohmm). You can start this section of the analysis using:
 
 ```
 cd analysis/aneuploidy/
 mamba env create -f env.yaml
 conda activate natera_aneuploidy_calls
+pip install git+https://github.com/mccoy-lab/karyohmm
 snakemake -s natera_data.smk -j <njobs> -p -n 
 ```
 
@@ -74,6 +75,7 @@ The directory `analysis/simulations` contains code for establishing key benchmar
 cd analysis/simulations/
 mamba env create -f env.yaml
 conda activate natera_aneuploidy_sims
+pip install git+https://github.com/mccoy-lab/karyohmm
 snakemake -s sims.smk -p -j20
 ```
 
@@ -85,10 +87,6 @@ Miscellaneous analyses for the primary paper. Currently this directory runs:
 
 * PCA of all Natera parental samples jointly with 2504 1000 Genomes reference individuals. 
 
-## Installation
-
-TODO: describe conda environment creation ... 
-
 ## Contact 
 
 * Sara Carioscia: @scarioscia
@@ -96,4 +94,5 @@ TODO: describe conda environment creation ...
 
 ## External Repositories
 
-* Add in `karyohmm` when publicly available.
+[karyohmm](https://github.com/mccoy-lab/karyohmm) - Software used in many of the scripts for aneuploidy-calling and generating posterior probability tables for downstream filtering. 
+
