@@ -81,11 +81,6 @@ snakemake -s sims.smk -p -j20
 
 The primary results files are  deposited as `.tsv.gz` file under the `results` directory. 
 
-### Misc
-
-Miscellaneous analyses for the primary paper. Currently this directory runs: 
-
-* PCA of all Natera parental samples jointly with 2504 1000 Genomes reference individuals. 
 
 ## Contact 
 
