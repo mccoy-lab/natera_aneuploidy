@@ -46,31 +46,31 @@ chunks_dict = {
     "chr23": 240,
 }
 
-# Parameters pipeline will run on
-phenotypes = [
-    "embryo_count",
-    "maternal_age",
-    "maternal_meiotic_aneuploidy",
-    "haploidy",
-    "triploidy",
-    "chr15_aneuploidy",
-    "chr16_aneuploidy",
-    "chr21_aneuploidy",
-    "chr22_aneuploidy",
-    "maternal_meiotic_aneuploidy_age_interaction",
-]
-single_chr_phenotypes = [
-    "chr15_aneuploidy",
-    "chr16_aneuploidy",
-    "chr21_aneuploidy",
-    "chr22_aneuploidy",
-]
+# # Parameters pipeline will run on
+# phenotypes = [
+#     "embryo_count",
+#     "maternal_age",
+#     "maternal_meiotic_aneuploidy",
+#     "haploidy",
+#     "triploidy",
+#     "chr15_aneuploidy",
+#     "chr16_aneuploidy",
+#     "chr21_aneuploidy",
+#     "chr22_aneuploidy",
+#     "maternal_meiotic_aneuploidy_age_interaction",
+# ]
+# single_chr_phenotypes = [
+#     "chr15_aneuploidy",
+#     "chr16_aneuploidy",
+#     "chr21_aneuploidy",
+#     "chr22_aneuploidy",
+# ]
 
-phenotype = "maternal_meiotic_aneuploidy"
-parents = ["mother", "father"]
-dataset_type = ["discovery", "test"]
-chroms = range(1, 24)
-population = config["population"]
+# phenotype = "maternal_meiotic_aneuploidy"
+# parents = ["mother", "father"]
+# dataset_type = ["discovery", "test"]
+# chroms = range(1, 24)
+# population = config["population"]
 
 # shell.prefix("set -o pipefail; ")
 
@@ -90,7 +90,7 @@ rule all:
     input:
         expand(
             "results/gwas/summary_stats/{population}/lmm_gwas_{phenotype}_by_{parent}_{dataset_type}_{population}_total.tsv.gz",
-            phenotype="maternal_meiotic_aneuploidy",
+            phenotype="embryo_count",
             parent="mother",
             dataset_type="discovery",
             population=config["population"],
