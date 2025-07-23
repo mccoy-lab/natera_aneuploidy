@@ -1,0 +1,43 @@
+programs:
+  convert2tskit: "/scratch16/rmccoy22/abiddan1/programs/SINGER/releases/singer-0.1.8-beta-linux-x86_64/convert_to_tskit"
+  singer: "/scratch16/rmccoy22/abiddan1/programs/SINGER/releases/singer-0.1.8-beta-linux-x86_64/singer_master"
+  clues2: ""
+subsamples:
+  EUR: "/scratch16/rmccoy22/abiddan1/sandbox/hgdp_samples/eur.samples.txt"
+focal_variants:
+  rs6006737:
+    chrom: "chr22"
+    pos: 45387213
+  # rs2272804:
+  #   chrom: "chr22"
+  #   pos: 45413743
+gwas_sumstats:
+  - NA
+  - NA
+vcfs:
+  chr1: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr1.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr2: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr2.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr3: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr3.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr4: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr4.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr5: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr5.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr6: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr6.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr7: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr7.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr8: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr8.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr9: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr9.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr10: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr10.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr11: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr11.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr12: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr12.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr13: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr13.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr14: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr14.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr15: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr15.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr16: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr16.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr17: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr17.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr18: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr18.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr19: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr19.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr20: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr20.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr21: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr21.filtered.SNV_INDEL.phased.shapeit5.bcf"
+  chr22: "/scratch4/rmccoy22/sharedData/populationDatasets/GnomAD_Genomes_HGDP_TGP/hgdp1kgp_chr22.filtered.SNV_INDEL.phased.shapeit5.bcf"
+betascan_stats:
+  CEU: "/scratch16/rmccoy22/abiddan1/sandbox/betascan2_scores/CEUStdB2"
+  CHB: "/scratch16/rmccoy22/abiddan1/sandbox/betascan2_scores/CHBStdB2"
+  YRI: "/scratch16/rmccoy22/abiddan1/sandbox/betascan2_scores/YRIStdB2"
